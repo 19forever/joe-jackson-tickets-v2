@@ -8,9 +8,9 @@ Archive of Joe Jackson concert tickets, posters, programs, and memorabilia hoste
 
 ### 🚨 1. High Priority Tasks (Next Steps)
 
-* [ ] **Transition from `index_short.html` to production `index.html`**
-  * Final refactoring and code cleanup after completing testing phase.
-  * Setting `index.html` as the default entry page of the project.
+* [x] **Transition from `index_short.html` to production `index.html`**
+  * Consolidated `index_short.html` into unified production `index.html`.
+  * Removed duplicate `index_short.html` file and updated Vite build entries.
 
 * [ ] **Access Level Control (Public vs. Admin Level)**
   * *Public Section (`joejackson.band`):* Read-only mode, search, filters, video player, and contribution form (`ticket_form.html`). Hidden edit buttons (✏️ Edit) for standard visitors.

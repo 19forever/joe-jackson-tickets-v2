@@ -20,7 +20,6 @@ export default defineConfig(() => {
           edit_new: path.resolve(__dirname, 'edit_ticket_new.html'),
           edit: path.resolve(__dirname, 'edit_ticket.html'),
           landing: path.resolve(__dirname, 'landing.html'),
-          index_short: path.resolve(__dirname, 'index_short.html'),
         },
       },
     },
