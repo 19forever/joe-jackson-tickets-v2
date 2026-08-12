@@ -396,12 +396,6 @@ function openDirectImagePreview(ticketIndex) {
   const skenFiles = rawSken.split(',').map(s => s.trim()).filter(Boolean);
   const contributeUrl = getContributeUrlForTicket(t);
 
-  if (skenFiles.length === 0) {
-    // Missing scan -> redirect directly to Contribute form prefilled with show details
-    window.location.href = contributeUrl;
-    return;
-  }
-
   if (activeViewerInstance) {
     activeViewerInstance.destroy();
     activeViewerInstance = null;
@@ -410,7 +404,13 @@ function openDirectImagePreview(ticketIndex) {
   const container = document.createElement('div');
   container.style.display = 'none';
 
-  if (skenFiles.length > 0) {
+  if (skenFiles.length === 0) {
+    const img = document.createElement('img');
+    img.src = MISSING_TICKET_SVG;
+    img.alt = `Missing scan for ${formatDisplayDate(t.DATUM)}`;
+    img.dataset.isMissing = 'true';
+    container.appendChild(img);
+  } else {
     skenFiles.forEach((file) => {
       const img = document.createElement('img');
       img.src = `./scans/${file}`;
@@ -422,12 +422,6 @@ function openDirectImagePreview(ticketIndex) {
       };
       container.appendChild(img);
     });
-  } else {
-    const img = document.createElement('img');
-    img.src = MISSING_TICKET_SVG;
-    img.alt = `Missing scan for ${formatDisplayDate(t.DATUM)} - ${formatLocationText(t)}`;
-    img.dataset.isMissing = 'true';
-    container.appendChild(img);
   }
 
   document.body.appendChild(container);
@@ -443,10 +437,9 @@ function openDirectImagePreview(ticketIndex) {
       return `${formatDisplayDate(t.DATUM)} | ${formatLocationText(t)} (${t.KATEGORIE || 'Ticket'})`;
     },
     viewed: function() {
-      // Allow clicking the displayed image canvas directly to contribute if scan is missing/failed
       setTimeout(() => {
         const canvasImg = document.querySelector('.viewer-canvas img');
-        if (canvasImg) {
+        if (canvasImg && (canvasImg.src.includes('data:image/svg+xml') || canvasImg.dataset.isMissing === 'true')) {
           canvasImg.style.cursor = 'pointer';
           canvasImg.title = 'Click to contribute item/photo for this show';
           canvasImg.onclick = (e) => {
@@ -474,9 +467,15 @@ function openQuickImageModal(scanFileName, ticketObj) {
   const quickImg = document.createElement('img');
   const contributeUrl = ticketObj ? getContributeUrlForTicket(ticketObj) : 'ticket_form.html';
   quickImg.src = isValidValue(firstFile) ? `./scans/${firstFile}` : MISSING_TICKET_SVG;
+  
+  if (!isValidValue(firstFile)) {
+    quickImg.dataset.isMissing = 'true';
+  }
+
   quickImg.onerror = function() {
     this.onerror = null;
     this.src = MISSING_TICKET_SVG;
+    this.dataset.isMissing = 'true';
   };
 
   if (quickViewerInstance) {
@@ -496,8 +495,9 @@ function openQuickImageModal(scanFileName, ticketObj) {
     viewed: function() {
       setTimeout(() => {
         const canvasImg = document.querySelector('.viewer-canvas img');
-        if (canvasImg) {
+        if (canvasImg && (canvasImg.src.includes('data:image/svg+xml') || canvasImg.dataset.isMissing === 'true')) {
           canvasImg.style.cursor = 'pointer';
+          canvasImg.title = 'Click to contribute item/photo for this show';
           canvasImg.onclick = (e) => {
             e.stopPropagation();
             window.location.href = contributeUrl;
@@ -667,28 +667,16 @@ function renderTickets(tickets) {
     const globalIndex = filteredTickets.indexOf(t);
     const card = document.createElement('div');
     card.className = 'ticket-card';
-    
-    card.onclick = (e) => {
-      if (e.target.closest('.icon-btn')) return;
-      openDirectImagePreview(globalIndex);
-    };
 
     const skenFiles = (t.SOUBOR_SKEN || '').split(',').map(s => s.trim()).filter(Boolean);
     const isMissingScan = skenFiles.length === 0;
     const firstImgFile = skenFiles[0] || '';
     const imgSrc = isValidValue(firstImgFile) ? `./scans/${firstImgFile}` : MISSING_TICKET_SVG;
     const locationText = formatLocationText(t);
-    const contributeUrl = getContributeUrlForTicket(t);
 
     card.onclick = (e) => {
       if (e.target.closest('.icon-btn')) return;
-      const imgEl = card.querySelector('.card-img-wrapper img');
-      const isFailedImg = imgEl && (imgEl.src.includes('data:image/svg+xml') || imgEl.src.includes('missing_ticket'));
-      if (isMissingScan || isFailedImg) {
-        window.location.href = contributeUrl;
-      } else {
-        openDirectImagePreview(globalIndex);
-      }
+      openDirectImagePreview(globalIndex);
     };
 
     let iconsHTML = '';
@@ -738,10 +726,10 @@ function renderTickets(tickets) {
 
       const relFile = (rel.SOUBOR_SKEN || '').split(',')[0].trim();
       const hasRelScan = isValidValue(relFile);
-      const relAction = hasRelScan ? `openQuickImageModal('${relFile}')` : `window.location.href='${getContributeUrlForTicket(rel)}'`;
+      const relAction = `openQuickImageModal('${relFile}', ${JSON.stringify(rel).replace(/'/g, "&apos;")})`;
 
       iconsHTML += `
-        <button class="icon-btn" title="${title}${hasRelScan ? '' : ' (Missing scan - Click to contribute)'}" onclick="event.stopPropagation(); ${relAction};">
+        <button class="icon-btn" title="${title}${hasRelScan ? '' : ' (Missing scan)'}" onclick="event.stopPropagation(); ${relAction};">
           ${icon}
         </button>`;
     });
@@ -772,7 +760,7 @@ function renderTickets(tickets) {
     }
 
     card.innerHTML = `
-      <div class="card-img-wrapper" title="${isMissingScan ? 'Missing scan - Click to contribute item/photo for this show' : 'Click to view scan'}">
+      <div class="card-img-wrapper" title="${isMissingScan ? 'Missing scan - Click to preview' : 'Click to view scan'}">
         <img src="${imgSrc}" alt="Scan" onerror="this.onerror=null; this.src='${MISSING_TICKET_SVG}';">
       </div>
       <div class="card-content">
