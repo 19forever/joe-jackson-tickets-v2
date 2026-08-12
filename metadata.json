@@ -1,0 +1,6 @@
+{
+  "name": "Joe Jackson Memorabilia Museum",
+  "description": "Historical archive and interactive catalog of Joe Jackson concert tickets, posters, passes, setlists, and memorabilia.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

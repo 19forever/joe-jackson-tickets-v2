@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Joe Jackson Museum - Contribute Memorabilia</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎫</text></svg>">
+  <link rel="stylesheet" href="styles.css">
+  <script src="watermark.js"></script>
+
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px;
+    }
+
+    .form-container {
+      width: 100%;
+      max-width: 750px;
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .form-intro {
+      margin-bottom: 25px;
+      line-height: 1.6;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .form-intro strong { color: var(--accent-yellow); }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full-width { grid-column: 1 / -1; }
+
+    label { font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
+    label span { color: var(--accent-orange); }
+
+    input[type="text"], input[type="date"], input[type="email"], select, textarea {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      outline: none;
+      font-family: inherit;
+    }
+
+    input:focus, select:focus, textarea:focus { border-color: var(--accent-blue); }
+
+    input[type="file"] {
+      background-color: var(--bg-card);
+      border: 1px dashed var(--accent-blue);
+      color: var(--text-muted);
+      padding: 15px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .btn-submit {
+      background-color: var(--accent-yellow);
+      color: #000;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+    .btn-submit:hover { background-color: #fde047; transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: 0.6; cursor: wait; transform: none; }
+
+    #statusMessage {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      display: none;
+      text-align: center;
+      line-height: 1.5;
+    }
+    #statusMessage.success {
+      background: rgba(74, 222, 128, 0.15);
+      border: 1px solid #4ade80;
+      color: #4ade80;
+    }
+    #statusMessage.error {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid #ef4444;
+      color: #ef4444;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 15px; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header style="max-width: 750px;">
+    <div class="header-left">
+      <div class="logo">JJ</div>
+      <div class="title-area">
+        <h1>Contribute to Archive</h1>
+        <p>Share your Joe Jackson concert tickets, passes, or posters</p>
+      </div>
+    </div>
+    <a href="index.html" class="btn-contribute">◄ Back to Museum</a>
+  </header>
+
+  <div class="form-container">
+    <p class="form-intro">
+      Do you possess a Joe Jackson concert ticket, pass, poster, or program scan not yet featured in our museum? 
+      <strong>Help us grow the archive!</strong> Please submit <strong>one concert item per form</strong>.
+    </p>
+
+    <form id="contribForm" action="https://formsubmit.co/marekkraus@gmail.com" method="POST" enctype="multipart/form-data" class="form-grid">
+      <input type="hidden" name="_subject" value="JJMM - addition">
+      <input type="hidden" name="_captcha" value="false">
+      <input type="hidden" name="_template" value="table">
+
+      <div class="form-group">
+        <label for="category">Category <span>*</span></label>
+        <select id="category" name="Category" required>
+          <option value="Tickets">Ticket</option>
+          <option value="Passes">Pass / Backstage</option>
+          <option value="Posters">Poster / Flyer</option>
+          <option value="Programs">Tour Program</option>
+          <option value="T-shirts">Merchandise / T-shirt</option>
+          <option value="Memorabilia">Other Memorabilia</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="date">Concert Date <span>*</span></label>
+        <input type="date" id="date" name="Concert Date" required>
+      </div>
+
+      <div class="form-group">
+        <label for="city">City <span>*</span></label>
+        <input type="text" id="city" name="City" placeholder="e.g. London, New York" required>
+      </div>
+
+      <div class="form-group">
+        <label for="country">Country</label>
+        <input type="text" id="country" name="Country" placeholder="e.g. UK, USA, Germany">
+      </div>
+
+      <div class="form-group full-width">
+        <label for="venue">Venue / Club / Hall</label>
+        <input type="text" id="venue" name="Venue" placeholder="e.g. Royal Albert Hall, The Bottom Line">
+      </div>
+
+      <div class="form-group full-width">
+        <label for="supporting_act">Supporting Act / Special Guest</label>
+        <input type="text" id="supporting_act" name="Supporting Act" placeholder="e.g. The Members, Lincoln Durham">
+      </div>
+
+      <div class="form-group">
+        <label for="contributor">Your Name / Credit <span>*</span></label>
+        <input type="text" id="contributor" name="Contributor Credit" placeholder="How you want to be listed" required>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Your Email (Private)</label>
+        <input type="email" id="email" name="email" placeholder="For verification only (optional)">
+      </div>
+
+      <div class="form-group full-width">
+        <label for="scan_file">Upload Image Scan / Photo <span>*</span></label>
+        <input type="file" id="scan_file" accept="image/*" required>
+        <small style="display: block; margin-top: 5px; color: var(--text-muted, #94a3b8);">
+          📸 Scans are automatically compressed and stamped with a discrete watermark badge: <strong>"JJ Memorabilia Museum"</strong>.
+        </small>
+        <div id="watermarkPreviewBox" style="display: none; margin-top: 12px; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--accent-yellow, #f59e0b); border-radius: 8px;">
+          <div style="font-size: 0.85rem; color: var(--accent-yellow, #f59e0b); font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+            <span>✅ Watermark Preview (JJ Memorabilia Museum)</span>
+            <span id="watermarkDimensions" style="font-size: 0.75rem; opacity: 0.8; color: #fff;"></span>
+          </div>
+          <div style="text-align: center; max-height: 320px; overflow: hidden; border-radius: 6px; background: #000;">
+            <img id="watermarkPreviewImg" src="" alt="Watermarked Preview" style="max-width: 100%; max-height: 320px; object-fit: contain; display: block; margin: 0 auto;">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group full-width">
+        <label for="notes">Additional Information / Notes</label>
+        <textarea id="notes" name="Notes" rows="3" placeholder="Setlist details, story behind the ticket, or personal memories..."></textarea>
+      </div>
+
+      <div class="form-group full-width">
+        <button type="submit" id="submitBtn" class="btn-submit">🚀 Submit Memorabilia to Archive</button>
+      </div>
+    </form>
+
+    <div id="statusMessage"></div>
+  </div>
+
+  <script>
+    // Prefill form from URL query parameters (e.g. when clicking missing item card/placeholder)
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const catParam = params.get('category') || params.get('cat');
+      const dateParam = params.get('date') || params.get('datum');
+      const cityParam = params.get('city') || params.get('mesto');
+      const countryParam = params.get('country') || params.get('stat');
+      const venueParam = params.get('venue');
+      const lineupParam = params.get('lineup') || params.get('supporting_act') || params.get('ucinkujici');
+      const idParam = params.get('id');
+      const notesParam = params.get('notes');
+
+      let isPrefilled = false;
+
+      if (catParam) {
+        const select = document.getElementById('category');
+        const c = catParam.toLowerCase().trim();
+        Array.from(select.options).forEach(opt => {
+          const val = opt.value.toLowerCase();
+          const txt = opt.text.toLowerCase();
+          if (val === c || txt.includes(c) || (c.startsWith('ticket') && val === 'tickets') || (c.startsWith('pass') && val === 'passes') || (c.startsWith('poster') && val === 'posters') || (c.startsWith('program') && val === 'programs')) {
+            select.value = opt.value;
+          }
+        });
+        isPrefilled = true;
+      }
+
+      if (dateParam) {
+        const dateInput = document.getElementById('date');
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+          dateInput.value = dateParam;
+          isPrefilled = true;
+        } else if (/^\d{4}$/.test(dateParam)) {
+          dateInput.value = `${dateParam}-01-01`;
+          isPrefilled = true;
+        }
+      }
+
+      if (cityParam) {
+        document.getElementById('city').value = cityParam;
+        isPrefilled = true;
+      }
+
+      if (countryParam) {
+        document.getElementById('country').value = countryParam;
+        isPrefilled = true;
+      }
+
+      if (venueParam) {
+        document.getElementById('venue').value = venueParam;
+        isPrefilled = true;
+      }
+
+      if (lineupParam) {
+        document.getElementById('supporting_act').value = lineupParam;
+        isPrefilled = true;
+      }
+
+      if (idParam || notesParam) {
+        let noteParts = [];
+        if (idParam) noteParts.push(`Contribute scan for missing item (Record ID: ${idParam})`);
+        if (notesParam) noteParts.push(notesParam);
+        document.getElementById('notes').value = noteParts.join('\n');
+        isPrefilled = true;
+      }
+
+      if (isPrefilled) {
+        const banner = document.createElement('div');
+        banner.style.cssText = `
+          background: rgba(245, 158, 11, 0.15);
+          border: 1px solid var(--accent-yellow);
+          color: var(--accent-yellow);
+          padding: 14px 18px;
+          border-radius: 8px;
+          margin-bottom: 25px;
+          font-size: 0.95rem;
+          line-height: 1.5;
+        `;
+        const dateStr = dateParam ? ` on <strong>${dateParam}</strong>` : '';
+        const cityStr = cityParam ? ` in <strong>${cityParam}</strong>` : '';
+        const venueStr = venueParam ? ` (<em>${venueParam}</em>)` : '';
+        const idStr = idParam ? ` [Record #${idParam}]` : '';
+
+        banner.innerHTML = `📌 <strong>Pre-filled for missing scan:</strong> Form populated for Joe Jackson show${dateStr}${cityStr}${venueStr}${idStr}. Please attach your scan photo or image file below!`;
+        const formIntro = document.querySelector('.form-intro');
+        if (formIntro && formIntro.parentNode) {
+          formIntro.parentNode.insertBefore(banner, formIntro.nextSibling);
+        }
+      }
+    });
+
+    let watermarkedBlob = null;
+    let watermarkedFileName = 'scan.jpg';
+
+    document.getElementById('scan_file').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      const previewBox = document.getElementById('watermarkPreviewBox');
+      const previewImg = document.getElementById('watermarkPreviewImg');
+      const dimsEl = document.getElementById('watermarkDimensions');
+
+      if (!file) {
+        previewBox.style.display = 'none';
+        watermarkedBlob = null;
+        return;
+      }
+
+      try {
+        dimsEl.textContent = '🎨 Applying watermark...';
+        previewBox.style.display = 'block';
+
+        const result = await JJWatermark.apply(file, {
+          text: 'JJ Memorabilia Museum',
+          subtext: 'Joe Jackson Archive • joejackson.band',
+          position: 'bottom-right'
+        });
+
+        watermarkedBlob = result.blob;
+        watermarkedFileName = file.name ? file.name.replace(/\.[^/.]+$/, '_watermarked.jpg') : 'watermarked_scan.jpg';
+
+        previewImg.src = result.dataUrl;
+        dimsEl.textContent = `${result.width} × ${result.height} px • Watermarked`;
+      } catch (err) {
+        console.error('Watermark error:', err);
+        previewBox.style.display = 'none';
+        watermarkedBlob = null;
+      }
+    });
+
+    document.getElementById('contribForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const form = this;
+      const submitBtn = document.getElementById('submitBtn');
+      const statusMsg = document.getElementById('statusMessage');
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Sending memorabilia...';
+      statusMsg.style.display = 'none';
+
+      try {
+        const formData = new FormData(form);
+        if (watermarkedBlob) {
+          formData.set('Attachment', watermarkedBlob, watermarkedFileName);
+        }
+
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: formData,
+          headers: { 'Accept': 'application/json' }
+        });
+
+        if (response.ok) {
+          statusMsg.className = 'success';
+          statusMsg.style.display = 'block';
+          statusMsg.innerHTML = '🎉 <strong>Thank you!</strong> Your memorabilia contribution with "JJ Memorabilia Museum" watermark has been sent successfully. We will review it shortly.';
+          form.reset();
+          document.getElementById('watermarkPreviewBox').style.display = 'none';
+          watermarkedBlob = null;
+        } else {
+          throw new Error(`HTTP ${response.status}`);
+        }
+      } catch (err) {
+        statusMsg.className = 'error';
+        statusMsg.style.display = 'block';
+        statusMsg.innerHTML = '❌ <strong>Submission Error:</strong> Could not send form. Please try again.';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🚀 Submit Memorabilia to Archive';
+      }
+    });
+  </script>
+</body>
+</html>
