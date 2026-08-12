@@ -636,10 +636,21 @@ function filterData() {
     return getTicketCategory(t).toLowerCase() === currentCategory.toLowerCase();
   });
 
+  // Filtrování a řazení
   if (sort === 'oldest') {
     filteredTickets.sort((a, b) => (a.DATUM || '').localeCompare(b.DATUM || ''));
   } else if (sort === 'newest') {
     filteredTickets.sort((a, b) => (b.DATUM || '').localeCompare(a.DATUM || ''));
+  } else if (sort === 'missing_first') {
+    filteredTickets.sort((a, b) => {
+      const aHas = isValidValue(a.SOUBOR_SKEN) ? 1 : 0;
+      const bHas = isValidValue(b.SOUBOR_SKEN) ? 1 : 0;
+      return aHas - bHas;
+    });
+  } else if (sort === 'missing_only') {
+    filteredTickets = filteredTickets.filter(t => !isValidValue(t.SOUBOR_SKEN));
+  } else if (sort === 'scans_only') {
+    filteredTickets = filteredTickets.filter(t => isValidValue(t.SOUBOR_SKEN));
   }
 
   currentPage = 1;
@@ -681,7 +692,6 @@ function renderTickets(tickets) {
 
     let iconsHTML = '';
 
-    // Show edit button only in admin mode or if PAT token exists in localStorage
     const itemId = t.ID_MEMORABILIA || t.ID_LISTKU;
     if (isAdmin && isValidValue(itemId)) {
       iconsHTML += `
