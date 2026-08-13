@@ -833,3 +833,16 @@ function toggleCollapsible(id) {
   const el = document.getElementById(id);
   if (el) el.classList.toggle('open');
 }
+
+// Blokování pravého tlačítka a přetahování na obrázcích
+document.addEventListener('contextmenu', (e) => {
+  if (e.target.tagName === 'IMG') {
+    e.preventDefault();
+  }
+});
+
+document.addEventListener('dragstart', (e) => {
+  if (e.target.tagName === 'IMG') {
+    e.preventDefault();
+  }
+});
