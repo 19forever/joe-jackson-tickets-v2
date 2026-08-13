@@ -780,3 +780,13 @@ header {
     height: 200px;
   }
 }
+
+/* Zamezení přetažení a výběru obrázků */
+.ticket-card img, 
+.card-img-wrapper img, 
+.viewer-canvas img {
+  -webkit-user-drag: none;
+  user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+}
