@@ -6,5 +6,5 @@ coverage/
 *.log
 .env*
 !.env.example
-scans/
-joe_jackson_tickets_cleaned.csv
+
+
