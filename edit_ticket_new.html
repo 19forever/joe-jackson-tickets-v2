@@ -674,9 +674,8 @@
   </div>
 
   <script>
-    const CSV_PRIMARY = 'joe_jackson_tickets_cleaned.csv';
-    const CSV_SECONDARY = 'joe_jackson_tickets_master_with_setlists.csv';
-    let currentCsvFile = CSV_PRIMARY;
+    const CSV_FILENAME = 'joe_jackson_tickets_cleaned.csv';
+    let currentCsvFile = CSV_FILENAME;
 
     const SETLIST_API_KEY_DEFAULT = '3pc6VtmOHzQbQVh9xedw_LLpNRCCfDhEvop7';
     let fullCsvData = [];
@@ -774,41 +773,25 @@
       const urlParams = new URLSearchParams(window.location.search);
       const targetId = urlParams.get('id');
 
-      // Attempt loading primary CSV, fallback to secondary
-      Papa.parse(CSV_PRIMARY, {
+      // Load joe_jackson_tickets_cleaned.csv
+      Papa.parse(CSV_FILENAME, {
         download: true,
         header: true,
         skipEmptyLines: true,
         complete: function(results) {
           if (results.data && results.data.length > 0) {
             fullCsvData = results.data;
-            currentCsvFile = CSV_PRIMARY;
+            currentCsvFile = CSV_FILENAME;
             initData(targetId);
           } else {
-            loadSecondaryCsv(targetId);
+            showStatus('Failed to load ' + CSV_FILENAME + ': file is empty.', 'red');
           }
         },
-        error: function() {
-          loadSecondaryCsv(targetId);
+        error: function(err) {
+          showStatus('Failed to load ' + CSV_FILENAME + '.', 'red');
         }
       });
     });
-
-    function loadSecondaryCsv(targetId) {
-      Papa.parse(CSV_SECONDARY, {
-        download: true,
-        header: true,
-        skipEmptyLines: true,
-        complete: function(results) {
-          fullCsvData = results.data;
-          currentCsvFile = CSV_SECONDARY;
-          initData(targetId);
-        },
-        error: function() {
-          showStatus('Failed to load CSV database files.', 'red');
-        }
-      });
-    }
 
     function initData(targetId) {
       populateDropdowns();
@@ -1141,57 +1124,113 @@
     }
 
     async function fetchSetlistFromUrl() {
-      const setlistUrl = document.getElementById('SETLIST_URL').value.trim();
+      const setlistUrlInput = document.getElementById('SETLIST_URL');
+      let setlistUrl = setlistUrlInput ? setlistUrlInput.value.trim() : '';
+
       if (!setlistUrl) {
-        showStatus('Please enter a valid Setlist.fm URL first.', 'red');
+        showStatus('⚠️ Please enter a valid Setlist.fm URL first.', 'yellow');
         return;
       }
 
-      showStatus('Fetching setlist details from Setlist.fm...', 'blue');
+      showStatus('⚡ Fetching setlist details from Setlist.fm...', 'blue');
 
-      const match = setlistUrl.match(/-([a-z0-9]+)\.html$/i);
-      if (!match) {
-        showStatus('Invalid Setlist.fm URL format.', 'red');
+      let cleanUrl = setlistUrl.split('?')[0].split('#')[0].trim();
+      let setlistId = '';
+      const matchHtml = cleanUrl.match(/-([a-z0-9]+)\.html$/i) || cleanUrl.match(/([a-z0-9]+)\.html$/i);
+      if (matchHtml) {
+        setlistId = matchHtml[1];
+      } else if (/^[a-z0-9]{6,12}$/i.test(cleanUrl)) {
+        setlistId = cleanUrl;
+      }
+
+      if (!setlistId) {
+        showStatus('❌ Invalid Setlist.fm URL format. Expected URL ending in ...<id>.html', 'red');
         return;
       }
 
-      const setlistId = match[1];
       const targetApiUrl = `https://api.setlist.fm/rest/1.0/setlist/${setlistId}`;
+      const apiKey = (typeof SETLIST_API_KEY_DEFAULT !== 'undefined' && SETLIST_API_KEY_DEFAULT)
+        ? SETLIST_API_KEY_DEFAULT
+        : '3pc6VtmOHzQbQVh9xedw_LLpNRCCfDhEvop7';
+
+      const fetchOptions = {
+        method: 'GET',
+        headers: {
+          'x-api-key': apiKey,
+          'Accept': 'application/json'
+        }
+      };
+
+      const fetchEndpoints = [
+        targetApiUrl,
+        `https://corsproxy.io/?${encodeURIComponent(targetApiUrl)}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetApiUrl)}`
+      ];
+
+      let response = null;
+      let lastErrorMsg = '';
+
+      for (const endpoint of fetchEndpoints) {
+        try {
+          const res = await fetch(endpoint, fetchOptions);
+          if (res.ok) {
+            response = res;
+            break;
+          } else if (res.status === 404) {
+            lastErrorMsg = `Setlist ID '${setlistId}' not found on Setlist.fm (HTTP 404).`;
+            break;
+          } else if (res.status === 401 || res.status === 403) {
+            lastErrorMsg = `Setlist.fm API authorization error (HTTP ${res.status}).`;
+          } else {
+            lastErrorMsg = `HTTP ${res.status} from ${endpoint}`;
+          }
+        } catch (err) {
+          lastErrorMsg = err.message || 'Network or CORS fetch error';
+        }
+      }
+
+      if (!response) {
+        showStatus(`❌ Setlist fetch failed: ${lastErrorMsg}`, 'red');
+        return;
+      }
 
       try {
-        const response = await fetch(targetApiUrl, {
-          headers: {
-            'x-api-key': SETLIST_API_KEY_DEFAULT,
-            'Accept': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error(`Setlist.fm API returned HTTP ${response.status}`);
-        }
-
         const data = await response.json();
         let songNames = [];
-        if (data.sets && data.sets.set && Array.isArray(data.sets.set)) {
-          data.sets.set.forEach(setObj => {
-            if (setObj.song && Array.isArray(setObj.song)) {
-              setObj.song.forEach(song => {
-                if (song.name) songNames.push(song.name.trim());
+
+        if (data && data.sets && data.sets.set) {
+          const rawSets = Array.isArray(data.sets.set) ? data.sets.set : [data.sets.set];
+          rawSets.forEach(setObj => {
+            if (setObj && setObj.song) {
+              const rawSongs = Array.isArray(setObj.song) ? setObj.song : [setObj.song];
+              rawSongs.forEach(songObj => {
+                if (songObj && songObj.name && typeof songObj.name === 'string') {
+                  const cleanName = songObj.name.trim();
+                  if (cleanName) {
+                    songNames.push(cleanName);
+                  }
+                }
               });
             }
           });
         }
 
         if (songNames.length === 0) {
-          showStatus('Setlist found on Setlist.fm, but no songs are listed for this concert.', 'blue');
+          showStatus(`⚠️ Setlist retrieved for ID '${setlistId}', but no songs are listed for this concert on Setlist.fm.`, 'yellow');
           return;
         }
 
-        document.getElementById('SETLIST').value = songNames.join(', ');
-        recalculateSongCount();
-        showStatus(`✅ Successfully retrieved ${songNames.length} songs from Setlist.fm!`, 'green');
+        const setlistField = document.getElementById('SETLIST');
+        if (setlistField) {
+          setlistField.value = songNames.join(', ');
+          recalculateSongCount();
+          showStatus(`✅ Successfully retrieved ${songNames.length} songs from Setlist.fm!`, 'green');
+        } else {
+          showStatus(`❌ Could not locate SETLIST form field.`, 'red');
+        }
       } catch (err) {
-        showStatus(`❌ Setlist.fm fetch error: ${err.message}`, 'red');
+        console.error('Setlist parsing error:', err);
+        showStatus(`❌ Failed to parse Setlist.fm response: ${err.message}`, 'red');
       }
     }
 
