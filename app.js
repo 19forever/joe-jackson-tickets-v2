@@ -396,6 +396,9 @@ function formatLocationText(t) {
   if (isValidValue(t.VENUE)) {
     locStr += locStr ? ` - ${t.VENUE}` : t.VENUE;
   }
+  if (!locStr && isValidValue(t.TOUR_NAME)) {
+    locStr = t.TOUR_NAME;
+  }
   return locStr;
 }
 
@@ -469,8 +472,12 @@ function getTicketCategory(t) {
     if (cat.includes('program')) return 'Programs';
     if (cat.includes('poster')) return 'Posters';
     if (cat.includes('shirt') || cat.includes('t-shirt') || cat.includes('tričko')) return 'T-shirts';
+    if (cat.includes('tour')) return 'Tour Items';
     if (cat.includes('memo')) return 'Memorabilia';
     if (cat.includes('ticket')) return 'Tickets';
+  }
+  if (isValidValue(t.TOUR_ID) && !isValidValue(t.DATUM)) {
+    return 'Tour Items';
   }
   return 'Tickets';
 }
@@ -504,10 +511,11 @@ function openSurpriseTicket() {
 }
 
 function getRelatedItems(currentRecord) {
-  if (!isValidValue(currentRecord.SHOW_ID)) return [];
+  if (!currentRecord) return [];
   return allTickets.filter(item => {
-    if (item.ID_MEMORABILIA === currentRecord.ID_MEMORABILIA) return false;
-    return item.SHOW_ID === currentRecord.SHOW_ID;
+    const matchTour = isValidValue(currentRecord.TOUR_ID) && item.TOUR_ID === currentRecord.TOUR_ID;
+    const matchShow = isValidValue(currentRecord.SHOW_ID) && item.SHOW_ID === currentRecord.SHOW_ID;
+    return (matchShow || matchTour) && item.ID_MEMORABILIA !== currentRecord.ID_MEMORABILIA;
   });
 }
 
@@ -571,7 +579,9 @@ function getContributeUrlForTicket(t) {
   if (t.DATUM) params.set('date', t.DATUM);
   if (t.MESTO) params.set('city', t.MESTO);
   if (t.STAT) params.set('country', t.STAT);
-  if (t.MISTO_KONANI) params.set('venue', t.MISTO_KONANI);
+  if (t.VENUE || t.MISTO_KONANI) params.set('venue', t.VENUE || t.MISTO_KONANI);
+  if (t.TOUR_ID) params.set('tour_id', t.TOUR_ID);
+  if (t.TOUR_NAME) params.set('tour_name', t.TOUR_NAME);
   if (t.UCINKUJICI || t.LINEUP) params.set('lineup', t.UCINKUJICI || t.LINEUP);
   const id = t.ID_MEMORABILIA || t.ID_LISTKU;
   if (id) params.set('id', id);
@@ -624,7 +634,9 @@ function openDirectImagePreview(ticketIndex) {
       if (container.parentNode) document.body.removeChild(container);
     },
     title: function() {
-      return `${formatDisplayDate(t.DATUM)} | ${formatLocationText(t)} (${t.KATEGORIE || 'Ticket'})`;
+      const headerStr = t.DATUM ? formatDisplayDate(t.DATUM) : (t.TOUR_NAME || 'Archive Item');
+      const locStr = formatLocationText(t);
+      return `${headerStr}${locStr ? ` | ${locStr}` : ''} (${getTicketCategory(t)})`;
     },
     viewed: function() {
       setTimeout(() => {
@@ -697,7 +709,10 @@ function openQuickImageModal(scanFileName, ticketObj) {
       if (container.parentNode) document.body.removeChild(container);
     },
     title: function() {
-      return ticketObj ? `${formatDisplayDate(ticketObj.DATUM)} | ${formatLocationText(ticketObj)} (${ticketObj.KATEGORIE || 'Memorabilia'})` : 'Scan Preview';
+      if (!ticketObj) return 'Scan Preview';
+      const headerStr = ticketObj.DATUM ? formatDisplayDate(ticketObj.DATUM) : (ticketObj.TOUR_NAME || 'Archive Item');
+      const locStr = formatLocationText(ticketObj);
+      return `${headerStr}${locStr ? ` | ${locStr}` : ''} (${getTicketCategory(ticketObj)})`;
     },
     viewed: function() {
       setTimeout(() => {
@@ -794,7 +809,7 @@ function renderCategoryTabs(matchesBeforeCategoryFilter) {
 
   const counts = { 
     'Tickets': 0, 'Passes': 0, 'Programs': 0, 'Posters': 0, 
-    'T-shirts': 0, 'Memorabilia': 0, 'Videos': 0, 'ALL': matchesBeforeCategoryFilter.length 
+    'T-shirts': 0, 'Tour Items': 0, 'Memorabilia': 0, 'Videos': 0, 'ALL': matchesBeforeCategoryFilter.length 
   };
 
   matchesBeforeCategoryFilter.forEach(t => {
@@ -803,11 +818,11 @@ function renderCategoryTabs(matchesBeforeCategoryFilter) {
     if (isValidValue(t.YOUTUBE_URL)) counts['Videos']++;
   });
 
-  const categoryOrder = ['Tickets', 'Passes', 'Programs', 'Posters', 'T-shirts', 'Memorabilia', 'Videos', 'ALL'];
+  const categoryOrder = ['Tickets', 'Passes', 'Programs', 'Posters', 'T-shirts', 'Tour Items', 'Memorabilia', 'Videos', 'ALL'];
   const categoryLabels = { 
     'Tickets': '🎫 Tickets', 'Passes': '🪪 Passes', 'Programs': '📖 Programs', 
-    'Posters': '🖼️ Posters', 'T-shirts': '🎽 T-shirts', 'Memorabilia': '⭐ Memorabilia', 
-    'Videos': '🎬 Videos', 'ALL': '✨ All Records' 
+    'Posters': '🖼️ Posters', 'T-shirts': '🎽 T-shirts', 'Tour Items': '🎸 Tour Items',
+    'Memorabilia': '⭐ Memorabilia', 'Videos': '🎬 Videos', 'ALL': '✨ All Records' 
   };
 
   categoryOrder.forEach(catKey => {
@@ -859,6 +874,8 @@ function filterData() {
     const supportingAct = (t.SUPPORTING_ACT || '').toLowerCase();
     const lineup = (t.LINEUP || '').toLowerCase();
     const setlist = (t.SETLIST || '').toLowerCase();
+    const tourName = (t.TOUR_NAME || '').toLowerCase();
+    const tourId = (t.TOUR_ID || '').toLowerCase();
 
     const dateMatch = dateCandidates.length > 0 && matchDateAgainstCandidates(t.DATUM, dateCandidates);
 
@@ -873,7 +890,9 @@ function filterData() {
       formattedDate.includes(query) ||
       supportingAct.includes(query) ||
       lineup.includes(query) ||
-      setlist.includes(query);
+      setlist.includes(query) ||
+      tourName.includes(query) ||
+      tourId.includes(query);
 
     const qMatch = !query || dateMatch || textMatch;
       
@@ -981,11 +1000,15 @@ function renderTickets(tickets) {
     relatedItems.forEach(rel => {
       const relCat = getTicketCategory(rel);
       let icon = '🖼️';
-      let title = 'Related Poster';
+      let title = 'Related Item';
 
       if (relCat === 'Tickets') { icon = '🎫'; title = 'Related Ticket'; }
       else if (relCat === 'Passes') { icon = '🪪'; title = 'Related Pass'; }
       else if (relCat === 'Programs') { icon = '📖'; title = 'Related Program'; }
+      else if (relCat === 'Posters') { icon = '🖼️'; title = 'Related Poster'; }
+      else if (relCat === 'T-shirts') { icon = '🎽'; title = 'Related T-shirt'; }
+      else if (relCat === 'Tour Items') { icon = '🎸'; title = 'Related Tour Item'; }
+      else if (relCat === 'Memorabilia') { icon = '⭐'; title = 'Related Memorabilia'; }
 
       const rawRelScan = (rel.SOUBOR_SKEN || '').trim();
       const relFile = rawRelScan.split(',')[0].trim();
@@ -1024,17 +1047,20 @@ function renderTickets(tickets) {
     }
 
     const catName = getTicketCategory(t);
+    const dateHeaderHTML = t.DATUM
+      ? `<div class="card-date">${formatDisplayDate(t.DATUM)}</div>`
+      : (isValidValue(t.TOUR_NAME) ? `<div class="card-date">${t.TOUR_NAME}</div>` : '');
 
     card.innerHTML = `
       <div class="card-img-wrapper" title="${isMissingScan ? 'Missing scan - Click to preview' : 'Click to view scan'}">
-        <img src="${imgSrc}" alt="Joe Jackson Concert ${t.DATUM ? formatDisplayDate(t.DATUM) : 'Archive Item'} - ${locationText || 'Live Performance'} (${catName})" onerror="this.onerror=null; this.src='${MISSING_TICKET_SVG}';">
+        <img src="${imgSrc}" alt="Joe Jackson Concert ${t.DATUM ? formatDisplayDate(t.DATUM) : (t.TOUR_NAME || 'Archive Item')} - ${locationText || 'Live Performance'} (${catName})" onerror="this.onerror=null; this.src='${MISSING_TICKET_SVG}';">
       </div>
       <div class="card-content">
         <div class="card-main-row">
           <div class="card-info-left">
-            ${t.DATUM ? `<div class="card-date">${formatDisplayDate(t.DATUM)}</div>` : ''}
+            ${dateHeaderHTML}
             <span class="category-badge">${catName}</span>
-            <div class="info-text">${locationText}</div>
+            <div class="info-text">${locationText || (isValidValue(t.TOUR_NAME) ? t.TOUR_NAME : '')}</div>
           </div>
           ${iconsHTML ? `<div class="card-icon-col card-actions list-actions">${iconsHTML}</div>` : ''}
         </div>

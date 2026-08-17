@@ -585,12 +585,28 @@
               <option value="programs">Programs</option>
               <option value="posters">Posters</option>
               <option value="t-shirts">T-shirts</option>
+              <option value="tour_items">Tour Items</option>
               <option value="memorabilia">Memorabilia</option>
             </select>
           </div>
           <div class="form-group">
             <label for="LINEUP">Lineup / Band</label>
             <input type="text" id="LINEUP" placeholder="e.g. Joe Jackson (vocals, piano)...">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="TOUR_NAME">Tour Name (TOUR_NAME)</label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="text" id="TOUR_NAME" list="tourNamesList" placeholder="Select or type tour name..." style="flex: 1;">
+              <datalist id="tourNamesList"></datalist>
+              <button type="button" class="btn-token" onclick="addNewTourPrompt()" style="padding: 10px 12px; font-size: 0.8rem; white-space: nowrap;" title="Enter a new tour name">➕ New Tour</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="TOUR_ID">Tour ID (TOUR_ID - Auto-generated)</label>
+            <input type="text" id="TOUR_ID" placeholder="tour-night-and-day-tour" readonly style="opacity: 0.7; cursor: not-allowed; background-color: rgba(255,255,255,0.04);">
           </div>
         </div>
 
@@ -697,7 +713,7 @@
     }
 
     const fields = [
-      'ID_MEMORABILIA', 'SHOW_ID', 'DATUM', 'MESTO', 'STAT', 'VENUE',
+      'ID_MEMORABILIA', 'SHOW_ID', 'TOUR_ID', 'TOUR_NAME', 'DATUM', 'MESTO', 'STAT', 'VENUE',
       'KATEGORIE', 'SOUBOR_SKEN', 'CONTRIBUTOR', 'LINEUP', 'SETLIST',
       'POCET_SKLADEB', 'SETLIST_URL', 'YOUTUBE_URL', 'REVIEW_URL', 'SETLIST_FM_URL'
     ];
@@ -792,6 +808,24 @@
         });
       }
 
+      // Auto-compute TOUR_ID from TOUR_NAME
+      const tourNameInput = document.getElementById('TOUR_NAME');
+      const tourIdInput = document.getElementById('TOUR_ID');
+      function syncTourId() {
+        if (!tourNameInput || !tourIdInput) return;
+        const tourName = tourNameInput.value;
+        if (tourName && tourName.trim()) {
+          const tourId = 'tour-' + tourName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+          tourIdInput.value = tourId;
+        } else {
+          tourIdInput.value = '';
+        }
+      }
+      if (tourNameInput && tourIdInput) {
+        tourNameInput.addEventListener('input', syncTourId);
+        tourNameInput.addEventListener('change', syncTourId);
+      }
+
       // Load CSV
       Papa.parse(CSV_FILENAME, {
         download: true,
@@ -800,6 +834,7 @@
         complete: function(results) {
           fullCsvData = results.data;
           populateJumpDropdown();
+          populateTourList();
 
           const urlParams = new URLSearchParams(window.location.search);
           const targetId = urlParams.get('id');
@@ -821,6 +856,49 @@
       });
     });
 
+    function populateTourList() {
+      const datalist = document.getElementById('tourNamesList');
+      if (!datalist || !Array.isArray(fullCsvData)) return;
+      const tours = new Set();
+      fullCsvData.forEach(row => {
+        if (row && row.TOUR_NAME && row.TOUR_NAME.trim()) {
+          tours.add(row.TOUR_NAME.trim());
+        }
+      });
+      datalist.innerHTML = '';
+      Array.from(tours).sort().forEach(tour => {
+        const opt = document.createElement('option');
+        opt.value = tour;
+        datalist.appendChild(opt);
+      });
+    }
+
+    function addNewTourPrompt() {
+      const input = document.getElementById('TOUR_NAME');
+      const tourIdInput = document.getElementById('TOUR_ID');
+      const newName = prompt('Enter New Concert Tour Name:');
+      if (newName && newName.trim()) {
+        const trimmed = newName.trim();
+        if (input) {
+          input.value = trimmed;
+          input.dispatchEvent(new Event('input'));
+          input.dispatchEvent(new Event('change'));
+        }
+        // Add to datalist if not already there
+        const datalist = document.getElementById('tourNamesList');
+        if (datalist) {
+          const exists = Array.from(datalist.options).some(opt => opt.value.toLowerCase() === trimmed.toLowerCase());
+          if (!exists) {
+            const opt = document.createElement('option');
+            opt.value = trimmed;
+            datalist.appendChild(opt);
+          }
+        }
+      } else if (input) {
+        input.focus();
+      }
+    }
+
     function populateJumpDropdown() {
       const select = document.getElementById('jumpSelect');
       if (!select) return;
@@ -828,7 +906,9 @@
       fullCsvData.forEach((row, i) => {
         const opt = document.createElement('option');
         opt.value = i;
-        opt.textContent = `${i + 1}. [${row.DATUM || 'No date'}] ${row.MESTO || 'Unknown'} (${row.KATEGORIE || 'Item'})`;
+        const dateOrTour = row.DATUM || row.TOUR_NAME || 'No date';
+        const locationOrTour = row.MESTO || row.TOUR_NAME || 'Unknown';
+        opt.textContent = `${i + 1}. [${dateOrTour}] ${locationOrTour} (${row.KATEGORIE || 'Item'})`;
         select.appendChild(opt);
       });
     }

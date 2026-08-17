@@ -33,6 +33,8 @@
   <link rel="alternate icon" type="image/x-icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="favicon.svg">
   <link rel="stylesheet" href="styles.css">
+  <!-- PapaParse for CSV parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="watermark.js"></script>
 
   <style>
@@ -93,6 +95,24 @@
       padding: 15px;
       border-radius: 8px;
       cursor: pointer;
+    }
+
+    .btn-new-tour {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .btn-new-tour:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: var(--accent-yellow);
+      color: var(--accent-yellow);
     }
 
     .btn-submit {
@@ -174,6 +194,20 @@
       </div>
 
       <div class="form-group">
+        <label for="tour_name">Tour Name</label>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="text" id="tour_name" name="Tour Name" list="tourNamesList" placeholder="Select or type tour name..." style="flex: 1;">
+          <datalist id="tourNamesList"></datalist>
+          <button type="button" class="btn-new-tour" onclick="addNewTourPrompt()" title="Enter a new tour name">➕ New Tour</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="tour_id">Tour ID <small style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(Auto-generated)</small></label>
+        <input type="text" id="tour_id" name="Tour ID" placeholder="tour-night-and-day-tour" readonly style="opacity: 0.7; cursor: not-allowed; background-color: rgba(255,255,255,0.04);">
+      </div>
+
+      <div class="form-group">
         <label for="date">Concert Date <span>*</span></label>
         <input type="date" id="date" name="Concert Date" required>
       </div>
@@ -239,19 +273,112 @@
   </div>
 
   <script>
+    const CSV_FILENAME = 'jj_tickets_data.csv';
+
+    function syncTourId() {
+      const tourNameInput = document.getElementById('tour_name');
+      const tourIdInput = document.getElementById('tour_id');
+      if (!tourNameInput || !tourIdInput) return;
+      const tourName = tourNameInput.value;
+      if (tourName && tourName.trim()) {
+        const tourId = 'tour-' + tourName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+        tourIdInput.value = tourId;
+      } else {
+        tourIdInput.value = '';
+      }
+    }
+
+    function populateTourList(data) {
+      const datalist = document.getElementById('tourNamesList');
+      if (!datalist || !Array.isArray(data)) return;
+      const tours = new Set();
+      data.forEach(row => {
+        if (!row) return;
+        const name = row.TOUR_NAME || row.tour_name || row['Tour Name'];
+        if (name && typeof name === 'string' && name.trim()) {
+          tours.add(name.trim());
+        }
+      });
+      datalist.innerHTML = '';
+      Array.from(tours).sort().forEach(tour => {
+        const opt = document.createElement('option');
+        opt.value = tour;
+        datalist.appendChild(opt);
+      });
+    }
+
+    function addNewTourPrompt() {
+      const input = document.getElementById('tour_name');
+      const newName = prompt('Enter New Concert Tour Name:');
+      if (newName && newName.trim()) {
+        const trimmed = newName.trim();
+        if (input) {
+          input.value = trimmed;
+          input.dispatchEvent(new Event('input'));
+          input.dispatchEvent(new Event('change'));
+        }
+        const datalist = document.getElementById('tourNamesList');
+        if (datalist) {
+          const exists = Array.from(datalist.options).some(opt => opt.value.toLowerCase() === trimmed.toLowerCase());
+          if (!exists) {
+            const opt = document.createElement('option');
+            opt.value = trimmed;
+            datalist.appendChild(opt);
+          }
+        }
+      } else if (input) {
+        input.focus();
+      }
+    }
+
     // Prefill form from URL query parameters (e.g. when clicking missing item card/placeholder)
     window.addEventListener('DOMContentLoaded', () => {
+      // Auto-compute TOUR_ID from TOUR_NAME
+      const tourNameInput = document.getElementById('tour_name');
+      if (tourNameInput) {
+        tourNameInput.addEventListener('input', syncTourId);
+        tourNameInput.addEventListener('change', syncTourId);
+      }
+
+      // Load CSV to populate dynamic tour names list
+      Papa.parse(CSV_FILENAME, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          if (results && results.data) {
+            populateTourList(results.data);
+          }
+        },
+        error: function(err) {
+          console.warn('Could not pre-load tours list from CSV:', err);
+        }
+      });
+
       const params = new URLSearchParams(window.location.search);
       const catParam = params.get('category') || params.get('cat');
       const dateParam = params.get('date') || params.get('datum');
       const cityParam = params.get('city') || params.get('mesto');
       const countryParam = params.get('country') || params.get('stat');
+      const tourIdParam = params.get('tour_id');
+      const tourNameParam = params.get('tour_name') || params.get('tour');
       const venueParam = params.get('venue');
       const lineupParam = params.get('lineup') || params.get('supporting_act') || params.get('ucinkujici');
       const idParam = params.get('id');
       const notesParam = params.get('notes');
 
       let isPrefilled = false;
+
+      if (tourNameParam) {
+        if (tourNameInput) tourNameInput.value = tourNameParam;
+        syncTourId();
+        isPrefilled = true;
+      }
+
+      if (tourIdParam) {
+        document.getElementById('tour_id').value = tourIdParam;
+        isPrefilled = true;
+      }
 
       if (catParam) {
         const select = document.getElementById('category');
