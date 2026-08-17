@@ -1337,34 +1337,40 @@
       const repoOwner = '19forever';
       const repoName = 'joe-jackson-tickets-v2';
       const filePath = currentCsvFile;
+      const targetUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`;
+
+      console.log('Target Repo:', repoOwner, repoName, filePath);
+      console.log('GitHub API Endpoint:', targetUrl);
 
       showStatus('Connecting to GitHub API...', 'blue');
 
       try {
-        const getFileRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`, {
+        const getFileRes = await fetch(targetUrl, {
           headers: { 
             'Authorization': `token ${token}`,
             'Accept': 'application/vnd.github.v3+json'
           }
         });
 
+        console.log('GET File Status:', getFileRes.status);
+        const fileData = await getFileRes.json().catch(() => ({}));
+        console.log('GET File Response:', fileData);
+
         if (!getFileRes.ok) {
-          const errData = await getFileRes.json().catch(() => ({}));
           if (getFileRes.status === 401) {
             safeRemoveStorage('jj_github_pat');
             throw new Error('Invalid PAT token or expired credentials (401).');
           } else if (getFileRes.status === 404) {
             throw new Error(`File '${filePath}' not found in repo ${repoOwner}/${repoName}. Check repository name or permissions.`);
           }
-          throw new Error(errData.message || `GitHub API error: ${getFileRes.status}`);
+          throw new Error(fileData.message || `GitHub API error: ${getFileRes.status}`);
         }
 
-        const fileData = await getFileRes.json();
         const sha = fileData.sha;
-
         const contentEncoded = btoa(unescape(encodeURIComponent(csvString)));
 
-        const updateRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`, {
+        console.log('GitHub API Endpoint (PUT):', targetUrl);
+        const updateRes = await fetch(targetUrl, {
           method: 'PUT',
           headers: {
             'Authorization': `token ${token}`,
@@ -1378,13 +1384,20 @@
           })
         });
 
+        console.log('PUT File Status:', updateRes.status);
+        const updateJson = await updateRes.json().catch(() => ({}));
+        console.log('PUT File Response:', updateJson);
+
         if (updateRes.ok) {
-          showStatus('✅ Successfully saved directly to GitHub! Changes will be live in ~30s.', 'green');
+          if (updateJson && updateJson.content && updateJson.commit) {
+            console.log('Successfully updated file SHA:', updateJson.content.sha, 'Commit URL:', updateJson.commit.html_url);
+          }
+          showStatus(`✅ Saved to ${repoOwner}/${repoName} (${filePath})! Changes will be live in ~30s.`, 'green');
         } else {
-          const errJson = await updateRes.json().catch(() => ({}));
-          throw new Error(`GitHub Save Failed (${updateRes.status}): ${errJson.message || 'Check PAT scope permissions'}`);
+          throw new Error(`GitHub Save Failed (${updateRes.status}): ${updateJson.message || 'Check PAT scope permissions'}`);
         }
       } catch (err) {
+        console.error('commitToGitHub Error:', err);
         showStatus(`❌ ${err.message}`, 'red');
       }
     }
