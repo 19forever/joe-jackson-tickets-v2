@@ -512,10 +512,47 @@ function openSurpriseTicket() {
 
 function getRelatedItems(currentRecord) {
   if (!currentRecord) return [];
+
+  const currId = currentRecord.ID_MEMORABILIA || currentRecord.ID_LISTKU;
+  const currTourId = isValidValue(currentRecord.TOUR_ID) ? currentRecord.TOUR_ID.trim() : null;
+  const currShowId = isValidValue(currentRecord.SHOW_ID) ? currentRecord.SHOW_ID.trim() : null;
+  const hasCurrDate = isValidValue(currentRecord.DATUM);
+  const currDate = hasCurrDate ? currentRecord.DATUM.trim() : null;
+
   return allTickets.filter(item => {
-    const matchTour = isValidValue(currentRecord.TOUR_ID) && item.TOUR_ID === currentRecord.TOUR_ID;
-    const matchShow = isValidValue(currentRecord.SHOW_ID) && item.SHOW_ID === currentRecord.SHOW_ID;
-    return (matchShow || matchTour) && item.ID_MEMORABILIA !== currentRecord.ID_MEMORABILIA;
+    const itemId = item.ID_MEMORABILIA || item.ID_LISTKU;
+    if (currId && itemId && itemId === currId) return false;
+    if (item === currentRecord) return false;
+
+    const matchTour = !!(currTourId && isValidValue(item.TOUR_ID) && item.TOUR_ID.trim() === currTourId);
+    const matchShow = !!(currShowId && isValidValue(item.SHOW_ID) && item.SHOW_ID.trim() === currShowId);
+
+    if (!matchShow && !matchTour) return false;
+
+    // If explicitly linked by SHOW_ID (same show)
+    if (matchShow) {
+      return true;
+    }
+
+    // For items sharing the same TOUR_ID:
+    const hasItemDate = isValidValue(item.DATUM);
+    const itemDate = hasItemDate ? item.DATUM.trim() : null;
+
+    // OPTION B: No specific date (empty or invalid DATUM) represents genuine tour-wide memorabilia (e.g. Tour Book, global poster, merchandise)
+    if (!hasItemDate) {
+      const rawCat = (item.KATEGORIE || '').trim().toLowerCase();
+      const isTicket = rawCat === 'ticket' || rawCat === 'tickets' || rawCat === 'lístek' || rawCat === 'listek';
+      if (isTicket) return false;
+      return true;
+    }
+
+    // OPTION A: Shares the EXACT SAME DATE (DATUM) as the current concert (e.g., event-specific poster or article for that exact night)
+    if (hasCurrDate && itemDate === currDate) {
+      return true;
+    }
+
+    // Exclude items with a DIFFERENT date from another show of the same tour
+    return false;
   });
 }
 
