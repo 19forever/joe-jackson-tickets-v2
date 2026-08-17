@@ -789,7 +789,7 @@ async function handleSpotifyPlaylistAction(record, btnElement) {
     }
 
     const redirectUri = getSpotifyRedirectUri();
-    const scopes = 'playlist-modify-public playlist-modify-private playlist-read-private';
+    const scopes = 'user-read-private user-read-email playlist-modify-public playlist-modify-private playlist-read-private';
     const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&code_challenge_method=S256&code_challenge=${encodeURIComponent(codeChallenge)}`;
 
     const origContent = btnElement ? btnElement.innerHTML : '';
