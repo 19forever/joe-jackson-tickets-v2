@@ -709,6 +709,16 @@
       } catch (e) {}
     }
 
+    // Helper for safe Base64 UTF-8 encoding (avoids btoa character exceptions)
+    function utf8ToBase64(str) {
+      const bytes = new TextEncoder().encode(str);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
+    }
+
     const fields = [
       'ID_MEMORABILIA', 'SHOW_ID', 'DATUM', 'MESTO', 'STAT', 'VENUE',
       'KATEGORIE', 'SOUBOR_SKEN', 'CONTRIBUTOR', 'LINEUP', 'SETLIST',
@@ -800,11 +810,14 @@
       const urlParams = new URLSearchParams(window.location.search);
       const targetId = urlParams.get('id');
 
-      // Load joe_jackson_tickets_cleaned.csv
+      // Load CSV with automatic header stripping (removes UTF-8 BOM \ufeff)
       Papa.parse(CSV_FILENAME, {
         download: true,
         header: true,
         skipEmptyLines: true,
+        transformHeader: function(header) {
+          return header.trim().replace(/^\ufeff/, '');
+        },
         complete: function(results) {
           if (results.data && results.data.length > 0) {
             fullCsvData = results.data;
@@ -820,15 +833,36 @@
       });
     });
 
+    // Flexible reader function handling BOM, spacing, and case differences
+    function getFieldValue(data, fieldName) {
+      if (!data) return '';
+      if (data[fieldName] !== undefined && data[fieldName] !== null) {
+        return String(data[fieldName]).trim();
+      }
+      const targetLower = fieldName.toLowerCase();
+      const actualKey = Object.keys(data).find(k => k.trim().replace(/^\ufeff/, '').toLowerCase() === targetLower);
+      return actualKey && data[actualKey] !== undefined && data[actualKey] !== null ? String(data[actualKey]).trim() : '';
+    }
+
+    function getId(record) {
+      if (!record) return 'N/A';
+      return getFieldValue(record, 'ID_MEMORABILIA') || 
+             getFieldValue(record, 'ID_LISTKU') || 
+             getFieldValue(record, 'ID') || 
+             getFieldValue(record, 'id') || 
+             getFieldValue(record, 'SHOW_ID') || 
+             'N/A';
+    }
+
     function initData(targetId) {
       populateDropdowns();
       populateJumpSelect();
 
       if (targetId) {
-        currentRecordIndex = fullCsvData.findIndex(r => 
-          (r.ID_MEMORABILIA && r.ID_MEMORABILIA === targetId) || 
-          (r.ID_LISTKU && r.ID_LISTKU === targetId)
-        );
+        currentRecordIndex = fullCsvData.findIndex(r => {
+          const rId = getId(r);
+          return rId && rId.toLowerCase() === targetId.toLowerCase();
+        });
       }
 
       if (currentRecordIndex === -1) {
@@ -855,10 +889,6 @@
       if (!val) return false;
       const clean = String(val).trim().toLowerCase();
       return clean !== '' && clean !== 'není k dispozici' && clean !== 'n/a' && clean !== 'null';
-    }
-
-    function getId(record) {
-      return record.ID_MEMORABILIA || record.ID_LISTKU || 'N/A';
     }
 
     function generateNextId() {
@@ -939,8 +969,8 @@
 
       const duplicate = fullCsvData.find(r => {
         if (getId(r) === currentId) return false;
-        const rDate = (r.DATUM || '').trim().toLowerCase();
-        const rCity = (r.MESTO || '').trim().toLowerCase();
+        const rDate = getFieldValue(r, 'DATUM').toLowerCase();
+        const rCity = getFieldValue(r, 'MESTO').toLowerCase();
         return rDate === dateVal && rCity === cityVal && rDate !== '';
       });
 
@@ -980,7 +1010,7 @@
 
     function populateDropdowns() {
       const donorSelect = document.getElementById('CONTRIBUTOR');
-      const uniqueDonors = [...new Set(fullCsvData.map(r => r.CONTRIBUTOR || r.CONTRIBUTOR_TEXT).filter(isValid))].sort();
+      const uniqueDonors = [...new Set(fullCsvData.map(r => getFieldValue(r, 'CONTRIBUTOR') || getFieldValue(r, 'CONTRIBUTOR_TEXT')).filter(isValid))].sort();
 
       donorSelect.innerHTML = '<option value="">-- Select Contributor --</option>';
       uniqueDonors.forEach(donor => {
@@ -994,8 +1024,8 @@
       jumpSelect.innerHTML = '';
       fullCsvData.forEach((r, idx) => {
         const recId = getId(r);
-        const city = r.MESTO || '';
-        const date = r.DATUM || '';
+        const city = getFieldValue(r, 'MESTO');
+        const date = getFieldValue(r, 'DATUM');
         const label = `${recId} (${date} ${city})`;
         const opt = document.createElement('option');
         opt.value = idx;
@@ -1049,17 +1079,17 @@
         const el = document.getElementById(field);
         if (el) {
           if (field === 'CONTRIBUTOR') {
-            const val = data.CONTRIBUTOR || data.CONTRIBUTOR_TEXT || '';
+            const val = getFieldValue(data, 'CONTRIBUTOR') || getFieldValue(data, 'CONTRIBUTOR_TEXT');
             setDropdownValue(el, val);
           } else if (field === 'ID_MEMORABILIA') {
             el.value = currentId;
           } else {
-            el.value = data[field] || '';
+            el.value = getFieldValue(data, field);
           }
         }
       });
 
-      renderImagePreview(data.SOUBOR_SKEN);
+      renderImagePreview(getFieldValue(data, 'SOUBOR_SKEN'));
       updateYtPreview();
       recalculateSongCount();
       updateNavUI();
@@ -1261,13 +1291,17 @@
       }
     }
 
+    // Ensures updated input values are written back to the exact existing CSV keys
     function getFormData() {
       const updated = { ...fullCsvData[currentRecordIndex] };
 
       fields.forEach(field => {
         const el = document.getElementById(field);
         if (el) {
-          updated[field] = el.value.trim();
+          const targetLower = field.toLowerCase();
+          const existingKey = Object.keys(updated).find(k => k.trim().replace(/^\ufeff/, '').toLowerCase() === targetLower);
+          const keyToUse = existingKey || field;
+          updated[keyToUse] = el.value.trim();
         }
       });
 
@@ -1360,7 +1394,7 @@
         const fileData = await getFileRes.json();
         const sha = fileData.sha;
 
-        const contentEncoded = btoa(unescape(encodeURIComponent(csvString)));
+        const contentEncoded = utf8ToBase64(csvString);
 
         const updateRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`, {
           method: 'PUT',
