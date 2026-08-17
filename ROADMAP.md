@@ -10,6 +10,12 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Multi-criteria filtering by Tour, Category, Country, Year, City, Venue, and Contributor
   - Comprehensive metadata search across all historical records
   - Audio player preview integration and CSV data export
+- [x] **Flexible Multi-Format Date Search**
+  - Natural language & localized date query parser supporting formats like "13th March", "March 13th", "13-3", "13.3.", "13/3", "13.03.", "03/13", and ISO dates
+  - Normalizes search input to match stored ISO dates (`YYYY-MM-DD`) by Day and Month across all tour years
+- [x] **Interactive Card Badges & Viewer.js Integration**
+  - Direct full-resolution scan inspection triggered from item card badges (tickets, posters, passes)
+  - `pointer-events` optimization ensuring reliable event-delegation clicks
 - [x] **High-Density Compact List View (`.list-view`)**
   - Ultra-compact single-row layout per concert record
   - Scaled thumbnail scans (32×24px) with preserved aspect ratio
@@ -26,8 +32,13 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
 ### Admin Editor & API Integration (`edit_ticket_new.html`)
 - [x] **Admin Authentication Gate**
   - Secured session access via GitHub Personal Access Token (PAT)
-- [x] **Direct GitHub Publishing**
-  - 1-click live commit/publishing to GitHub repository via GitHub REST API
+- [x] **Direct GitHub v2 Publishing**
+  - 1-click live commit/publishing targeting `19forever/joe-jackson-tickets-v2` via GitHub REST API
+  - Safe UTF-8 Base64 encoding pipeline preventing character corruption on setlist saves
+  - Embedded console debug logging and target repository status toasts
+- [x] **Strict Multi-Criteria Duplicate Detection**
+  - Real-time duplicate prevention validating combination of Date (`DATUM`), City (`MESTO`), AND Category (`KATEGORIE`)
+  - Dynamic re-evaluation on category selection change
 - [x] **Setlist.fm API Integration**
   - Custom dedicated Cloudflare Worker proxy (`jj-setlist-proxy`) bypassing browser CORS preflight restrictions
 - [x] **High-Definition Inspection**
@@ -40,6 +51,9 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Aspect-ratio-preserving canvas watermarker with semi-transparent overlay ("JJ Memorabilia Museum")
 
 ### Codebase Health & Architecture
+- [x] **Robust CSV Data Engine & UTF-8 BOM Handling**
+  - Automatic removal of UTF-8 Byte Order Mark (`\ufeff`) via PapaParse `transformHeader`
+  - Dynamic case-insensitive and alias-aware field resolution (`getFieldValue`) preventing `N/A` data parsing errors
 - [x] **Refactored Codebase & Storage Safety**
   - Isolated `localStorage`/`sessionStorage` wrappers with try-catch fallbacks for private browsing compatibility
   - Cleaned up obsolete CSS selectors, dead code, and duplicated utility functions
@@ -58,16 +72,16 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
 
 ---
 
-## Post-Launch Enhancements
+## Post-Launch Enhancements & Community Features
+- [ ] **Community & Fan Interactivity Engine (Supabase / Cloudflare D1 Backend)**
+  - **Setlist.fm Import:** Sync user attendance via Setlist.fm public API (`/user/{userId}/attended`) to automatically display attendance badges.
+  - **Personal Concert Statuses:** User interactive badges per show (*"I Was There"*, *"I Own Ticket"*, *"Ticket Lost/Traded"*, *"I Have Audio Recording"*).
+  - **Concert Memories & Stories:** Micro-forum section allowing registered fans to share personal concert anecdotes per date.
+  - **Data Correction & Bootleg Submissions:** Quick-action reporting tool for missing setlists or rare audio recording details.
+  - **Personal Concert Passport:** Generatable summary card displaying personal attendance stats across tours, countries, and venues.
 - [ ] **Data Model Expansion for Tour-Wide Memorabilia**
   - Dedicated UI separation for general tour items (posters, t-shirts, pins without specific concert dates)
 - [ ] **Fan Submission Portal with Cloud Storage**
   - Direct image upload pipeline using S3 / Cloudflare R2
 - [ ] **Streaming Platform Integration**
   - Direct Spotify / Apple Music setlist playback links
-- [ ] **Community & Fan Interactivity Engine**
-  - **Setlist.fm Integration:** Import user attendance via Setlist.fm public API (`/user/{userId}/attended`) to automatically flag attended shows.
-  - **Personal Concert Badges:** User status indicators on concert cards (*"I Was There"*, *"I Own Ticket"*, *"Ticket Lost"*, *"I Have Audio Recording"*).
-  - **Fan Memories & Stories:** Micro-forum section per concert allowing fans to publish personal concert stories and anecdotes.
-  - **Data Correction & Tape Holder Submissions:** Quick-action reporting tool for metadata corrections or bootleg recording submissions.
-  - **Personal Concert Passport:** Generatable fan summary page with personal attendance statistics across tours and cities.
