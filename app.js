@@ -92,6 +92,8 @@ function checkIsAdmin() {
 }
 
 // Spotify Redirect URI & PKCE Helpers
+let isSpotifyCallbackProcessing = false;
+
 function getSpotifyRedirectUri() {
   return window.location.hostname.includes('github.io')
     ? 'https://19forever.github.io/joe-jackson-tickets-v2/'
@@ -118,6 +120,9 @@ async function generateCodeChallenge(codeVerifier) {
 
 // Check and handle Spotify popup callback immediately (PKCE authorization code flow)
 async function handleSpotifyPopupCallback() {
+  if (isSpotifyCallbackProcessing) return false;
+  isSpotifyCallbackProcessing = true;
+
   const searchParams = new URLSearchParams(window.location.search);
   const code = searchParams.get('code');
   const error = searchParams.get('error');
@@ -160,7 +165,13 @@ async function handleSpotifyPopupCallback() {
           }
         }
       } else {
-        console.error('Spotify token exchange failed:', await res.text());
+        const errText = await res.text();
+        console.error('Spotify token exchange failed:', errText);
+        safeRemoveStorage('spotify_code_verifier');
+        if (window.opener || window.name === 'spotify_auth') {
+          window.close();
+          return true;
+        }
       }
     } catch (err) {
       console.error('Error exchanging Spotify code:', err);
@@ -204,7 +215,6 @@ const isAdmin = checkIsAdmin();
 // Initialization
 window.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
-  handleSpotifyPopupCallback(); // Check if redirected back with token
 
   // Show/Hide Admin links in Header
   const adminEditorLink = document.getElementById('adminEditorLink');
