@@ -8,8 +8,12 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
 ### Core Web Application & UI (`index.html`, `styles.css`, `app.js`)
 - [x] **Interactive Museum Interface**
   - Multi-criteria filtering by Tour, Category, Country, Year, City, Venue, and Contributor
-  - Comprehensive metadata search across all historical records
+  - Comprehensive metadata search across all historical records including `TOUR_NAME` and `TOUR_ID`
   - Audio player preview integration and CSV data export
+- [x] **Tour-Wide Memorabilia Engine**
+  - Cross-linking tour-wide items (tour books, t-shirts, posters) across all shows sharing the same `TOUR_ID`
+  - Intelligent `getRelatedItems` filtering preventing individual concert tickets from cluttering unrelated show cards
+  - Dedicated "Tour Items" (🎸) tab categorization for undated tour memorabilia with dynamic tour title card headers
 - [x] **Flexible Multi-Format Date Search**
   - Natural language & localized date query parser supporting formats like "13th March", "March 13th", "13-3", "13.3.", "13/3", "13.03.", "03/13", and ISO dates
   - Normalizes search input to match stored ISO dates (`YYYY-MM-DD`) by Day and Month across all tour years
@@ -30,6 +34,10 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Interactive charts via Chart.js (Timeline, Categories, Top Cities, Venues, Songs, Donors)
 
 ### Admin Editor & API Integration (`edit_ticket_new.html`)
+- [x] **Dynamic Tour Manager & Auto-Slug Generation**
+  - Live `<datalist>` selector populated with unique existing tours from dataset
+  - "➕ New Tour" quick action for seamless addition of new tour titles
+  - Real-time auto-generated read-only `TOUR_ID` slug creation (`tour-name-year`)
 - [x] **Admin Authentication Gate**
   - Secured session access via GitHub Personal Access Token (PAT)
 - [x] **Direct GitHub v2 Publishing**
@@ -45,12 +53,16 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Full-resolution zoomable image modal powered by Viewer.js
 
 ### Public Contribution & Media Pipeline (`ticket_form.html`, `watermark.js`)
+- [x] **Synchronized Public Tour Submissions**
+  - Replicated dynamic tour selector, "➕ New Tour" prompt, and auto-generated `TOUR_ID` slug logic in `ticket_form.html` guaranteeing data consistency across fan contributions
 - [x] **Public Contribution Portal**
-  - Pre-filled missing scan submissions routed via FormSubmit
+  - Pre-filled missing scan submissions routed via FormSubmit with query parameter pre-filling
 - [x] **Canvas Watermarking Utility**
   - Aspect-ratio-preserving canvas watermarker with semi-transparent overlay ("JJ Memorabilia Museum")
 
 ### Codebase Health & Architecture
+- [x] **Data Model Expansion for Tour-Wide Memorabilia**
+  - Standardized integration of `TOUR_ID` and `TOUR_NAME` attributes across dataset, app logic, admin editor, and contribution pipeline
 - [x] **Robust CSV Data Engine & UTF-8 BOM Handling**
   - Automatic removal of UTF-8 Byte Order Mark (`\ufeff`) via PapaParse `transformHeader`
   - Dynamic case-insensitive and alias-aware field resolution (`getFieldValue`) preventing `N/A` data parsing errors
@@ -79,10 +91,8 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - **Concert Memories & Stories:** Micro-forum section allowing registered fans to share personal concert anecdotes per date.
   - **Data Correction & Bootleg Submissions:** Quick-action reporting tool for missing setlists or rare audio recording details.
   - **Personal Concert Passport:** Generatable summary card displaying personal attendance stats across tours, countries, and venues.
-- [ ] **Data Model Expansion for Tour-Wide Memorabilia**
-  - Dedicated UI separation for general tour items (posters, t-shirts, pins without specific concert dates)
 - [ ] **Fan Submission Portal with Cloud Storage**
   - Direct image upload pipeline using S3 / Cloudflare R2
 - [-] **Streaming Platform Integration**
   - Direct Spotify / Apple Music setlist playback links
-     - tested, but failed to generate custom playlists
+      - tested, but failed to generate custom playlists
