@@ -467,6 +467,7 @@ function openQuickImageModal(scanFileName, ticketObj) {
   const quickImg = document.createElement('img');
   const contributeUrl = ticketObj ? getContributeUrlForTicket(ticketObj) : 'ticket_form.html';
   quickImg.src = isValidValue(firstFile) ? `./scans/${firstFile}` : MISSING_TICKET_SVG;
+  quickImg.alt = ticketObj ? `Joe Jackson Concert ${formatDisplayDate(ticketObj.DATUM)} - ${formatLocationText(ticketObj)} (${ticketObj.KATEGORIE || 'Memorabilia'})` : 'Joe Jackson concert memorabilia scan preview';
   
   if (!isValidValue(firstFile)) {
     quickImg.dataset.isMissing = 'true';
@@ -771,7 +772,7 @@ function renderTickets(tickets) {
 
     card.innerHTML = `
       <div class="card-img-wrapper" title="${isMissingScan ? 'Missing scan - Click to preview' : 'Click to view scan'}">
-        <img src="${imgSrc}" alt="Scan" onerror="this.onerror=null; this.src='${MISSING_TICKET_SVG}';">
+        <img src="${imgSrc}" alt="Joe Jackson Concert ${t.DATUM ? formatDisplayDate(t.DATUM) : 'Archive Item'} - ${locationText || 'Live Performance'} (${t.KATEGORIE || 'Ticket'})" onerror="this.onerror=null; this.src='${MISSING_TICKET_SVG}';">
       </div>
       <div class="card-content">
         <div class="card-main-row">

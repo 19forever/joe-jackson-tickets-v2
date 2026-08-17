@@ -1,0 +1,7 @@
+# robots.txt for https://joejackson.band/
+User-agent: *
+Allow: /
+Disallow: /edit_ticket_new.html
+
+# Sitemap location
+Sitemap: https://joejackson.band/sitemap.xml
