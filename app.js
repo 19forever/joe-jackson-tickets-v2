@@ -105,6 +105,21 @@ window.lockAdminSession = function() {
 
 const isAdmin = checkIsAdmin();
 
+function resolveCategoryFromUrl(catParam) {
+  if (!catParam) return null;
+  const c = catParam.trim().toLowerCase();
+  if (c === 'tickets' || c === 'ticket' || c === 'lístek' || c === 'listek') return 'Tickets';
+  if (c === 'passes' || c === 'pass' || c === 'backstage') return 'Passes';
+  if (c === 'programs' || c === 'program' || c === 'programme' || c === 'programmes') return 'Programs';
+  if (c === 'posters' || c === 'poster' || c === 'plakát' || c === 'plakat') return 'Posters';
+  if (c === 't-shirts' || c === 't-shirt' || c === 'tshirt' || c === 'tshirts' || c === 'shirts' || c === 'tričko' || c === 'tricko') return 'T-shirts';
+  if (c === 'tour items' || c === 'tour_items' || c === 'tour' || c === 'touritems') return 'Tour Items';
+  if (c === 'memorabilia' || c === 'memo' || c === 'memorabilie') return 'Memorabilia';
+  if (c === 'videos' || c === 'video' || c === 'youtube') return 'Videos';
+  if (c === 'all' || c === 'vše' || c === 'vse') return 'ALL';
+  return null;
+}
+
 // Initialization
 window.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
@@ -138,12 +153,28 @@ window.addEventListener('DOMContentLoaded', () => {
       updateYearBadge();
       populateFilters();
 
-      const savedSearch = safeGetSession('jj_museum_search');
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlCategory = urlParams.get('category') || urlParams.get('cat');
+      const urlSearch = urlParams.get('search') || urlParams.get('q');
+
+      const resolvedCategory = resolveCategoryFromUrl(urlCategory);
+      if (resolvedCategory) {
+        currentCategory = resolvedCategory;
+      }
+
       const searchInput = document.getElementById('searchInput');
-      if (savedSearch && searchInput) {
-        searchInput.value = savedSearch;
+      if (urlSearch && searchInput) {
+        searchInput.value = urlSearch;
+        safeSetSession('jj_museum_search', urlSearch);
         const clearBtn = document.getElementById('searchClearBtn');
         if (clearBtn) clearBtn.style.display = 'block';
+      } else {
+        const savedSearch = safeGetSession('jj_museum_search');
+        if (savedSearch && searchInput) {
+          searchInput.value = savedSearch;
+          const clearBtn = document.getElementById('searchClearBtn');
+          if (clearBtn) clearBtn.style.display = 'block';
+        }
       }
 
       filterData();
@@ -964,6 +995,15 @@ function filterData() {
 
   currentPage = 1;
   renderPaginated();
+
+  const adminEditorLink = document.getElementById('adminEditorLink');
+  if (adminEditorLink) {
+    const curSearch = document.getElementById('searchInput')?.value?.trim();
+    const editParams = new URLSearchParams();
+    if (curSearch) editParams.set('search', curSearch);
+    if (currentCategory && currentCategory !== 'ALL') editParams.set('category', currentCategory);
+    adminEditorLink.href = editParams.toString() ? `edit_ticket_new.html?${editParams.toString()}` : 'edit_ticket_new.html';
+  }
 }
 
 function renderPaginated() {
@@ -1003,8 +1043,13 @@ function renderTickets(tickets) {
 
     const itemId = t.ID_MEMORABILIA || t.ID_LISTKU;
     if (isAdmin && isValidValue(itemId)) {
+      const editParams = new URLSearchParams();
+      editParams.set('id', itemId);
+      const curSearch = document.getElementById('searchInput')?.value?.trim();
+      if (curSearch) editParams.set('search', curSearch);
+      if (currentCategory && currentCategory !== 'ALL') editParams.set('category', currentCategory);
       iconsHTML += `
-        <button class="icon-btn btn-action-edit" title="Edit Record in Editor" onclick="event.stopPropagation(); window.location.href='edit_ticket_new.html?id=${encodeURIComponent(itemId)}';">
+        <button class="icon-btn btn-action-edit" title="Edit Record in Editor" onclick="event.stopPropagation(); window.location.href='edit_ticket_new.html?${editParams.toString()}';">
           ✏️
         </button>`;
     }

@@ -517,7 +517,7 @@
     <div class="header-actions">
       <button class="btn-token" onclick="manageToken()">🔑 PAT Settings</button>
       <button class="btn-lock" id="lockAdminBtn" style="display: none;" onclick="lockAdminSession()" title="Lock Admin Session">🔒 Lock Admin</button>
-      <a href="index.html" class="btn-back">◄ Back to Museum</a>
+      <a href="index.html" class="btn-back" id="backToMuseumBtn">◄ Back to Museum</a>
     </div>
   </header>
 
@@ -756,7 +756,28 @@
       safeRemoveStorage('jj_github_pat');
       safeRemoveStorage('jj_admin_mode');
       try { sessionStorage.removeItem('jj_admin_mode'); } catch (e) {}
-      window.location.href = 'index.html';
+      const urlParams = new URLSearchParams(window.location.search);
+      const backParams = new URLSearchParams();
+      const searchParam = urlParams.get('search') || urlParams.get('q');
+      const catParam = urlParams.get('category') || urlParams.get('cat');
+      if (searchParam) backParams.set('search', searchParam);
+      if (catParam) backParams.set('category', catParam);
+      window.location.href = backParams.toString() ? `index.html?${backParams.toString()}` : 'index.html';
+    }
+
+    function updateBackToMuseumLinks() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const backParams = new URLSearchParams();
+      const searchParam = urlParams.get('search') || urlParams.get('q');
+      const catParam = urlParams.get('category') || urlParams.get('cat');
+      if (searchParam) backParams.set('search', searchParam);
+      if (catParam) backParams.set('category', catParam);
+
+      const targetUrl = backParams.toString() ? `index.html?${backParams.toString()}` : 'index.html';
+
+      document.querySelectorAll('.btn-back, #backToMuseumBtn, a[href="index.html"], a[href^="index.html?"]').forEach(link => {
+        link.href = targetUrl;
+      });
     }
 
     function manageToken() {
@@ -777,6 +798,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       checkAdminAuth();
+      updateBackToMuseumLinks();
 
       const wmInputEl = document.getElementById('adminWatermarkInput');
       if (wmInputEl) {
