@@ -91,6 +91,40 @@ function checkIsAdmin() {
   return adminParam || adminFlag || hasPat;
 }
 
+// Check and handle Spotify popup callback immediately
+function handleSpotifyPopupCallback() {
+  const hash = window.location.hash;
+  const search = window.location.search;
+  let token = null;
+  let expiresIn = '3600';
+
+  if (hash && hash.includes('access_token=')) {
+    const params = new URLSearchParams(hash.substring(1));
+    token = params.get('access_token');
+    expiresIn = params.get('expires_in') || '3600';
+  } else if (search && search.includes('access_token=')) {
+    const params = new URLSearchParams(search);
+    token = params.get('access_token');
+    expiresIn = params.get('expires_in') || '3600';
+  }
+
+  if (token) {
+    safeSetStorage('spotify_access_token', token);
+    safeSetStorage('spotify_token_expiry', (Date.now() + parseInt(expiresIn, 10) * 1000).toString());
+
+    if (window.opener || window.name === 'spotify_auth') {
+      window.close();
+      return true;
+    } else {
+      history.replaceState(null, '', window.location.pathname);
+    }
+  }
+  return false;
+}
+
+// Run popup callback check immediately upon script load
+handleSpotifyPopupCallback();
+
 // Global Lock Admin helper to clear PAT & admin flags and return to public user mode
 window.lockAdminSession = function() {
   safeRemoveStorage('jj_github_pat');
@@ -111,7 +145,7 @@ const isAdmin = checkIsAdmin();
 // Initialization
 window.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
-  handleSpotifyAuth(); // Process Spotify OAuth code (PKCE) or token if returned in URL
+  handleSpotifyPopupCallback(); // Check if redirected back with token
 
   // Show/Hide Admin links in Header
   const adminEditorLink = document.getElementById('adminEditorLink');
@@ -665,7 +699,7 @@ function openDirectImagePreview(ticketIndex) {
 }
 
 // -------------------------------------------------------------
-// Official Spotify Web API Integration (Authorization Code Flow with PKCE)
+// Official Spotify Web API Integration (Popup Implicit Grant Flow)
 // -------------------------------------------------------------
 
 function getSpotifyRedirectUri() {
@@ -676,48 +710,44 @@ function getSpotifyRedirectUri() {
       : 'https://19forever.github.io/joe-jackson-tickets-v2/');
 }
 
-function generateRandomString(length) {
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
-  const values = crypto.getRandomValues(new Uint8Array(length));
-  return values.reduce((acc, x) => acc + possible[x % possible.length], "");
-}
-
-async function generateCodeChallenge(codeVerifier) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(codeVerifier);
-  const digest = await window.crypto.subtle.digest('SHA-256', data);
-  return btoa(String.fromCharCode(...new Uint8Array(digest)))
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-}
-
-async function initiateSpotifyPKCEAuth(record) {
-  safeRemoveStorage('spotify_access_token');
-  safeRemoveStorage('spotify_token_expiry');
-  safeRemoveStorage('spotify_refresh_token');
-
-  const codeVerifier = generateRandomString(64);
-  const codeChallenge = await generateCodeChallenge(codeVerifier);
-  safeSetStorage('spotify_code_verifier', codeVerifier);
-  if (record) {
-    safeSetStorage('spotify_pending_record', JSON.stringify(record));
-  }
-
-  const redirectUri = getSpotifyRedirectUri();
-  const scopes = 'playlist-modify-public playlist-modify-private playlist-read-private';
-  const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&code_challenge_method=S256&code_challenge=${encodeURIComponent(codeChallenge)}`;
-
-  window.location.href = authUrl;
-}
-
 async function handleSpotifyPlaylistAction(record, btnElement) {
   let token = safeGetStorage('spotify_access_token');
   const tokenExpiry = safeGetStorage('spotify_token_expiry');
 
-  // 1. Authenticate with Spotify via OAuth2 PKCE if token missing or expired
+  // 1. Authenticate with Spotify via Popup if token missing or expired
   if (!token || !tokenExpiry || Date.now() > parseInt(tokenExpiry, 10)) {
-    await initiateSpotifyPKCEAuth(record);
+    safeRemoveStorage('spotify_access_token');
+    safeRemoveStorage('spotify_token_expiry');
+
+    const redirectUri = getSpotifyRedirectUri();
+    const scopes = 'playlist-modify-public playlist-modify-private playlist-read-private';
+    const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`;
+
+    const origContent = btnElement ? btnElement.innerHTML : '';
+    if (btnElement) btnElement.innerHTML = '🔑 Logging in...';
+
+    const popup = window.open(authUrl, 'spotify_auth', 'width=500,height=700');
+
+    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+      alert('Popup was blocked by your browser. Please allow popups for this site to log in to Spotify.');
+      if (btnElement) btnElement.innerHTML = origContent;
+      return;
+    }
+
+    const timer = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(timer);
+        const newToken = safeGetStorage('spotify_access_token');
+        const newExpiry = safeGetStorage('spotify_token_expiry');
+
+        if (newToken && newExpiry && Date.now() < parseInt(newExpiry, 10)) {
+          handleSpotifyPlaylistAction(record, btnElement);
+        } else {
+          if (btnElement) btnElement.innerHTML = origContent;
+        }
+      }
+    }, 500);
+
     return;
   }
 
@@ -725,12 +755,15 @@ async function handleSpotifyPlaylistAction(record, btnElement) {
   if (btnElement) btnElement.innerHTML = '⏳ Building Playlist...';
 
   try {
-    // 2. Fetch Spotify User Profile
+    // 2. Fetch Spotify User Profile (Validate Token)
     const userRes = await fetch('https://api.spotify.com/v1/me', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (userRes.status === 401 || !userRes.ok) {
-      await initiateSpotifyPKCEAuth(record);
+      safeRemoveStorage('spotify_access_token');
+      safeRemoveStorage('spotify_token_expiry');
+      alert('Spotify authentication expired. Please click the button again to log in.');
+      if (btnElement) btnElement.innerHTML = origContent;
       return;
     }
     const userData = await userRes.json();
@@ -742,10 +775,6 @@ async function handleSpotifyPlaylistAction(record, btnElement) {
     const existingRes = await fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (existingRes.status === 401) {
-      await initiateSpotifyPKCEAuth(record);
-      return;
-    }
     if (existingRes.ok) {
       const existingData = await existingRes.json();
       const match = existingData.items?.find(p => p.name === playlistTitle);
@@ -777,11 +806,6 @@ async function handleSpotifyPlaylistAction(record, btnElement) {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (searchRes.status === 401) {
-        await initiateSpotifyPKCEAuth(record);
-        return;
-      }
-
       if (searchRes.ok) {
         const sData = await searchRes.json();
         const track = sData.tracks?.items?.[0];
@@ -809,9 +833,8 @@ async function handleSpotifyPlaylistAction(record, btnElement) {
         public: true
       })
     });
-    if (createRes.status === 401) {
-      await initiateSpotifyPKCEAuth(record);
-      return;
+    if (!createRes.ok) {
+      throw new Error(`Failed to create playlist (${createRes.status})`);
     }
     const newPlaylist = await createRes.json();
 
@@ -824,9 +847,8 @@ async function handleSpotifyPlaylistAction(record, btnElement) {
       },
       body: JSON.stringify({ uris: trackUris })
     });
-    if (addRes.status === 401) {
-      await initiateSpotifyPKCEAuth(record);
-      return;
+    if (!addRes.ok) {
+      throw new Error(`Failed to add tracks (${addRes.status})`);
     }
 
     if (btnElement) btnElement.innerHTML = origContent;
@@ -834,104 +856,8 @@ async function handleSpotifyPlaylistAction(record, btnElement) {
 
   } catch (err) {
     console.error('Spotify Playlist Error:', err);
-    if (err && (err.message?.includes('401') || err.message?.includes('Unauthorized') || err.message?.includes('token'))) {
-      await initiateSpotifyPKCEAuth(record);
-      return;
-    }
     alert('Failed to generate Spotify playlist: ' + err.message);
     if (btnElement) btnElement.innerHTML = origContent;
-  }
-}
-
-async function handleSpotifyAuth() {
-  // Check for Authorization Code (PKCE flow) in URL search params
-  const urlParams = new URLSearchParams(window.location.search);
-  const code = urlParams.get('code');
-  const error = urlParams.get('error');
-
-  if (error) {
-    console.error('Spotify Auth Error:', error);
-    urlParams.delete('error');
-    urlParams.delete('state');
-    const newSearch = urlParams.toString() ? '?' + urlParams.toString() : '';
-    history.replaceState(null, '', window.location.pathname + newSearch + window.location.hash);
-    return;
-  }
-
-  if (code) {
-    const codeVerifier = safeGetStorage('spotify_code_verifier');
-    const redirectUri = getSpotifyRedirectUri();
-
-    try {
-      const response = await fetch('https://accounts.spotify.com/api/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          client_id: SPOTIFY_CLIENT_ID,
-          grant_type: 'authorization_code',
-          code: code,
-          redirect_uri: redirectUri,
-          code_verifier: codeVerifier || '',
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.access_token) {
-          safeSetStorage('spotify_access_token', data.access_token);
-          if (data.expires_in) {
-            safeSetStorage('spotify_token_expiry', (Date.now() + parseInt(data.expires_in, 10) * 1000).toString());
-          }
-          if (data.refresh_token) {
-            safeSetStorage('spotify_refresh_token', data.refresh_token);
-          }
-        }
-      } else {
-        console.error('Spotify token exchange failed:', await response.text());
-      }
-    } catch (e) {
-      console.error('Error exchanging Spotify authorization code:', e);
-    } finally {
-      safeRemoveStorage('spotify_code_verifier');
-      urlParams.delete('code');
-      urlParams.delete('state');
-      const newSearch = urlParams.toString() ? '?' + urlParams.toString() : '';
-      history.replaceState(null, '', window.location.pathname + newSearch + window.location.hash);
-
-      const pendingRecordStr = safeGetStorage('spotify_pending_record');
-      if (pendingRecordStr) {
-        safeRemoveStorage('spotify_pending_record');
-        try {
-          const record = JSON.parse(pendingRecordStr);
-          setTimeout(() => handleSpotifyPlaylistAction(record, null), 500);
-        } catch (e) {}
-      }
-    }
-    return;
-  }
-
-  // Fallback check for implicit grant hash
-  if (window.location.hash.includes('access_token=')) {
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const token = hashParams.get('access_token');
-    const expiresIn = hashParams.get('expires_in');
-
-    if (token) {
-      safeSetStorage('spotify_access_token', token);
-      safeSetStorage('spotify_token_expiry', (Date.now() + parseInt(expiresIn, 10) * 1000).toString());
-      history.replaceState(null, '', window.location.pathname + window.location.search);
-
-      const pendingRecordStr = safeGetStorage('spotify_pending_record');
-      if (pendingRecordStr) {
-        safeRemoveStorage('spotify_pending_record');
-        try {
-          const record = JSON.parse(pendingRecordStr);
-          setTimeout(() => handleSpotifyPlaylistAction(record, null), 500);
-        } catch (e) {}
-      }
-    }
   }
 }
 
