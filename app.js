@@ -8,9 +8,6 @@ let currentCategory = 'Tickets';
 let activeViewerInstance = null;
 let quickViewerInstance = null;
 
-// Spotify API Configuration
-const SPOTIFY_CLIENT_ID = '3a9cd34bb7754d6c8259d154a0f805f5';
-
 // Missing ticket placeholder (SVG)
 const MISSING_TICKET_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
@@ -90,110 +87,6 @@ function checkIsAdmin() {
   const hasPat = !!(storedPat && storedPat.trim().length > 0);
   return adminParam || adminFlag || hasPat;
 }
-
-// Spotify Redirect URI & PKCE Helpers
-let isSpotifyCallbackProcessing = false;
-
-function getSpotifyRedirectUri() {
-  return window.location.hostname.includes('github.io')
-    ? 'https://19forever.github.io/joe-jackson-tickets-v2/'
-    : (window.location.hostname.includes('joejackson.band')
-      ? 'https://joejackson.band/'
-      : 'https://19forever.github.io/joe-jackson-tickets-v2/');
-}
-
-function generateRandomString(length = 128) {
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
-  const values = crypto.getRandomValues(new Uint8Array(length));
-  return values.reduce((acc, x) => acc + possible[x % possible.length], "");
-}
-
-async function generateCodeChallenge(codeVerifier) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(codeVerifier);
-  const digest = await window.crypto.subtle.digest('SHA-256', data);
-  return btoa(String.fromCharCode(...new Uint8Array(digest)))
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-}
-
-// Check and handle Spotify popup callback immediately (PKCE authorization code flow)
-async function handleSpotifyPopupCallback() {
-  if (isSpotifyCallbackProcessing) return false;
-  isSpotifyCallbackProcessing = true;
-
-  const searchParams = new URLSearchParams(window.location.search);
-  const code = searchParams.get('code');
-  const error = searchParams.get('error');
-
-  if (error) {
-    console.error('Spotify Auth Error:', error);
-    if (window.opener || window.name === 'spotify_auth') {
-      window.close();
-      return true;
-    }
-  }
-
-  if (code) {
-    const codeVerifier = safeGetStorage('spotify_code_verifier');
-    const redirectUri = getSpotifyRedirectUri();
-
-    try {
-      const res = await fetch('https://accounts.spotify.com/api/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          client_id: SPOTIFY_CLIENT_ID,
-          code: code,
-          redirect_uri: redirectUri,
-          code_verifier: codeVerifier || '',
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.access_token) {
-          safeSetStorage('spotify_access_token', data.access_token);
-          const expiresIn = data.expires_in || 3600;
-          safeSetStorage('spotify_token_expiry', (Date.now() + parseInt(expiresIn, 10) * 1000).toString());
-          if (data.refresh_token) {
-            safeSetStorage('spotify_refresh_token', data.refresh_token);
-          }
-        }
-      } else {
-        const errText = await res.text();
-        console.error('Spotify token exchange failed:', errText);
-        safeRemoveStorage('spotify_code_verifier');
-        if (window.opener || window.name === 'spotify_auth') {
-          window.close();
-          return true;
-        }
-      }
-    } catch (err) {
-      console.error('Error exchanging Spotify code:', err);
-    } finally {
-      safeRemoveStorage('spotify_code_verifier');
-      if (window.opener || window.name === 'spotify_auth') {
-        window.close();
-        return true;
-      } else {
-        searchParams.delete('code');
-        searchParams.delete('state');
-        const newSearch = searchParams.toString() ? '?' + searchParams.toString() : '';
-        history.replaceState(null, '', window.location.pathname + newSearch);
-      }
-    }
-  }
-
-  return false;
-}
-
-// Run popup callback check immediately upon script load
-handleSpotifyPopupCallback();
 
 // Global Lock Admin helper to clear PAT & admin flags and return to public user mode
 window.lockAdminSession = function() {
@@ -282,18 +175,8 @@ function setupEventListeners() {
   document.getElementById('btnGrid')?.addEventListener('click', () => setLayout('grid'));
   document.getElementById('btnList')?.addEventListener('click', () => setLayout('list'));
 
-  // Global event delegation for ticket/poster icon badges, data-scan elements & Spotify buttons
+  // Global event delegation for ticket/poster icon badges & data-scan elements
   document.addEventListener('click', (e) => {
-    const spotifyBtn = e.target.closest('.spotify-setlist-btn');
-    if (spotifyBtn) {
-      e.stopPropagation();
-      e.preventDefault();
-      const idx = parseInt(spotifyBtn.getAttribute('data-index'), 10);
-      const record = filteredTickets[idx];
-      if (record) handleSpotifyPlaylistAction(record, spotifyBtn);
-      return;
-    }
-
     const scanBadge = e.target.closest('.ticket-badge, [data-scan]');
     if (scanBadge) {
       e.stopPropagation();
@@ -767,184 +650,6 @@ function openDirectImagePreview(ticketIndex) {
   activeViewerInstance.show();
 }
 
-// -------------------------------------------------------------
-// Official Spotify Web API Integration (Popup PKCE Flow)
-// -------------------------------------------------------------
-
-async function handleSpotifyPlaylistAction(record, btnElement) {
-  let token = safeGetStorage('spotify_access_token');
-  const tokenExpiry = safeGetStorage('spotify_token_expiry');
-
-  // 1. Authenticate with Spotify via Popup (PKCE) if token missing or expired
-  if (!token || !tokenExpiry || Date.now() > parseInt(tokenExpiry, 10)) {
-    safeRemoveStorage('spotify_access_token');
-    safeRemoveStorage('spotify_token_expiry');
-    safeRemoveStorage('spotify_refresh_token');
-
-    const codeVerifier = generateRandomString(128);
-    const codeChallenge = await generateCodeChallenge(codeVerifier);
-    safeSetStorage('spotify_code_verifier', codeVerifier);
-    if (record) {
-      safeSetStorage('spotify_pending_record', JSON.stringify(record));
-    }
-
-    const redirectUri = getSpotifyRedirectUri();
-    const scopes = 'user-read-private user-read-email playlist-modify-public playlist-modify-private playlist-read-private';
-    const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&code_challenge_method=S256&code_challenge=${encodeURIComponent(codeChallenge)}`;
-
-    const origContent = btnElement ? btnElement.innerHTML : '';
-    if (btnElement) btnElement.innerHTML = '🔑 Logging in...';
-
-    const popup = window.open(authUrl, 'spotify_auth', 'width=500,height=700');
-
-    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-      alert('Popup was blocked by your browser. Please allow popups for this site to log in to Spotify.');
-      if (btnElement) btnElement.innerHTML = origContent;
-      return;
-    }
-
-    const timer = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(timer);
-        setTimeout(() => {
-          const newToken = safeGetStorage('spotify_access_token');
-          const newExpiry = safeGetStorage('spotify_token_expiry');
-          const pendingRecordStr = safeGetStorage('spotify_pending_record');
-          safeRemoveStorage('spotify_pending_record');
-
-          let targetRecord = record;
-          if (pendingRecordStr) {
-            try {
-              targetRecord = JSON.parse(pendingRecordStr);
-            } catch (e) {
-              targetRecord = record;
-            }
-          }
-
-          if (newToken && newExpiry && Date.now() < parseInt(newExpiry, 10)) {
-            handleSpotifyPlaylistAction(targetRecord, btnElement);
-          } else {
-            if (btnElement) btnElement.innerHTML = origContent;
-          }
-        }, 300);
-      }
-    }, 500);
-
-    return;
-  }
-
-  const origContent = btnElement ? btnElement.innerHTML : '';
-  if (btnElement) btnElement.innerHTML = '⏳ Building Playlist...';
-
-  try {
-    // 2. Fetch Spotify User Profile (Validate Token)
-    const userRes = await fetch('https://api.spotify.com/v1/me', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (userRes.status === 401 || !userRes.ok) {
-      safeRemoveStorage('spotify_access_token');
-      safeRemoveStorage('spotify_token_expiry');
-      safeRemoveStorage('spotify_refresh_token');
-      if (btnElement) btnElement.innerHTML = origContent;
-      return;
-    }
-    const userData = await userRes.json();
-
-    const playlistTitle = `Joe Jackson - ${record.MESTO || 'Concert'} (${record.DATUM || ''})`;
-
-    // 3. Check for Existing Playlist Duplicate
-    if (btnElement) btnElement.innerHTML = '🔍 Checking Duplicate...';
-    const existingRes = await fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (existingRes.ok) {
-      const existingData = await existingRes.json();
-      const match = existingData.items?.find(p => p.name === playlistTitle);
-      if (match) {
-        if (btnElement) btnElement.innerHTML = origContent;
-        window.open(match.external_urls.spotify, '_blank');
-        return;
-      }
-    }
-
-    // 4. Parse and Clean Songs from Setlist
-    if (btnElement) btnElement.innerHTML = '🔎 Searching Tracks...';
-    const songsRaw = (record.SETLIST || '').split(/,|\n/);
-    const trackUris = [];
-
-    for (let song of songsRaw) {
-      let cleanSong = song
-        .replace(/^\[.*?\]/, '') // Remove [Encore], [Set 1]
-        .replace(/^\d+\.\s*/, '') // Remove track numbers
-        .replace(/\([^)]*\)/g, '') // Remove (cover of ...), (solo)
-        .replace(/\[[^\]]*\]/g, '')
-        .trim();
-
-      if (!cleanSong || cleanSong.toLowerCase().startsWith('encore') || cleanSong.toLowerCase().startsWith('set')) {
-        continue;
-      }
-
-      const searchRes = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(`artist:Joe Jackson track:${cleanSong}`)}&type=track&limit=1`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (searchRes.ok) {
-        const sData = await searchRes.json();
-        const track = sData.tracks?.items?.[0];
-        if (track) trackUris.push(track.uri);
-      }
-    }
-
-    if (trackUris.length === 0) {
-      alert('No matching Spotify tracks found for this setlist.');
-      if (btnElement) btnElement.innerHTML = origContent;
-      return;
-    }
-
-    // 5. Create Playlist
-    if (btnElement) btnElement.innerHTML = '✨ Creating Playlist...';
-    const createRes = await fetch(`https://api.spotify.com/v1/users/${userData.id}/playlists`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        name: playlistTitle,
-        description: `Setlist from Joe Jackson concert in ${record.MESTO || ''} on ${record.DATUM || ''}. Generated via Joe Jackson Memorabilia Museum.`,
-        public: true
-      })
-    });
-    if (!createRes.ok) {
-      throw new Error(`Failed to create playlist (${createRes.status})`);
-    }
-    const newPlaylist = await createRes.json();
-
-    // 6. Add Tracks to Playlist
-    const addRes = await fetch(`https://api.spotify.com/v1/playlists/${newPlaylist.id}/tracks`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ uris: trackUris })
-    });
-    if (!addRes.ok) {
-      throw new Error(`Failed to add tracks (${addRes.status})`);
-    }
-
-    if (btnElement) btnElement.innerHTML = origContent;
-    window.open(newPlaylist.external_urls.spotify, '_blank');
-
-  } catch (err) {
-    console.error('Spotify Playlist Error:', err);
-    alert('Failed to generate Spotify playlist: ' + err.message);
-    if (btnElement) btnElement.innerHTML = origContent;
-  }
-}
-
-window.handleSpotifyPlaylistAction = handleSpotifyPlaylistAction;
-
 function openQuickImageModal(scanFileName, ticketObj) {
   if (!scanFileName && !ticketObj) return;
 
@@ -1234,7 +939,7 @@ function renderTickets(tickets) {
     const locationText = formatLocationText(t);
 
     card.onclick = (e) => {
-      if (e.target.closest('.icon-btn, .ticket-badge, [data-scan], .spotify-setlist-btn')) return;
+      if (e.target.closest('.icon-btn, .ticket-badge, [data-scan]')) return;
       openDirectImagePreview(globalIndex);
     };
 
@@ -1310,13 +1015,7 @@ function renderTickets(tickets) {
       });
 
       collapsibleHTML += `<div class="collapsible-content" id="setlist-${globalIndex}">
-                           <ol style="padding-left: 20px; padding-bottom: 24px;">${listItemsHTML}</ol>
-                           <button class="spotify-setlist-btn" data-index="${globalIndex}" title="Generate/Open Spotify Playlist">
-                             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                               <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.485 17.306c-.215.352-.676.463-1.028.248-2.856-1.745-6.452-2.14-10.686-1.172-.403.092-.806-.157-.899-.56-.092-.402.158-.805.56-.898 4.637-1.06 8.604-.61 11.794 1.34.352.215.464.676.249 1.028zm1.464-3.256c-.27.44-.847.578-1.287.308-3.27-2.01-8.254-2.593-12.12-1.418-.496.15-1.022-.135-1.172-.63-.15-.497.135-1.023.63-1.173 4.417-1.341 9.907-.69 13.63 1.603.44.27.579.847.309 1.288zm.135-3.39c-3.921-2.328-10.384-2.543-14.133-1.405-.6.182-1.238-.16-1.42-.76-.182-.6.16-1.238.76-1.42 4.305-1.306 11.436-1.054 15.932 1.614.54.32.718 1.02.398 1.56-.32.54-1.02.718-1.56.398z"/>
-                             </svg>
-                             <span>Spotify</span>
-                           </button>
+                           <ol style="padding-left: 20px; padding-bottom: 8px;">${listItemsHTML}</ol>
                          </div>`;
     }
     if (hasLineup) {
