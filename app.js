@@ -796,25 +796,27 @@ async function handleSpotifyPlaylistAction(record, btnElement) {
     const timer = setInterval(() => {
       if (popup.closed) {
         clearInterval(timer);
-        const newToken = safeGetStorage('spotify_access_token');
-        const newExpiry = safeGetStorage('spotify_token_expiry');
-        const pendingRecordStr = safeGetStorage('spotify_pending_record');
-        safeRemoveStorage('spotify_pending_record');
+        setTimeout(() => {
+          const newToken = safeGetStorage('spotify_access_token');
+          const newExpiry = safeGetStorage('spotify_token_expiry');
+          const pendingRecordStr = safeGetStorage('spotify_pending_record');
+          safeRemoveStorage('spotify_pending_record');
 
-        let targetRecord = record;
-        if (pendingRecordStr) {
-          try {
-            targetRecord = JSON.parse(pendingRecordStr);
-          } catch (e) {
-            targetRecord = record;
+          let targetRecord = record;
+          if (pendingRecordStr) {
+            try {
+              targetRecord = JSON.parse(pendingRecordStr);
+            } catch (e) {
+              targetRecord = record;
+            }
           }
-        }
 
-        if (newToken && newExpiry && Date.now() < parseInt(newExpiry, 10)) {
-          handleSpotifyPlaylistAction(targetRecord, btnElement);
-        } else {
-          if (btnElement) btnElement.innerHTML = origContent;
-        }
+          if (newToken && newExpiry && Date.now() < parseInt(newExpiry, 10)) {
+            handleSpotifyPlaylistAction(targetRecord, btnElement);
+          } else {
+            if (btnElement) btnElement.innerHTML = origContent;
+          }
+        }, 300);
       }
     }, 500);
 
@@ -832,7 +834,7 @@ async function handleSpotifyPlaylistAction(record, btnElement) {
     if (userRes.status === 401 || !userRes.ok) {
       safeRemoveStorage('spotify_access_token');
       safeRemoveStorage('spotify_token_expiry');
-      alert('Spotify authentication expired. Please click the button again to log in.');
+      safeRemoveStorage('spotify_refresh_token');
       if (btnElement) btnElement.innerHTML = origContent;
       return;
     }
