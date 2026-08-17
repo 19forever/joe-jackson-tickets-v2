@@ -91,32 +91,108 @@ function checkIsAdmin() {
   return adminParam || adminFlag || hasPat;
 }
 
-// Check and handle Spotify popup callback immediately
-function handleSpotifyPopupCallback() {
-  const hash = window.location.hash;
-  const search = window.location.search;
-  let token = null;
-  let expiresIn = '3600';
+// Spotify Redirect URI & PKCE Helpers
+function getSpotifyRedirectUri() {
+  return window.location.hostname.includes('github.io')
+    ? 'https://19forever.github.io/joe-jackson-tickets-v2/'
+    : (window.location.hostname.includes('joejackson.band')
+      ? 'https://joejackson.band/'
+      : 'https://19forever.github.io/joe-jackson-tickets-v2/');
+}
 
-  if (hash && hash.includes('access_token=')) {
-    const params = new URLSearchParams(hash.substring(1));
-    token = params.get('access_token');
-    expiresIn = params.get('expires_in') || '3600';
-  } else if (search && search.includes('access_token=')) {
-    const params = new URLSearchParams(search);
-    token = params.get('access_token');
-    expiresIn = params.get('expires_in') || '3600';
-  }
+function generateRandomString(length = 128) {
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+  const values = crypto.getRandomValues(new Uint8Array(length));
+  return values.reduce((acc, x) => acc + possible[x % possible.length], "");
+}
 
-  if (token) {
-    safeSetStorage('spotify_access_token', token);
-    safeSetStorage('spotify_token_expiry', (Date.now() + parseInt(expiresIn, 10) * 1000).toString());
+async function generateCodeChallenge(codeVerifier) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(codeVerifier);
+  const digest = await window.crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+}
 
+// Check and handle Spotify popup callback immediately (PKCE authorization code & implicit fallback)
+async function handleSpotifyPopupCallback() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const code = searchParams.get('code');
+  const error = searchParams.get('error');
+
+  if (error) {
+    console.error('Spotify Auth Error:', error);
     if (window.opener || window.name === 'spotify_auth') {
       window.close();
       return true;
-    } else {
-      history.replaceState(null, '', window.location.pathname);
+    }
+  }
+
+  if (code) {
+    const codeVerifier = safeGetStorage('spotify_code_verifier');
+    const redirectUri = getSpotifyRedirectUri();
+
+    try {
+      const res = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          client_id: SPOTIFY_CLIENT_ID,
+          code: code,
+          redirect_uri: redirectUri,
+          code_verifier: codeVerifier || '',
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.access_token) {
+          safeSetStorage('spotify_access_token', data.access_token);
+          const expiresIn = data.expires_in || 3600;
+          safeSetStorage('spotify_token_expiry', (Date.now() + parseInt(expiresIn, 10) * 1000).toString());
+          if (data.refresh_token) {
+            safeSetStorage('spotify_refresh_token', data.refresh_token);
+          }
+        }
+      } else {
+        console.error('Spotify token exchange failed:', await res.text());
+      }
+    } catch (err) {
+      console.error('Error exchanging Spotify code:', err);
+    } finally {
+      safeRemoveStorage('spotify_code_verifier');
+      if (window.opener || window.name === 'spotify_auth') {
+        window.close();
+        return true;
+      } else {
+        searchParams.delete('code');
+        searchParams.delete('state');
+        const newSearch = searchParams.toString() ? '?' + searchParams.toString() : '';
+        history.replaceState(null, '', window.location.pathname + newSearch);
+      }
+    }
+  }
+
+  // Fallback for implicit grant token if present
+  const hash = window.location.hash;
+  if (hash && hash.includes('access_token=')) {
+    const params = new URLSearchParams(hash.substring(1));
+    const token = params.get('access_token');
+    const expiresIn = params.get('expires_in') || '3600';
+    if (token) {
+      safeSetStorage('spotify_access_token', token);
+      safeSetStorage('spotify_token_expiry', (Date.now() + parseInt(expiresIn, 10) * 1000).toString());
+      if (window.opener || window.name === 'spotify_auth') {
+        window.close();
+        return true;
+      } else {
+        history.replaceState(null, '', window.location.pathname);
+      }
     }
   }
   return false;
@@ -699,29 +775,26 @@ function openDirectImagePreview(ticketIndex) {
 }
 
 // -------------------------------------------------------------
-// Official Spotify Web API Integration (Popup Implicit Grant Flow)
+// Official Spotify Web API Integration (Popup PKCE Flow)
 // -------------------------------------------------------------
-
-function getSpotifyRedirectUri() {
-  return window.location.hostname.includes('github.io')
-    ? 'https://19forever.github.io/joe-jackson-tickets-v2/'
-    : (window.location.hostname.includes('joejackson.band')
-      ? 'https://joejackson.band/'
-      : 'https://19forever.github.io/joe-jackson-tickets-v2/');
-}
 
 async function handleSpotifyPlaylistAction(record, btnElement) {
   let token = safeGetStorage('spotify_access_token');
   const tokenExpiry = safeGetStorage('spotify_token_expiry');
 
-  // 1. Authenticate with Spotify via Popup if token missing or expired
+  // 1. Authenticate with Spotify via Popup (PKCE) if token missing or expired
   if (!token || !tokenExpiry || Date.now() > parseInt(tokenExpiry, 10)) {
     safeRemoveStorage('spotify_access_token');
     safeRemoveStorage('spotify_token_expiry');
+    safeRemoveStorage('spotify_refresh_token');
+
+    const codeVerifier = generateRandomString(128);
+    const codeChallenge = await generateCodeChallenge(codeVerifier);
+    safeSetStorage('spotify_code_verifier', codeVerifier);
 
     const redirectUri = getSpotifyRedirectUri();
     const scopes = 'playlist-modify-public playlist-modify-private playlist-read-private';
-    const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`;
+    const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&code_challenge_method=S256&code_challenge=${encodeURIComponent(codeChallenge)}`;
 
     const origContent = btnElement ? btnElement.innerHTML : '';
     if (btnElement) btnElement.innerHTML = '🔑 Logging in...';
