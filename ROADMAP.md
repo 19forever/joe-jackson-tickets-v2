@@ -83,6 +83,6 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Dedicated UI separation for general tour items (posters, t-shirts, pins without specific concert dates)
 - [ ] **Fan Submission Portal with Cloud Storage**
   - Direct image upload pipeline using S3 / Cloudflare R2
-- [ ] **Streaming Platform Integration**
+- [-] **Streaming Platform Integration**
   - Direct Spotify / Apple Music setlist playback links
      - tested, but failed to generate custom playlists
