@@ -116,7 +116,7 @@ async function generateCodeChallenge(codeVerifier) {
     .replace(/\//g, '_');
 }
 
-// Check and handle Spotify popup callback immediately (PKCE authorization code & implicit fallback)
+// Check and handle Spotify popup callback immediately (PKCE authorization code flow)
 async function handleSpotifyPopupCallback() {
   const searchParams = new URLSearchParams(window.location.search);
   const code = searchParams.get('code');
@@ -178,23 +178,6 @@ async function handleSpotifyPopupCallback() {
     }
   }
 
-  // Fallback for implicit grant token if present
-  const hash = window.location.hash;
-  if (hash && hash.includes('access_token=')) {
-    const params = new URLSearchParams(hash.substring(1));
-    const token = params.get('access_token');
-    const expiresIn = params.get('expires_in') || '3600';
-    if (token) {
-      safeSetStorage('spotify_access_token', token);
-      safeSetStorage('spotify_token_expiry', (Date.now() + parseInt(expiresIn, 10) * 1000).toString());
-      if (window.opener || window.name === 'spotify_auth') {
-        window.close();
-        return true;
-      } else {
-        history.replaceState(null, '', window.location.pathname);
-      }
-    }
-  }
   return false;
 }
 
@@ -791,6 +774,9 @@ async function handleSpotifyPlaylistAction(record, btnElement) {
     const codeVerifier = generateRandomString(128);
     const codeChallenge = await generateCodeChallenge(codeVerifier);
     safeSetStorage('spotify_code_verifier', codeVerifier);
+    if (record) {
+      safeSetStorage('spotify_pending_record', JSON.stringify(record));
+    }
 
     const redirectUri = getSpotifyRedirectUri();
     const scopes = 'playlist-modify-public playlist-modify-private playlist-read-private';
@@ -812,9 +798,20 @@ async function handleSpotifyPlaylistAction(record, btnElement) {
         clearInterval(timer);
         const newToken = safeGetStorage('spotify_access_token');
         const newExpiry = safeGetStorage('spotify_token_expiry');
+        const pendingRecordStr = safeGetStorage('spotify_pending_record');
+        safeRemoveStorage('spotify_pending_record');
+
+        let targetRecord = record;
+        if (pendingRecordStr) {
+          try {
+            targetRecord = JSON.parse(pendingRecordStr);
+          } catch (e) {
+            targetRecord = record;
+          }
+        }
 
         if (newToken && newExpiry && Date.now() < parseInt(newExpiry, 10)) {
-          handleSpotifyPlaylistAction(record, btnElement);
+          handleSpotifyPlaylistAction(targetRecord, btnElement);
         } else {
           if (btnElement) btnElement.innerHTML = origContent;
         }
