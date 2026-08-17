@@ -10,10 +10,11 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Multi-criteria filtering by Tour, Category, Country, Year, City, Venue, and Contributor
   - Comprehensive metadata search across all historical records including `TOUR_NAME` and `TOUR_ID`
   - Audio player preview integration and CSV data export
-- [x] **Tour-Wide Memorabilia Engine**
-  - Cross-linking tour-wide items (tour books, t-shirts, posters) across all shows sharing the same `TOUR_ID`
-  - Intelligent `getRelatedItems` filtering preventing individual concert tickets from cluttering unrelated show cards
-  - Dedicated "Tour Items" (🎸) tab categorization for undated tour memorabilia with dynamic tour title card headers
+- [x] **Tour-Wide Memorabilia Engine & Strict Date-Matching**
+  - Option A (Exact Date Match): Event-specific items (posters, tickets, articles) only link to concert cards sharing their exact `DATUM`.
+  - Option B (Tour-Wide Memorabilia): Undated tour items (`DATUM` empty) automatically map across all shows matching their `TOUR_ID`.
+  - Exclusion of Cross-Show Dates: Eliminates unrelated ticket badges from cluttering other show cards in the same tour.
+  - Dedicated "Tour Items" (🎸) tab categorization for undated tour memorabilia with dynamic tour title card headers.
 - [x] **Flexible Multi-Format Date Search**
   - Natural language & localized date query parser supporting formats like "13th March", "March 13th", "13-3", "13.3.", "13/3", "13.03.", "03/13", and ISO dates
   - Normalizes search input to match stored ISO dates (`YYYY-MM-DD`) by Day and Month across all tour years
@@ -84,7 +85,9 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
 
 ---
 
-## Post-Launch Enhancements & Community Features
+## Post-Launch Enhancements & Future Upgrades
+- [ ] **Context-Aware Admin Editor Form Fields (`edit_ticket_new.html`)**
+  - Dynamically show/hide non-relevant input fields based on selected `KATEGORIE` (e.g., hide concert setlist, date, and venue inputs when editing tour-wide items like Passes or Tour Books).
 - [ ] **Community & Fan Interactivity Engine (Supabase / Cloudflare D1 Backend)**
   - **Setlist.fm Import:** Sync user attendance via Setlist.fm public API (`/user/{userId}/attended`) to automatically display attendance badges.
   - **Personal Concert Statuses:** User interactive badges per show (*"I Was There"*, *"I Own Ticket"*, *"Ticket Lost/Traded"*, *"I Have Audio Recording"*).
