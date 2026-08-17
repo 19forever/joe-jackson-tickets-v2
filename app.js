@@ -692,22 +692,32 @@ async function generateCodeChallenge(codeVerifier) {
     .replace(/\//g, '_');
 }
 
+async function initiateSpotifyPKCEAuth(record) {
+  safeRemoveStorage('spotify_access_token');
+  safeRemoveStorage('spotify_token_expiry');
+  safeRemoveStorage('spotify_refresh_token');
+
+  const codeVerifier = generateRandomString(64);
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+  safeSetStorage('spotify_code_verifier', codeVerifier);
+  if (record) {
+    safeSetStorage('spotify_pending_record', JSON.stringify(record));
+  }
+
+  const redirectUri = getSpotifyRedirectUri();
+  const scopes = 'playlist-modify-public playlist-modify-private playlist-read-private';
+  const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&code_challenge_method=S256&code_challenge=${encodeURIComponent(codeChallenge)}`;
+
+  window.location.href = authUrl;
+}
+
 async function handleSpotifyPlaylistAction(record, btnElement) {
   let token = safeGetStorage('spotify_access_token');
   const tokenExpiry = safeGetStorage('spotify_token_expiry');
 
-  // 1. Authenticate with Spotify via OAuth2 Authorization Code Flow with PKCE
+  // 1. Authenticate with Spotify via OAuth2 PKCE if token missing or expired
   if (!token || !tokenExpiry || Date.now() > parseInt(tokenExpiry, 10)) {
-    const codeVerifier = generateRandomString(64);
-    const codeChallenge = await generateCodeChallenge(codeVerifier);
-    safeSetStorage('spotify_code_verifier', codeVerifier);
-    safeSetStorage('spotify_pending_record', JSON.stringify(record));
-
-    const redirectUri = getSpotifyRedirectUri();
-    const scopes = 'playlist-modify-public playlist-modify-private playlist-read-private';
-    const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&code_challenge_method=S256&code_challenge=${encodeURIComponent(codeChallenge)}`;
-
-    window.open(authUrl, '_blank', 'width=500,height=700') || (window.location.href = authUrl);
+    await initiateSpotifyPKCEAuth(record);
     return;
   }
 
@@ -719,11 +729,8 @@ async function handleSpotifyPlaylistAction(record, btnElement) {
     const userRes = await fetch('https://api.spotify.com/v1/me', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!userRes.ok) {
-      safeRemoveStorage('spotify_access_token');
-      safeRemoveStorage('spotify_token_expiry');
-      alert('Spotify authentication expired. Please click the button again to log in.');
-      if (btnElement) btnElement.innerHTML = origContent;
+    if (userRes.status === 401 || !userRes.ok) {
+      await initiateSpotifyPKCEAuth(record);
       return;
     }
     const userData = await userRes.json();
@@ -735,6 +742,10 @@ async function handleSpotifyPlaylistAction(record, btnElement) {
     const existingRes = await fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
+    if (existingRes.status === 401) {
+      await initiateSpotifyPKCEAuth(record);
+      return;
+    }
     if (existingRes.ok) {
       const existingData = await existingRes.json();
       const match = existingData.items?.find(p => p.name === playlistTitle);
@@ -766,6 +777,11 @@ async function handleSpotifyPlaylistAction(record, btnElement) {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
+      if (searchRes.status === 401) {
+        await initiateSpotifyPKCEAuth(record);
+        return;
+      }
+
       if (searchRes.ok) {
         const sData = await searchRes.json();
         const track = sData.tracks?.items?.[0];
@@ -793,10 +809,14 @@ async function handleSpotifyPlaylistAction(record, btnElement) {
         public: true
       })
     });
+    if (createRes.status === 401) {
+      await initiateSpotifyPKCEAuth(record);
+      return;
+    }
     const newPlaylist = await createRes.json();
 
     // 6. Add Tracks to Playlist
-    await fetch(`https://api.spotify.com/v1/playlists/${newPlaylist.id}/tracks`, {
+    const addRes = await fetch(`https://api.spotify.com/v1/playlists/${newPlaylist.id}/tracks`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -804,12 +824,20 @@ async function handleSpotifyPlaylistAction(record, btnElement) {
       },
       body: JSON.stringify({ uris: trackUris })
     });
+    if (addRes.status === 401) {
+      await initiateSpotifyPKCEAuth(record);
+      return;
+    }
 
     if (btnElement) btnElement.innerHTML = origContent;
     window.open(newPlaylist.external_urls.spotify, '_blank');
 
   } catch (err) {
     console.error('Spotify Playlist Error:', err);
+    if (err && (err.message?.includes('401') || err.message?.includes('Unauthorized') || err.message?.includes('token'))) {
+      await initiateSpotifyPKCEAuth(record);
+      return;
+    }
     alert('Failed to generate Spotify playlist: ' + err.message);
     if (btnElement) btnElement.innerHTML = origContent;
   }
