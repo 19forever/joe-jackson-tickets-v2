@@ -85,3 +85,4 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Direct image upload pipeline using S3 / Cloudflare R2
 - [ ] **Streaming Platform Integration**
   - Direct Spotify / Apple Music setlist playback links
+     - tested, but failed to generate custom playlists
