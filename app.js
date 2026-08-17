@@ -8,6 +8,9 @@ let currentCategory = 'Tickets';
 let activeViewerInstance = null;
 let quickViewerInstance = null;
 
+// Spotify API Configuration
+const SPOTIFY_CLIENT_ID = '3a9cd34bb7754d6c8259d154a0f805f5';
+
 // Missing ticket placeholder (SVG)
 const MISSING_TICKET_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
@@ -108,6 +111,7 @@ const isAdmin = checkIsAdmin();
 // Initialization
 window.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
+  handleSpotifyAuth(); // Process Spotify OAuth code (PKCE) or token if returned in URL
 
   // Show/Hide Admin links in Header
   const adminEditorLink = document.getElementById('adminEditorLink');
@@ -175,6 +179,33 @@ function setupEventListeners() {
   document.getElementById('btnGrid')?.addEventListener('click', () => setLayout('grid'));
   document.getElementById('btnList')?.addEventListener('click', () => setLayout('list'));
 
+  // Global event delegation for ticket/poster icon badges, data-scan elements & Spotify buttons
+  document.addEventListener('click', (e) => {
+    const spotifyBtn = e.target.closest('.spotify-setlist-btn');
+    if (spotifyBtn) {
+      e.stopPropagation();
+      e.preventDefault();
+      const idx = parseInt(spotifyBtn.getAttribute('data-index'), 10);
+      const record = filteredTickets[idx];
+      if (record) handleSpotifyPlaylistAction(record, spotifyBtn);
+      return;
+    }
+
+    const scanBadge = e.target.closest('.ticket-badge, [data-scan]');
+    if (scanBadge) {
+      e.stopPropagation();
+      e.preventDefault();
+      const scan = scanBadge.getAttribute('data-scan') || '';
+      let ticketObj = null;
+      if (scanBadge.dataset.ticket) {
+        try {
+          ticketObj = JSON.parse(decodeURIComponent(scanBadge.dataset.ticket));
+        } catch (err) {}
+      }
+      openQuickImageModal(scan, ticketObj);
+    }
+  });
+
   const videoModal = document.getElementById('videoModal');
   document.getElementById('videoModalCloseBtn')?.addEventListener('click', closeVideoModal);
   if (videoModal) {
@@ -203,6 +234,140 @@ function isValidValue(val) {
   if (!val) return false;
   const clean = String(val).trim().toLowerCase();
   return clean !== '' && clean !== 'není k dispozici' && clean !== 'n/a' && clean !== 'undefined' && clean !== 'null' && clean !== 'missing';
+}
+
+const MONTH_NAMES_MAP = {
+  jan: 1, january: 1, led: 1, leden: 1,
+  feb: 2, february: 2, úno: 2, únor: 2,
+  mar: 3, march: 3, bře: 3, březen: 3,
+  apr: 4, april: 4, dub: 4, duben: 4,
+  may: 5, kvě: 5, květen: 5,
+  jun: 6, june: 6, čer: 6, červen: 6,
+  jul: 7, july: 7, čvc: 7, červenec: 7,
+  aug: 8, august: 8, srp: 8, srpen: 8,
+  sep: 9, sept: 9, september: 9, zář: 9, září: 9,
+  oct: 10, october: 10, říj: 10, říjen: 10,
+  nov: 11, november: 11, lis: 11, listopad: 11,
+  dec: 12, december: 12, pro: 12, prosinec: 12
+};
+
+function parseDateCandidates(rawQuery) {
+  if (!rawQuery || typeof rawQuery !== 'string') return [];
+  let q = rawQuery.trim().toLowerCase();
+  if (!q) return [];
+
+  q = q.replace(/\b(\d{1,2})(st|nd|rd|th)\b/gi, '$1');
+  q = q.replace(/,/g, ' ').replace(/\s+/g, ' ').trim();
+
+  const candidates = [];
+
+  function addCandidate(c) {
+    if (!c) return;
+    if (c.day !== undefined && (c.day < 1 || c.day > 31)) return;
+    if (c.month !== undefined && (c.month < 1 || c.month > 12)) return;
+    if (c.year !== undefined && (c.year < 1900 || c.year > 2100)) return;
+    const exists = candidates.some(existing =>
+      existing.day === c.day && existing.month === c.month && existing.year === c.year
+    );
+    if (!exists) candidates.push(c);
+  }
+
+  let match = q.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  if (match) {
+    addCandidate({ year: parseInt(match[1], 10), month: parseInt(match[2], 10), day: parseInt(match[3], 10) });
+    return candidates;
+  }
+
+  match = q.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+  if (match) {
+    const n1 = parseInt(match[1], 10);
+    const n2 = parseInt(match[2], 10);
+    const yr = parseInt(match[3], 10);
+    if (n2 <= 12) addCandidate({ day: n1, month: n2, year: yr });
+    if (n1 <= 12) addCandidate({ month: n1, day: n2, year: yr });
+    return candidates;
+  }
+
+  match = q.match(/^(\d{4})[-/.](\d{1,2})\.?$/);
+  if (match) {
+    const yr = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    if (m >= 1 && m <= 12) {
+      addCandidate({ year: yr, month: m });
+      return candidates;
+    }
+  }
+
+  const words = q.split(' ');
+  if (words.length === 3) {
+    const d1 = parseInt(words[0], 10);
+    const m1 = MONTH_NAMES_MAP[words[1]];
+    const y1 = parseInt(words[2], 10);
+    if (!isNaN(d1) && m1 && !isNaN(y1)) addCandidate({ day: d1, month: m1, year: y1 });
+
+    const m2 = MONTH_NAMES_MAP[words[0]];
+    const d2 = parseInt(words[1], 10);
+    const y2 = parseInt(words[2], 10);
+    if (m2 && !isNaN(d2) && !isNaN(y2)) addCandidate({ month: m2, day: d2, year: y2 });
+
+    const y3 = parseInt(words[0], 10);
+    const m3 = MONTH_NAMES_MAP[words[1]];
+    const d3 = parseInt(words[2], 10);
+    if (!isNaN(y3) && y3 > 1900 && m3 && !isNaN(d3)) addCandidate({ year: y3, month: m3, day: d3 });
+
+    if (candidates.length > 0) return candidates;
+  }
+
+  if (words.length === 2) {
+    const m1 = MONTH_NAMES_MAP[words[0]];
+    const y1 = parseInt(words[1], 10);
+    if (m1 && !isNaN(y1) && y1 > 1900) addCandidate({ month: m1, year: y1 });
+
+    const y2 = parseInt(words[0], 10);
+    const m2 = MONTH_NAMES_MAP[words[1]];
+    if (!isNaN(y2) && y2 > 1900 && m2) addCandidate({ year: y2, month: m2 });
+
+    const d3 = parseInt(words[0], 10);
+    const m3 = MONTH_NAMES_MAP[words[1]];
+    if (!isNaN(d3) && m3) addCandidate({ day: d3, month: m3 });
+
+    const m4 = MONTH_NAMES_MAP[words[0]];
+    const d4 = parseInt(words[1], 10);
+    if (m4 && !isNaN(d4)) addCandidate({ month: m4, day: d4 });
+
+    if (candidates.length > 0) return candidates;
+  }
+
+  match = q.match(/^(\d{1,2})\s*[-/.]\s*(\d{1,2})\.?$/);
+  if (match) {
+    const n1 = parseInt(match[1], 10);
+    const n2 = parseInt(match[2], 10);
+
+    if (n1 <= 31 && n2 >= 1 && n2 <= 12) addCandidate({ day: n1, month: n2 });
+    if (n1 >= 1 && n1 <= 12 && n2 <= 31) addCandidate({ month: n1, day: n2 });
+    return candidates;
+  }
+
+  return candidates;
+}
+
+function matchDateAgainstCandidates(dateStr, candidates) {
+  if (!dateStr || !candidates || candidates.length === 0) return false;
+  const parts = dateStr.trim().split('-');
+  if (parts.length !== 3) return false;
+
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  const d = parseInt(parts[2], 10);
+
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return false;
+
+  return candidates.some(c => {
+    if (c.year !== undefined && c.year !== y) return false;
+    if (c.month !== undefined && c.month !== m) return false;
+    if (c.day !== undefined && c.day !== d) return false;
+    return true;
+  });
 }
 
 function formatDisplayDate(dateStr) {
@@ -266,7 +431,6 @@ function openVideoModal(ticketIndex) {
 
   if (!modal || !iframe || !lineupCol || !setlistCol) return;
 
-  // Lineup HTML
   let lineupHTML = `<h4 style="color: var(--accent-blue);">👥 Band Line-up</h4>`;
   if (t && isValidValue(t.LINEUP)) {
     const members = t.LINEUP.split(/[;/]/).map(m => m.trim()).filter(Boolean);
@@ -276,7 +440,6 @@ function openVideoModal(ticketIndex) {
   }
   lineupCol.innerHTML = lineupHTML;
 
-  // Setlist HTML
   let setlistHTML = `<h4 style="color: var(--accent-yellow);">🎵 Setlist</h4>`;
   if (t && isValidValue(t.SETLIST)) {
     const rawItems = t.SETLIST.split(',').map(s => s.trim()).filter(Boolean);
@@ -501,38 +664,299 @@ function openDirectImagePreview(ticketIndex) {
   activeViewerInstance.show();
 }
 
+// -------------------------------------------------------------
+// Official Spotify Web API Integration (Authorization Code Flow with PKCE)
+// -------------------------------------------------------------
+
+function getSpotifyRedirectUri() {
+  return window.location.hostname.includes('github.io')
+    ? 'https://19forever.github.io/joe-jackson-tickets-v2/'
+    : (window.location.hostname.includes('joejackson.band')
+      ? 'https://joejackson.band/'
+      : 'https://19forever.github.io/joe-jackson-tickets-v2/');
+}
+
+function generateRandomString(length) {
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+  const values = crypto.getRandomValues(new Uint8Array(length));
+  return values.reduce((acc, x) => acc + possible[x % possible.length], "");
+}
+
+async function generateCodeChallenge(codeVerifier) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(codeVerifier);
+  const digest = await window.crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+}
+
+async function handleSpotifyPlaylistAction(record, btnElement) {
+  let token = safeGetStorage('spotify_access_token');
+  const tokenExpiry = safeGetStorage('spotify_token_expiry');
+
+  // 1. Authenticate with Spotify via OAuth2 Authorization Code Flow with PKCE
+  if (!token || !tokenExpiry || Date.now() > parseInt(tokenExpiry, 10)) {
+    const codeVerifier = generateRandomString(64);
+    const codeChallenge = await generateCodeChallenge(codeVerifier);
+    safeSetStorage('spotify_code_verifier', codeVerifier);
+    safeSetStorage('spotify_pending_record', JSON.stringify(record));
+
+    const redirectUri = getSpotifyRedirectUri();
+    const scopes = 'playlist-modify-public playlist-modify-private playlist-read-private';
+    const authUrl = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&code_challenge_method=S256&code_challenge=${encodeURIComponent(codeChallenge)}`;
+
+    window.open(authUrl, '_blank', 'width=500,height=700') || (window.location.href = authUrl);
+    return;
+  }
+
+  const origContent = btnElement ? btnElement.innerHTML : '';
+  if (btnElement) btnElement.innerHTML = '⏳ Building Playlist...';
+
+  try {
+    // 2. Fetch Spotify User Profile
+    const userRes = await fetch('https://api.spotify.com/v1/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!userRes.ok) {
+      safeRemoveStorage('spotify_access_token');
+      safeRemoveStorage('spotify_token_expiry');
+      alert('Spotify authentication expired. Please click the button again to log in.');
+      if (btnElement) btnElement.innerHTML = origContent;
+      return;
+    }
+    const userData = await userRes.json();
+
+    const playlistTitle = `Joe Jackson - ${record.MESTO || 'Concert'} (${record.DATUM || ''})`;
+
+    // 3. Check for Existing Playlist Duplicate
+    if (btnElement) btnElement.innerHTML = '🔍 Checking Duplicate...';
+    const existingRes = await fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (existingRes.ok) {
+      const existingData = await existingRes.json();
+      const match = existingData.items?.find(p => p.name === playlistTitle);
+      if (match) {
+        if (btnElement) btnElement.innerHTML = origContent;
+        window.open(match.external_urls.spotify, '_blank');
+        return;
+      }
+    }
+
+    // 4. Parse and Clean Songs from Setlist
+    if (btnElement) btnElement.innerHTML = '🔎 Searching Tracks...';
+    const songsRaw = (record.SETLIST || '').split(/,|\n/);
+    const trackUris = [];
+
+    for (let song of songsRaw) {
+      let cleanSong = song
+        .replace(/^\[.*?\]/, '') // Remove [Encore], [Set 1]
+        .replace(/^\d+\.\s*/, '') // Remove track numbers
+        .replace(/\([^)]*\)/g, '') // Remove (cover of ...), (solo)
+        .replace(/\[[^\]]*\]/g, '')
+        .trim();
+
+      if (!cleanSong || cleanSong.toLowerCase().startsWith('encore') || cleanSong.toLowerCase().startsWith('set')) {
+        continue;
+      }
+
+      const searchRes = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(`artist:Joe Jackson track:${cleanSong}`)}&type=track&limit=1`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (searchRes.ok) {
+        const sData = await searchRes.json();
+        const track = sData.tracks?.items?.[0];
+        if (track) trackUris.push(track.uri);
+      }
+    }
+
+    if (trackUris.length === 0) {
+      alert('No matching Spotify tracks found for this setlist.');
+      if (btnElement) btnElement.innerHTML = origContent;
+      return;
+    }
+
+    // 5. Create Playlist
+    if (btnElement) btnElement.innerHTML = '✨ Creating Playlist...';
+    const createRes = await fetch(`https://api.spotify.com/v1/users/${userData.id}/playlists`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: playlistTitle,
+        description: `Setlist from Joe Jackson concert in ${record.MESTO || ''} on ${record.DATUM || ''}. Generated via Joe Jackson Memorabilia Museum.`,
+        public: true
+      })
+    });
+    const newPlaylist = await createRes.json();
+
+    // 6. Add Tracks to Playlist
+    await fetch(`https://api.spotify.com/v1/playlists/${newPlaylist.id}/tracks`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ uris: trackUris })
+    });
+
+    if (btnElement) btnElement.innerHTML = origContent;
+    window.open(newPlaylist.external_urls.spotify, '_blank');
+
+  } catch (err) {
+    console.error('Spotify Playlist Error:', err);
+    alert('Failed to generate Spotify playlist: ' + err.message);
+    if (btnElement) btnElement.innerHTML = origContent;
+  }
+}
+
+async function handleSpotifyAuth() {
+  // Check for Authorization Code (PKCE flow) in URL search params
+  const urlParams = new URLSearchParams(window.location.search);
+  const code = urlParams.get('code');
+  const error = urlParams.get('error');
+
+  if (error) {
+    console.error('Spotify Auth Error:', error);
+    urlParams.delete('error');
+    urlParams.delete('state');
+    const newSearch = urlParams.toString() ? '?' + urlParams.toString() : '';
+    history.replaceState(null, '', window.location.pathname + newSearch + window.location.hash);
+    return;
+  }
+
+  if (code) {
+    const codeVerifier = safeGetStorage('spotify_code_verifier');
+    const redirectUri = getSpotifyRedirectUri();
+
+    try {
+      const response = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: SPOTIFY_CLIENT_ID,
+          grant_type: 'authorization_code',
+          code: code,
+          redirect_uri: redirectUri,
+          code_verifier: codeVerifier || '',
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.access_token) {
+          safeSetStorage('spotify_access_token', data.access_token);
+          if (data.expires_in) {
+            safeSetStorage('spotify_token_expiry', (Date.now() + parseInt(data.expires_in, 10) * 1000).toString());
+          }
+          if (data.refresh_token) {
+            safeSetStorage('spotify_refresh_token', data.refresh_token);
+          }
+        }
+      } else {
+        console.error('Spotify token exchange failed:', await response.text());
+      }
+    } catch (e) {
+      console.error('Error exchanging Spotify authorization code:', e);
+    } finally {
+      safeRemoveStorage('spotify_code_verifier');
+      urlParams.delete('code');
+      urlParams.delete('state');
+      const newSearch = urlParams.toString() ? '?' + urlParams.toString() : '';
+      history.replaceState(null, '', window.location.pathname + newSearch + window.location.hash);
+
+      const pendingRecordStr = safeGetStorage('spotify_pending_record');
+      if (pendingRecordStr) {
+        safeRemoveStorage('spotify_pending_record');
+        try {
+          const record = JSON.parse(pendingRecordStr);
+          setTimeout(() => handleSpotifyPlaylistAction(record, null), 500);
+        } catch (e) {}
+      }
+    }
+    return;
+  }
+
+  // Fallback check for implicit grant hash
+  if (window.location.hash.includes('access_token=')) {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const token = hashParams.get('access_token');
+    const expiresIn = hashParams.get('expires_in');
+
+    if (token) {
+      safeSetStorage('spotify_access_token', token);
+      safeSetStorage('spotify_token_expiry', (Date.now() + parseInt(expiresIn, 10) * 1000).toString());
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+
+      const pendingRecordStr = safeGetStorage('spotify_pending_record');
+      if (pendingRecordStr) {
+        safeRemoveStorage('spotify_pending_record');
+        try {
+          const record = JSON.parse(pendingRecordStr);
+          setTimeout(() => handleSpotifyPlaylistAction(record, null), 500);
+        } catch (e) {}
+      }
+    }
+  }
+}
+
+window.handleSpotifyPlaylistAction = handleSpotifyPlaylistAction;
+
 function openQuickImageModal(scanFileName, ticketObj) {
   if (!scanFileName && !ticketObj) return;
 
-  const firstFile = scanFileName ? scanFileName.split(',')[0].trim() : '';
-  const quickImg = document.createElement('img');
+  const rawSken = (scanFileName && typeof scanFileName === 'string') ? scanFileName : (ticketObj ? (ticketObj.SOUBOR_SKEN || '') : '');
+  const skenFiles = rawSken.split(',').map(s => s.trim()).filter(isValidValue);
   const contributeUrl = ticketObj ? getContributeUrlForTicket(ticketObj) : 'ticket_form.html';
-  quickImg.src = isValidValue(firstFile) ? `./scans/${firstFile}` : MISSING_TICKET_SVG;
-  quickImg.alt = ticketObj ? `Joe Jackson Concert ${formatDisplayDate(ticketObj.DATUM)} - ${formatLocationText(ticketObj)} (${ticketObj.KATEGORIE || 'Memorabilia'})` : 'Joe Jackson concert memorabilia scan preview';
-  
-  if (!isValidValue(firstFile)) {
-    quickImg.dataset.isMissing = 'true';
-  }
-
-  quickImg.onerror = function() {
-    this.onerror = null;
-    this.src = MISSING_TICKET_SVG;
-    this.dataset.isMissing = 'true';
-  };
 
   if (quickViewerInstance) {
     quickViewerInstance.destroy();
     quickViewerInstance = null;
   }
 
-  quickViewerInstance = new Viewer(quickImg, {
+  const container = document.createElement('div');
+  container.style.display = 'none';
+
+  if (skenFiles.length === 0) {
+    const quickImg = document.createElement('img');
+    quickImg.src = MISSING_TICKET_SVG;
+    quickImg.alt = ticketObj ? `Joe Jackson Concert ${formatDisplayDate(ticketObj.DATUM)} - ${formatLocationText(ticketObj)} (${ticketObj.KATEGORIE || 'Memorabilia'})` : 'Joe Jackson concert memorabilia scan preview';
+    quickImg.dataset.isMissing = 'true';
+    container.appendChild(quickImg);
+  } else {
+    skenFiles.forEach((file) => {
+      const img = document.createElement('img');
+      img.src = `./scans/${file}`;
+      img.alt = ticketObj ? `${formatDisplayDate(ticketObj.DATUM)} | ${formatLocationText(ticketObj)} (${ticketObj.KATEGORIE || 'Memorabilia'})` : file;
+      img.onerror = function() {
+        this.onerror = null;
+        this.src = MISSING_TICKET_SVG;
+        this.dataset.isMissing = 'true';
+      };
+      container.appendChild(img);
+    });
+  }
+
+  document.body.appendChild(container);
+
+  quickViewerInstance = new Viewer(container, {
     backdrop: 'static',
     hidden: function() {
-      quickViewerInstance.destroy();
-      quickViewerInstance = null;
+      if (quickViewerInstance) {
+        quickViewerInstance.destroy();
+        quickViewerInstance = null;
+      }
+      if (container.parentNode) document.body.removeChild(container);
     },
     title: function() {
-      return ticketObj ? `${formatDisplayDate(ticketObj.DATUM)} | ${formatLocationText(ticketObj)}` : 'Scan Preview';
+      return ticketObj ? `${formatDisplayDate(ticketObj.DATUM)} | ${formatLocationText(ticketObj)} (${ticketObj.KATEGORIE || 'Memorabilia'})` : 'Scan Preview';
     },
     viewed: function() {
       setTimeout(() => {
@@ -546,11 +970,38 @@ function openQuickImageModal(scanFileName, ticketObj) {
           };
         }
       }, 50);
+    },
+    toolbar: {
+      zoomIn: 1, zoomOut: 1, oneToOne: 1, reset: 1,
+      prev: skenFiles.length > 1 ? 1 : 0,
+      next: skenFiles.length > 1 ? 1 : 0,
+      rotateLeft: 1, rotateRight: 1,
     }
   });
 
-  quickViewerInstance.show();
+  if (typeof quickViewerInstance.view === 'function') {
+    quickViewerInstance.view(0);
+  } else {
+    quickViewerInstance.show();
+  }
 }
+
+function handleRelatedBadgeClick(el) {
+  if (!el) return;
+  const scan = el.getAttribute('data-scan') || '';
+  let ticketObj = null;
+  if (el.dataset.ticket) {
+    try {
+      ticketObj = JSON.parse(decodeURIComponent(el.dataset.ticket));
+    } catch (err) {
+      console.error('Error parsing ticket data on badge:', err);
+    }
+  }
+  openQuickImageModal(scan, ticketObj);
+}
+
+window.handleRelatedBadgeClick = handleRelatedBadgeClick;
+window.openQuickImageModal = openQuickImageModal;
 
 function updateYearBadge() {
   const years = allTickets
@@ -646,27 +1097,47 @@ function changePageSize() {
 }
 
 function filterData() {
-  const query = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const rawQuery = document.getElementById('searchInput')?.value || '';
+  const query = rawQuery.toLowerCase().trim();
   const selectedYear = document.getElementById('yearFilter')?.value || '';
   const selectedCity = document.getElementById('cityFilter')?.value || '';
   const sort = document.getElementById('sortFilter')?.value || 'random';
+
+  const dateCandidates = parseDateCandidates(rawQuery);
 
   const matchesBase = allTickets.filter(t => {
     const locationText = formatLocationText(t).toLowerCase();
     const itemYear = (t.DATUM && t.DATUM.length >= 4) ? t.DATUM.substring(0, 4) : '';
     const rawDate = (t.DATUM || '').toLowerCase();
     const formattedDate = formatDisplayDate(t.DATUM).toLowerCase();
+    const venue = (t.VENUE || t.MISTO_KONANI || '').toLowerCase();
+    const city = (t.MESTO || '').toLowerCase();
+    const country = (t.STAT || '').toLowerCase();
+    const contributor = (t.PRISPEVATEL || t.CONTRIBUTOR || '').toLowerCase();
+    const category = (t.KATEGORIE || '').toLowerCase();
+    const supportingAct = (t.SUPPORTING_ACT || '').toLowerCase();
+    const lineup = (t.LINEUP || '').toLowerCase();
+    const setlist = (t.SETLIST || '').toLowerCase();
 
-    const qMatch = !query || 
+    const dateMatch = dateCandidates.length > 0 && matchDateAgainstCandidates(t.DATUM, dateCandidates);
+
+    const textMatch = !query ||
       locationText.includes(query) ||
+      venue.includes(query) ||
+      city.includes(query) ||
+      country.includes(query) ||
+      contributor.includes(query) ||
+      category.includes(query) ||
       rawDate.includes(query) ||
       formattedDate.includes(query) ||
-      (t.SUPPORTING_ACT || '').toLowerCase().includes(query) ||
-      (t.LINEUP || '').toLowerCase().includes(query) ||
-      (t.SETLIST || '').toLowerCase().includes(query);
+      supportingAct.includes(query) ||
+      lineup.includes(query) ||
+      setlist.includes(query);
+
+    const qMatch = !query || dateMatch || textMatch;
       
     const yMatch = !selectedYear || String(itemYear) === String(selectedYear);
-    const cMatch = !selectedCity || (t.MESTO || '').toLowerCase() === selectedCity.toLowerCase();
+    const cMatch = !selectedCity || city === selectedCity.toLowerCase();
     return qMatch && yMatch && cMatch;
   });
 
@@ -678,7 +1149,6 @@ function filterData() {
     return getTicketCategory(t).toLowerCase() === currentCategory.toLowerCase();
   });
 
-  // Filtrování a řazení
   if (sort === 'oldest') {
     filteredTickets.sort((a, b) => (a.DATUM || '').localeCompare(b.DATUM || ''));
   } else if (sort === 'newest') {
@@ -728,7 +1198,7 @@ function renderTickets(tickets) {
     const locationText = formatLocationText(t);
 
     card.onclick = (e) => {
-      if (e.target.closest('.icon-btn')) return;
+      if (e.target.closest('.icon-btn, .ticket-badge, [data-scan], .spotify-setlist-btn')) return;
       openDirectImagePreview(globalIndex);
     };
 
@@ -776,12 +1246,13 @@ function renderTickets(tickets) {
       else if (relCat === 'Passes') { icon = '🪪'; title = 'Related Pass'; }
       else if (relCat === 'Programs') { icon = '📖'; title = 'Related Program'; }
 
-      const relFile = (rel.SOUBOR_SKEN || '').split(',')[0].trim();
+      const rawRelScan = (rel.SOUBOR_SKEN || '').trim();
+      const relFile = rawRelScan.split(',')[0].trim();
       const hasRelScan = isValidValue(relFile);
-      const relAction = `openQuickImageModal('${relFile}', ${JSON.stringify(rel).replace(/'/g, "&apos;")})`;
+      const relTicketJson = encodeURIComponent(JSON.stringify(rel));
 
       iconsHTML += `
-        <button class="icon-btn btn-action-related" title="${title}${hasRelScan ? '' : ' (Missing scan)'}" onclick="event.stopPropagation(); ${relAction};">
+        <button class="icon-btn btn-action-related ticket-badge" data-scan="${rawRelScan}" data-ticket="${relTicketJson}" title="${title}${hasRelScan ? '' : ' (Missing scan)'}" onclick="event.stopPropagation(); handleRelatedBadgeClick(this);">
           ${icon}
         </button>`;
     });
@@ -803,7 +1274,13 @@ function renderTickets(tickets) {
       });
 
       collapsibleHTML += `<div class="collapsible-content" id="setlist-${globalIndex}">
-                           <ol style="padding-left: 20px;">${listItemsHTML}</ol>
+                           <ol style="padding-left: 20px; padding-bottom: 24px;">${listItemsHTML}</ol>
+                           <button class="spotify-setlist-btn" data-index="${globalIndex}" title="Generate/Open Spotify Playlist">
+                             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                               <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.485 17.306c-.215.352-.676.463-1.028.248-2.856-1.745-6.452-2.14-10.686-1.172-.403.092-.806-.157-.899-.56-.092-.402.158-.805.56-.898 4.637-1.06 8.604-.61 11.794 1.34.352.215.464.676.249 1.028zm1.464-3.256c-.27.44-.847.578-1.287.308-3.27-2.01-8.254-2.593-12.12-1.418-.496.15-1.022-.135-1.172-.63-.15-.497.135-1.023.63-1.173 4.417-1.341 9.907-.69 13.63 1.603.44.27.579.847.309 1.288zm.135-3.39c-3.921-2.328-10.384-2.543-14.133-1.405-.6.182-1.238-.16-1.42-.76-.182-.6.16-1.238.76-1.42 4.305-1.306 11.436-1.054 15.932 1.614.54.32.718 1.02.398 1.56-.32.54-1.02.718-1.56.398z"/>
+                             </svg>
+                             <span>Spotify</span>
+                           </button>
                          </div>`;
     }
     if (hasLineup) {

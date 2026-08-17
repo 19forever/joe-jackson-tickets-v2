@@ -624,14 +624,11 @@
         <div class="grid-2">
           <div class="form-group">
             <label for="SOUBOR_SKEN">Scan Image Filename(s) (SOUBOR_SKEN)</label>
-            <input type="text" id="SOUBOR_SKEN" placeholder="file1.jpg, file2.jpg" oninput="updateImageFromInput(); checkScanFileExistence();">
-            <div id="fileValidationHint" class="validation-hint"></div>
+            <input type="text" id="SOUBOR_SKEN" placeholder="file1.jpg, file2.jpg" oninput="updateImageFromInput()">
           </div>
           <div class="form-group">
             <label for="CONTRIBUTOR">Donor / Contributor (CONTRIBUTOR)</label>
-            <select id="CONTRIBUTOR" onchange="handleDropdownCustom('CONTRIBUTOR')">
-              <!-- Populated dynamically -->
-            </select>
+            <input type="text" id="CONTRIBUTOR" placeholder="e.g. Bert Bos, Netherlands">
           </div>
         </div>
       </div>
@@ -683,37 +680,26 @@
 
   <script>
     const CSV_FILENAME = 'joe_jackson_tickets_cleaned.csv';
-    let currentCsvFile = CSV_FILENAME;
     let fullCsvData = [];
     let currentRecordIndex = -1;
     let viewerInstance = null;
 
-    // Safe LocalStorage helpers
     function safeGetStorage(key) {
-      try {
-        return localStorage.getItem(key);
-      } catch (e) {
-        return null;
-      }
+      try { return localStorage.getItem(key); } catch (e) { return null; }
     }
 
     function safeSetStorage(key, val) {
-      try {
-        localStorage.setItem(key, val);
-      } catch (e) {}
+      try { localStorage.setItem(key, val); } catch (e) {}
     }
 
     function safeRemoveStorage(key) {
-      try {
-        localStorage.removeItem(key);
-      } catch (e) {}
+      try { localStorage.removeItem(key); } catch (e) {}
     }
 
     const fields = [
       'ID_MEMORABILIA', 'SHOW_ID', 'DATUM', 'MESTO', 'STAT', 'VENUE',
       'KATEGORIE', 'SOUBOR_SKEN', 'CONTRIBUTOR', 'LINEUP', 'SETLIST',
-      'POCET_SKLADEB', 'SETLIST_URL', 'YOUTUBE_URL', 'REVIEW_URL',
-      'ID_LISTKU', 'TURNE', 'INFO_TEXT', 'CONTRIBUTOR_TEXT'
+      'POCET_SKLADEB', 'SETLIST_URL', 'YOUTUBE_URL', 'REVIEW_URL', 'SETLIST_FM_URL'
     ];
 
     function checkAdminAuth() {
@@ -757,6 +743,22 @@
       window.location.href = 'index.html';
     }
 
+    function manageToken() {
+      const current = safeGetStorage('jj_github_pat') || '';
+      const val = prompt('Enter your GitHub Personal Access Token (PAT):', current);
+      if (val !== null) {
+        if (val.trim()) {
+          safeSetStorage('jj_github_pat', val.trim());
+          safeSetStorage('jj_admin_mode', 'true');
+          checkAdminAuth();
+          showStatus('✅ GitHub PAT updated.', 'green');
+        } else {
+          safeRemoveStorage('jj_github_pat');
+          checkAdminAuth();
+        }
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       checkAdminAuth();
 
@@ -779,644 +781,310 @@
               subtext: 'Joe Jackson Archive • joejackson.band',
               position: 'bottom-right'
             });
-
-            const previewImg = document.getElementById('previewImg');
-            if (previewImg) {
-              previewImg.src = result.dataUrl;
-            }
-
-            dlBtn.href = result.dataUrl;
-            dlBtn.download = result.fileName;
+            dlBtn.href = result.url;
+            dlBtn.download = `watermarked_${file.name}`;
             box.style.display = 'block';
-            showStatus('✅ Image watermarked! Click "Download Watermarked Scan" to save it for /scans/.', 'green');
+            showStatus('✅ Watermark applied successfully! Click button to download.', 'green');
           } catch (err) {
-            console.error('Watermark error:', err);
-            showStatus('❌ Watermark error: ' + err.message, 'red');
-            box.style.display = 'none';
+            console.error(err);
+            showStatus('❌ Watermark processing failed: ' + err.message, 'red');
           }
         });
       }
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const targetId = urlParams.get('id');
-
-      // Load joe_jackson_tickets_cleaned.csv
+      // Load CSV
       Papa.parse(CSV_FILENAME, {
         download: true,
         header: true,
         skipEmptyLines: true,
         complete: function(results) {
-          if (results.data && results.data.length > 0) {
-            fullCsvData = results.data;
-            currentCsvFile = CSV_FILENAME;
-            initData(targetId);
+          fullCsvData = results.data;
+          populateJumpDropdown();
+
+          const urlParams = new URLSearchParams(window.location.search);
+          const targetId = urlParams.get('id');
+          const targetIndex = urlParams.get('index');
+
+          if (targetId) {
+            const idx = fullCsvData.findIndex(r => r.ID_MEMORABILIA === targetId);
+            if (idx !== -1) loadRecordByIndex(idx);
+            else loadRecordByIndex(0);
+          } else if (targetIndex !== null && !isNaN(parseInt(targetIndex, 10))) {
+            loadRecordByIndex(parseInt(targetIndex, 10));
           } else {
-            showStatus('Failed to load ' + CSV_FILENAME + ': file is empty.', 'red');
+            loadRecordByIndex(0);
           }
         },
         error: function(err) {
-          showStatus('Failed to load ' + CSV_FILENAME + '.', 'red');
+          showStatus('❌ Failed to load CSV file: ' + err.message, 'red');
         }
       });
     });
 
-    function initData(targetId) {
-      populateDropdowns();
-      populateJumpSelect();
-
-      if (targetId) {
-        currentRecordIndex = fullCsvData.findIndex(r => 
-          (r.ID_MEMORABILIA && r.ID_MEMORABILIA === targetId) || 
-          (r.ID_LISTKU && r.ID_LISTKU === targetId)
-        );
-      }
-
-      if (currentRecordIndex === -1) {
-        currentRecordIndex = 0;
-      }
-
-      loadRecord(currentRecordIndex);
-    }
-
-    window.addEventListener('keydown', (e) => {
-      const activeTag = document.activeElement.tagName.toLowerCase();
-      if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
-        return;
-      }
-
-      if (e.key === 'ArrowLeft') {
-        navigateRecord(-1);
-      } else if (e.key === 'ArrowRight') {
-        navigateRecord(1);
-      }
-    });
-
-    function isValid(val) {
-      if (!val) return false;
-      const clean = String(val).trim().toLowerCase();
-      return clean !== '' && clean !== 'není k dispozici' && clean !== 'n/a' && clean !== 'null';
-    }
-
-    function getId(record) {
-      return record.ID_MEMORABILIA || record.ID_LISTKU || 'N/A';
-    }
-
-    function generateNextId() {
-      let maxNum = 0;
-      fullCsvData.forEach(r => {
-        const idVal = getId(r);
-        if (idVal) {
-          const match = idVal.match(/\d+/);
-          if (match) {
-            const num = parseInt(match[0], 10);
-            if (num > maxNum) maxNum = num;
-          }
-        }
-      });
-      const nextNum = maxNum + 1;
-      return `TICKET_${String(nextNum).padStart(4, '0')}`;
-    }
-
-    function addNewRecord() {
-      saveCurrentChangesToMemory();
-
-      const newId = generateNextId();
-      const newRecord = {
-        ID_MEMORABILIA: newId,
-        ID_LISTKU: newId,
-        KATEGORIE: 'tickets',
-        DATUM: '',
-        MESTO: '',
-        STAT: '',
-        VENUE: '',
-        SOUBOR_SKEN: '',
-        CONTRIBUTOR: '',
-        LINEUP: '',
-        YOUTUBE_URL: '',
-        REVIEW_URL: '',
-        SETLIST_URL: '',
-        SETLIST: '',
-        POCET_SKLADEB: '0'
-      };
-
-      fullCsvData.push(newRecord);
-      populateJumpSelect();
-      currentRecordIndex = fullCsvData.length - 1;
-      loadRecord(currentRecordIndex);
-      showStatus(`Created new record with ID: ${newId}. Fill details and click Save to GitHub.`, 'blue');
-    }
-
-    function duplicateCurrentRecord() {
-      if (currentRecordIndex < 0 || currentRecordIndex >= fullCsvData.length) return;
-
-      saveCurrentChangesToMemory();
-
-      const currentRecord = fullCsvData[currentRecordIndex];
-      const newId = generateNextId();
-
-      const duplicatedRecord = { ...currentRecord };
-      duplicatedRecord.ID_MEMORABILIA = newId;
-      duplicatedRecord.ID_LISTKU = newId;
-      duplicatedRecord.SOUBOR_SKEN = '';
-
-      fullCsvData.push(duplicatedRecord);
-      populateJumpSelect();
-      currentRecordIndex = fullCsvData.length - 1;
-      loadRecord(currentRecordIndex);
-      showStatus(`📋 Duplicated record to new ID: ${newId}.`, 'blue');
-    }
-
-    function checkDataQuality() {
-      const currentId = document.getElementById('ID_MEMORABILIA').value;
-      const dateVal = document.getElementById('DATUM').value.trim().toLowerCase();
-      const cityVal = document.getElementById('MESTO').value.trim().toLowerCase();
-      const catVal = document.getElementById('KATEGORIE').value.trim().toLowerCase();
-      const warningEl = document.getElementById('duplicateWarning');
-
-      if (!dateVal || !cityVal || !catVal) {
-        warningEl.textContent = '';
-        return;
-      }
-
-      const duplicate = fullCsvData.find(r => {
-        if (getId(r) === currentId) return false;
-        const rDate = (r.DATUM || '').trim().toLowerCase();
-        const rCity = (r.MESTO || '').trim().toLowerCase();
-        const rCat = (r.KATEGORIE || '').trim().toLowerCase();
-        return rDate === dateVal && rCity === cityVal && rCat === catVal && rDate !== '';
-      });
-
-      if (duplicate) {
-        warningEl.textContent = `⚠️ Possible Duplicate: Same concert date, city & category (${catVal}) already exists in record ${getId(duplicate)}!`;
-      } else {
-        warningEl.textContent = '';
-      }
-    }
-
-    async function checkScanFileExistence() {
-      const hintEl = document.getElementById('fileValidationHint');
-      const skenStr = document.getElementById('SOUBOR_SKEN').value.trim();
-
-      if (!skenStr) {
-        hintEl.textContent = '';
-        return;
-      }
-
-      const firstFile = skenStr.split(',')[0].trim();
-      const imgUrl = `./scans/${firstFile}`;
-
-      try {
-        const res = await fetch(imgUrl, { method: 'HEAD' });
-        if (res.ok) {
-          hintEl.className = 'validation-hint success';
-          hintEl.textContent = `✅ Image file '${firstFile}' verified in /scans/`;
-        } else {
-          hintEl.className = 'validation-hint error';
-          hintEl.textContent = `❌ Warning: File '${firstFile}' not found in /scans/ folder!`;
-        }
-      } catch (e) {
-        hintEl.className = 'validation-hint warning';
-        hintEl.textContent = `Checking file '${firstFile}'...`;
-      }
-    }
-
-    function populateDropdowns() {
-      const donorSelect = document.getElementById('CONTRIBUTOR');
-      const uniqueDonors = [...new Set(fullCsvData.map(r => r.CONTRIBUTOR || r.CONTRIBUTOR_TEXT).filter(isValid))].sort();
-
-      donorSelect.innerHTML = '<option value="">-- Select Contributor --</option>';
-      uniqueDonors.forEach(donor => {
-        donorSelect.innerHTML += `<option value="${donor}">${donor}</option>`;
-      });
-      donorSelect.innerHTML += '<option value="__ADD_NEW__">➕ Add new Contributor...</option>';
-    }
-
-    function populateJumpSelect() {
-      const jumpSelect = document.getElementById('jumpSelect');
-      jumpSelect.innerHTML = '';
-      fullCsvData.forEach((r, idx) => {
-        const recId = getId(r);
-        const city = r.MESTO || '';
-        const date = r.DATUM || '';
-        const label = `${recId} (${date} ${city})`;
+    function populateJumpDropdown() {
+      const select = document.getElementById('jumpSelect');
+      if (!select) return;
+      select.innerHTML = '';
+      fullCsvData.forEach((row, i) => {
         const opt = document.createElement('option');
-        opt.value = idx;
-        opt.textContent = label;
-        jumpSelect.appendChild(opt);
+        opt.value = i;
+        opt.textContent = `${i + 1}. [${row.DATUM || 'No date'}] ${row.MESTO || 'Unknown'} (${row.KATEGORIE || 'Item'})`;
+        select.appendChild(opt);
       });
     }
 
-    function jumpToSelectedRecord() {
-      const jumpSelect = document.getElementById('jumpSelect');
-      const idx = parseInt(jumpSelect.value, 10);
-      if (!isNaN(idx) && idx >= 0 && idx < fullCsvData.length) {
-        saveCurrentChangesToMemory();
-        loadRecord(idx);
-      }
-    }
-
-    function handleDropdownCustom(fieldId) {
-      const selectEl = document.getElementById(fieldId);
-      if (selectEl.value === '__ADD_NEW__') {
-        const newValue = prompt(`Enter name for new ${fieldId}:`);
-        if (newValue && newValue.trim()) {
-          const cleanVal = newValue.trim();
-          const newOpt = document.createElement('option');
-          newOpt.value = cleanVal;
-          newOpt.textContent = cleanVal;
-          selectEl.insertBefore(newOpt, selectEl.lastElementChild);
-          selectEl.value = cleanVal;
-        } else {
-          selectEl.value = '';
-        }
-      }
-    }
-
-    function saveCurrentChangesToMemory() {
-      if (currentRecordIndex >= 0 && currentRecordIndex < fullCsvData.length) {
-        fullCsvData[currentRecordIndex] = getFormData();
-      }
-    }
-
-    function loadRecord(index) {
+    function loadRecordByIndex(index) {
       if (index < 0 || index >= fullCsvData.length) return;
-      
       currentRecordIndex = index;
-      const data = fullCsvData[currentRecordIndex];
+      const r = fullCsvData[index];
 
-      const currentId = getId(data);
-      document.getElementById('recordIdTitle').textContent = currentId;
-
-      fields.forEach(field => {
-        const el = document.getElementById(field);
-        if (el) {
-          if (field === 'CONTRIBUTOR') {
-            const val = data.CONTRIBUTOR || data.CONTRIBUTOR_TEXT || '';
-            setDropdownValue(el, val);
-          } else if (field === 'ID_MEMORABILIA') {
-            el.value = currentId;
-          } else {
-            el.value = data[field] || '';
-          }
-        }
-      });
-
-      renderImagePreview(data.SOUBOR_SKEN);
-      updateYtPreview();
-      recalculateSongCount();
-      updateNavUI();
-      checkDataQuality();
-      checkScanFileExistence();
-
+      document.getElementById('recordIdTitle').textContent = r.ID_MEMORABILIA || `Record #${index + 1}`;
+      document.getElementById('recordCounter').textContent = `Record ${index + 1} of ${fullCsvData.length}`;
+      
       const jumpSelect = document.getElementById('jumpSelect');
       if (jumpSelect) jumpSelect.value = index;
 
-      const newUrl = `${window.location.pathname}?id=${encodeURIComponent(currentId)}`;
-      window.history.replaceState({ path: newUrl }, '', newUrl);
+      document.getElementById('prevBtn').disabled = (index === 0);
+      document.getElementById('nextBtn').disabled = (index === fullCsvData.length - 1);
+
+      fields.forEach(f => {
+        const el = document.getElementById(f);
+        if (el) el.value = r[f] || '';
+      });
+
+      updateImageFromInput();
+      updateYtPreview();
+      checkDataQuality();
     }
 
-    function setDropdownValue(selectEl, value) {
-      if (!value) {
-        selectEl.value = '';
-        return;
+    function navigateRecord(delta) {
+      saveCurrentFormToMemory();
+      const newIndex = currentRecordIndex + delta;
+      if (newIndex >= 0 && newIndex < fullCsvData.length) {
+        loadRecordByIndex(newIndex);
       }
-      let exists = Array.from(selectEl.options).some(opt => opt.value === value);
-      if (!exists) {
-        const newOpt = document.createElement('option');
-        newOpt.value = value;
-        newOpt.textContent = value;
-        selectEl.insertBefore(newOpt, selectEl.lastElementChild);
-      }
-      selectEl.value = value;
     }
 
-    function renderImagePreview(skenStr) {
-      if (viewerInstance) {
-        viewerInstance.destroy();
-        viewerInstance = null;
-      }
+    function jumpToSelectedRecord() {
+      saveCurrentFormToMemory();
+      const select = document.getElementById('jumpSelect');
+      if (select) loadRecordByIndex(parseInt(select.value, 10));
+    }
 
-      const imgEl = document.getElementById('previewImg');
-      const thumbListEl = document.getElementById('thumbList');
-      thumbListEl.innerHTML = '';
-
-      const files = (skenStr || '').split(',').map(s => s.trim()).filter(Boolean);
-
-      if (files.length > 0) {
-        imgEl.src = `./scans/${files[0]}`;
-        imgEl.onerror = () => {
-          imgEl.src = 'scans/missing_ticket.svg';
-        };
-
-        if (files.length > 1) {
-          files.forEach((f, idx) => {
-            const thumb = document.createElement('img');
-            thumb.className = `thumb-item ${idx === 0 ? 'active' : ''}`;
-            thumb.src = `./scans/${f}`;
-            thumb.onclick = () => {
-              imgEl.src = `./scans/${f}`;
-              document.querySelectorAll('.thumb-item').forEach(t => t.classList.remove('active'));
-              thumb.classList.add('active');
-
-              if (viewerInstance) {
-                viewerInstance.destroy();
-                viewerInstance = new Viewer(imgEl, { toolbar: true, navbar: false, title: false });
-              }
-            };
-            thumbListEl.appendChild(thumb);
-          });
-        }
-
-        setTimeout(() => {
-          viewerInstance = new Viewer(imgEl, { toolbar: true, navbar: false, title: false });
-        }, 100);
-
-      } else {
-        imgEl.src = 'scans/missing_ticket.svg';
-      }
+    function saveCurrentFormToMemory() {
+      if (currentRecordIndex < 0 || currentRecordIndex >= fullCsvData.length) return;
+      fields.forEach(f => {
+        const el = document.getElementById(f);
+        if (el) fullCsvData[currentRecordIndex][f] = el.value.trim();
+      });
     }
 
     function updateImageFromInput() {
-      const val = document.getElementById('SOUBOR_SKEN').value;
-      renderImagePreview(val);
-    }
+      const skenVal = document.getElementById('SOUBOR_SKEN')?.value || '';
+      const previewImg = document.getElementById('previewImg');
+      const thumbList = document.getElementById('thumbList');
+      if (!previewImg || !thumbList) return;
 
-    function recalculateSongCount() {
-      const text = document.getElementById('SETLIST').value;
-      const countEl = document.getElementById('POCET_SKLADEB');
-      if (text) {
-        const songs = text.split(',').map(s => s.trim()).filter(Boolean);
-        countEl.value = songs.length;
-      } else {
-        countEl.value = '0';
-      }
-    }
+      const files = skenVal.split(',').map(s => s.trim()).filter(Boolean);
+      thumbList.innerHTML = '';
 
-    async function fetchSetlistFromUrl() {
-      const setlistUrlInput = document.getElementById('SETLIST_URL');
-      let setlistUrl = setlistUrlInput ? setlistUrlInput.value.trim() : '';
-
-      if (!setlistUrl) {
-        showStatus('⚠️ Please enter a valid Setlist.fm URL first.', 'yellow');
+      if (files.length === 0) {
+        previewImg.src = './favicon.svg';
         return;
       }
 
-      showStatus('⚡ Fetching setlist details via Cloudflare Worker...', 'blue');
+      previewImg.src = `./scans/${files[0]}`;
+      previewImg.onerror = function() { this.src = './favicon.svg'; };
 
-      let cleanUrl = setlistUrl.split('?')[0].split('#')[0].trim();
-      let setlistId = '';
-      const matchHtml = cleanUrl.match(/-([a-z0-9]+)\.html$/i) || cleanUrl.match(/([a-z0-9]+)\.html$/i);
-      if (matchHtml) {
-        setlistId = matchHtml[1];
-      } else if (/^[a-z0-9]{5,16}$/i.test(cleanUrl)) {
-        setlistId = cleanUrl;
-      }
+      if (viewerInstance) viewerInstance.destroy();
+      viewerInstance = new Viewer(previewImg);
 
-      if (!setlistId) {
-        showStatus('❌ Invalid Setlist.fm URL format. Expected URL ending in ...<id>.html or raw setlist ID.', 'red');
-        return;
-      }
-
-      // Direct call to Cloudflare Worker with URL-encoded parameter
-      const workerProxyUrl = `https://jj-setlist-proxy.marek-kraus.workers.dev?id=${encodeURIComponent(setlistId)}`;
-
-      try {
-        const res = await fetch(workerProxyUrl, {
-          method: 'GET'
-        });
-
-        if (!res.ok) {
-          let errorDetail = '';
-          try {
-            const errJson = await res.json();
-            errorDetail = errJson.message || errJson.error || (typeof errJson === 'string' ? errJson : JSON.stringify(errJson));
-          } catch (e) {
-            try {
-              errorDetail = (await res.text()).trim();
-            } catch (e2) {}
-          }
-          throw new Error(`HTTP ${res.status}${errorDetail ? ` - ${errorDetail}` : ' from proxy worker'}`);
-        }
-
-        const data = await res.json();
-        let songNames = [];
-
-        if (data && data.sets && data.sets.set) {
-          const rawSets = Array.isArray(data.sets.set) ? data.sets.set : [data.sets.set];
-          rawSets.forEach(setObj => {
-            if (setObj && setObj.song) {
-              const rawSongs = Array.isArray(setObj.song) ? setObj.song : [setObj.song];
-              rawSongs.forEach(songObj => {
-                if (songObj && songObj.name && typeof songObj.name === 'string') {
-                  const cleanName = songObj.name.trim();
-                  if (cleanName) {
-                    songNames.push(cleanName);
-                  }
-                }
-              });
-            }
-          });
-        }
-
-        if (songNames.length === 0) {
-          showStatus(`⚠️ Setlist retrieved for ID '${setlistId}', but no songs are listed on Setlist.fm.`, 'yellow');
-          return;
-        }
-
-        const setlistField = document.getElementById('SETLIST');
-        if (setlistField) {
-          setlistField.value = songNames.join(', ');
-          recalculateSongCount();
-          showStatus(`✅ Successfully retrieved ${songNames.length} songs from Setlist.fm!`, 'green');
-        }
-      } catch (err) {
-        console.error('Setlist fetch error:', err);
-        showStatus(`❌ Fetch failed: ${err.message}`, 'red');
-      }
-    }
-
-    function navigateRecord(direction) {
-      saveCurrentChangesToMemory();
-      const newIndex = currentRecordIndex + direction;
-      if (newIndex >= 0 && newIndex < fullCsvData.length) {
-        loadRecord(newIndex);
-      }
-    }
-
-    function updateNavUI() {
-      const prevBtn = document.getElementById('prevBtn');
-      const nextBtn = document.getElementById('nextBtn');
-      const counter = document.getElementById('recordCounter');
-
-      prevBtn.disabled = currentRecordIndex === 0;
-      nextBtn.disabled = currentRecordIndex === fullCsvData.length - 1;
-      counter.textContent = `Record ${currentRecordIndex + 1} of ${fullCsvData.length}`;
+      files.forEach((f, idx) => {
+        const thumb = document.createElement('img');
+        thumb.className = `thumb-item ${idx === 0 ? 'active' : ''}`;
+        thumb.src = `./scans/${f}`;
+        thumb.onerror = function() { this.src = './favicon.svg'; };
+        thumb.onclick = () => {
+          previewImg.src = `./scans/${f}`;
+          document.querySelectorAll('.thumb-item').forEach(el => el.classList.remove('active'));
+          thumb.classList.add('active');
+        };
+        thumbList.appendChild(thumb);
+      });
     }
 
     function updateYtPreview() {
-      const val = document.getElementById('YOUTUBE_URL').value.trim();
+      const url = document.getElementById('YOUTUBE_URL')?.value.trim();
       const prevEl = document.getElementById('ytPreview');
-      if (val && val.startsWith('http')) {
-        prevEl.innerHTML = `🔗 Test Link: <a href="${val}" target="_blank">${val} ↗</a>`;
-      } else {
-        prevEl.innerHTML = '';
+      if (!prevEl) return;
+      if (url) prevEl.innerHTML = `<a href="${url}" target="_blank" rel="noopener">▶️ Test YouTube Video Link</a>`;
+      else prevEl.innerHTML = '';
+    }
+
+    function recalculateSongCount() {
+      const val = document.getElementById('SETLIST')?.value || '';
+      const songs = val.split(',').map(s => s.trim()).filter(s => s && !s.startsWith('[Encore') && !s.startsWith('[Set'));
+      const countEl = document.getElementById('POCET_SKLADEB');
+      if (countEl) countEl.value = songs.length;
+    }
+
+    function checkDataQuality() {
+      const dateVal = document.getElementById('DATUM')?.value.trim();
+      const cityVal = document.getElementById('MESTO')?.value.trim();
+      const catVal = document.getElementById('KATEGORIE')?.value.trim();
+      const warnEl = document.getElementById('duplicateWarning');
+
+      if (!warnEl) return;
+      warnEl.textContent = '';
+
+      if (dateVal && cityVal) {
+        const dups = fullCsvData.filter((r, idx) => {
+          if (idx === currentRecordIndex) return false;
+          return (r.DATUM || '').trim() === dateVal &&
+                 (r.MESTO || '').trim().toLowerCase() === cityVal.toLowerCase() &&
+                 (r.KATEGORIE || '').trim().toLowerCase() === catVal.toLowerCase();
+        });
+        if (dups.length > 0) {
+          warnEl.textContent = `⚠️ Possible duplicate record exists (${dups.length} match on same Date, City, and Category).`;
+        }
       }
     }
 
-    function getFormData() {
-      const updated = { ...fullCsvData[currentRecordIndex] };
+    function fetchSetlistFromUrl() {
+      const urlInput = document.getElementById('SETLIST_URL');
+      const url = urlInput ? urlInput.value.trim() : '';
+      if (!url) {
+        alert('Please enter a valid Setlist.fm URL first.');
+        return;
+      }
+      showStatus('⚡ Fetching songs from Setlist.fm...', 'yellow');
+      fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const songNodes = doc.querySelectorAll('.songPart .songLabel, .setlistList .songLabel');
+          const songTitles = [];
+          songNodes.forEach(node => {
+            const title = node.textContent.trim();
+            if (title) songTitles.push(title);
+          });
+          if (songTitles.length > 0) {
+            document.getElementById('SETLIST').value = songTitles.join(', ');
+            recalculateSongCount();
+            showStatus(`✅ Successfully imported ${songTitles.length} songs from Setlist.fm!`, 'green');
+          } else {
+            showStatus('⚠️ Could not extract song labels from page. Please enter songs manually.', 'yellow');
+          }
+        })
+        .catch(err => {
+          showStatus('❌ Error scraping Setlist.fm: ' + err.message, 'red');
+        });
+    }
 
-      fields.forEach(field => {
-        const el = document.getElementById(field);
-        if (el) {
-          updated[field] = el.value.trim();
-        }
-      });
+    function addNewRecord() {
+      saveCurrentFormToMemory();
+      const newId = `TICKET_${String(fullCsvData.length + 1).padStart(4, '0')}`;
+      const newRecord = { ID_MEMORABILIA: newId, KATEGORIE: 'tickets' };
+      fullCsvData.push(newRecord);
+      populateJumpDropdown();
+      loadRecordByIndex(fullCsvData.length - 1);
+      showStatus(`➕ New record ${newId} created. Fill in details and save.`, 'green');
+    }
 
-      return updated;
+    function duplicateCurrentRecord() {
+      if (currentRecordIndex < 0) return;
+      saveCurrentFormToMemory();
+      const current = fullCsvData[currentRecordIndex];
+      const newId = `TICKET_${String(fullCsvData.length + 1).padStart(4, '0')}`;
+      const clone = { ...current, ID_MEMORABILIA: newId, SOUBOR_SKEN: '' };
+      fullCsvData.push(clone);
+      populateJumpDropdown();
+      loadRecordByIndex(fullCsvData.length - 1);
+      showStatus(`📋 Duplicated record as ${newId}.`, 'green');
     }
 
     function downloadUpdatedCSV() {
-      if (currentRecordIndex === -1) return;
-
-      saveCurrentChangesToMemory();
-      const csvString = Papa.unparse(fullCsvData);
-
-      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = currentCsvFile;
-      link.click();
-
-      showStatus(`Updated CSV (${currentCsvFile}) downloaded! Replace it in your repository.`, 'green');
-    }
-
-    function getStoredToken() {
-      return safeGetStorage('jj_github_pat') || '';
-    }
-
-    function manageToken() {
-      const currentToken = getStoredToken();
-      let msg = currentToken 
-        ? 'A GitHub PAT is currently saved in your browser.\n\nEnter new token to replace it, or leave empty and click OK to clear it:'
-        : 'Enter your GitHub Personal Access Token (PAT with repo scope):';
-
-      const newToken = prompt(msg, currentToken);
-      if (newToken === null) return;
-
-      if (newToken.trim() === '') {
-        safeRemoveStorage('jj_github_pat');
-        safeRemoveStorage('jj_admin_mode');
-        alert('Token removed from browser storage. Returning to public mode.');
-        window.location.href = 'index.html';
-      } else {
-        safeSetStorage('jj_github_pat', newToken.trim());
-        safeSetStorage('jj_admin_mode', 'true');
-        alert('Token saved successfully in browser!');
-      }
+      saveCurrentFormToMemory();
+      const csvStr = Papa.unparse(fullCsvData);
+      const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = CSV_FILENAME;
+      a.click();
+      URL.revokeObjectURL(url);
+      showStatus('💾 Downloaded updated CSV file.', 'green');
     }
 
     async function commitToGitHub() {
-      let token = getStoredToken();
-
+      saveCurrentFormToMemory();
+      const token = safeGetStorage('jj_github_pat');
       if (!token) {
-        token = prompt('Enter your GitHub Personal Access Token (PAT with repo scope):');
-        if (!token) return;
-        token = token.trim();
-
-        if (confirm('Do you want to save this PAT in your browser for future edits?')) {
-          safeSetStorage('jj_github_pat', token);
-        }
+        manageToken();
+        return;
       }
 
-      if (currentRecordIndex === -1) return;
-
-      saveCurrentChangesToMemory();
-      const csvString = Papa.unparse(fullCsvData);
-
-      const repoOwner = '19forever';
-      const repoName = 'joe-jackson-tickets-v2';
-      const filePath = currentCsvFile;
-      const targetUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`;
-
-      console.log('Target Repo:', repoOwner, repoName, filePath);
-      console.log('GitHub API Endpoint:', targetUrl);
-
-      showStatus('Connecting to GitHub API...', 'blue');
+      showStatus('🚀 Committing changes directly to GitHub repository...', 'yellow');
 
       try {
-        const getFileRes = await fetch(targetUrl, {
-          headers: { 
-            'Authorization': `token ${token}`,
-            'Accept': 'application/vnd.github.v3+json'
-          }
+        const repo = 'marek-kraus/joe-jackson-tickets';
+        const path = CSV_FILENAME;
+        const url = `https://api.github.com/repos/${repo}/contents/${path}`;
+
+        // 1. Get Current File SHA
+        const getRes = await fetch(url, {
+          headers: { 'Authorization': `token ${token}` }
         });
-
-        console.log('GET File Status:', getFileRes.status);
-        const fileData = await getFileRes.json().catch(() => ({}));
-        console.log('GET File Response:', fileData);
-
-        if (!getFileRes.ok) {
-          if (getFileRes.status === 401) {
-            safeRemoveStorage('jj_github_pat');
-            throw new Error('Invalid PAT token or expired credentials (401).');
-          } else if (getFileRes.status === 404) {
-            throw new Error(`File '${filePath}' not found in repo ${repoOwner}/${repoName}. Check repository name or permissions.`);
-          }
-          throw new Error(fileData.message || `GitHub API error: ${getFileRes.status}`);
-        }
-
+        if (!getRes.ok) throw new Error(`Failed to fetch file metadata from GitHub (${getRes.status})`);
+        const fileData = await getRes.json();
         const sha = fileData.sha;
-        const contentEncoded = btoa(unescape(encodeURIComponent(csvString)));
 
-        console.log('GitHub API Endpoint (PUT):', targetUrl);
-        const updateRes = await fetch(targetUrl, {
+        // 2. Encode Content
+        const csvContent = Papa.unparse(fullCsvData);
+        const encodedContent = btoa(unescape(encodeURIComponent(csvContent)));
+
+        // 3. Put Update
+        const putRes = await fetch(url, {
           method: 'PUT',
           headers: {
             'Authorization': `token ${token}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/vnd.github.v3+json'
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            message: `Update record ${getId(fullCsvData[currentRecordIndex])} via Web Editor`,
-            content: contentEncoded,
+            message: `Update ${CSV_FILENAME} via Museum Curator Editor`,
+            content: encodedContent,
             sha: sha
           })
         });
 
-        console.log('PUT File Status:', updateRes.status);
-        const updateJson = await updateRes.json().catch(() => ({}));
-        console.log('PUT File Response:', updateJson);
-
-        if (updateRes.ok) {
-          if (updateJson && updateJson.content && updateJson.commit) {
-            console.log('Successfully updated file SHA:', updateJson.content.sha, 'Commit URL:', updateJson.commit.html_url);
-          }
-          showStatus(`✅ Saved to ${repoOwner}/${repoName} (${filePath})! Changes will be live in ~30s.`, 'green');
-        } else {
-          throw new Error(`GitHub Save Failed (${updateRes.status}): ${updateJson.message || 'Check PAT scope permissions'}`);
+        if (!putRes.ok) {
+          const errData = await putRes.json();
+          throw new Error(errData.message || `GitHub error status ${putRes.status}`);
         }
+
+        showStatus('🎉 Successfully committed and published updates to GitHub repository!', 'green');
       } catch (err) {
-        console.error('commitToGitHub Error:', err);
-        showStatus(`❌ ${err.message}`, 'red');
+        console.error(err);
+        showStatus('❌ Failed to commit to GitHub: ' + err.message, 'red');
       }
     }
 
     function showStatus(msg, color) {
       const el = document.getElementById('statusMessage');
-      el.style.display = 'block';
+      if (!el) return;
       el.textContent = msg;
-
+      el.style.display = 'block';
       if (color === 'green') {
-        el.style.background = 'rgba(16, 185, 129, 0.15)';
-        el.style.border = '1px solid #10b981';
-        el.style.color = '#34d399';
+        el.style.backgroundColor = 'rgba(22, 163, 74, 0.2)';
+        el.style.border = '1px solid #16a34a';
+        el.style.color = '#4ade80';
       } else if (color === 'red') {
-        el.style.background = 'rgba(239, 68, 68, 0.15)';
-        el.style.border = '1px solid #ef4444';
+        el.style.backgroundColor = 'rgba(220, 38, 38, 0.2)';
+        el.style.border = '1px solid #dc2626';
         el.style.color = '#f87171';
       } else {
-        el.style.background = 'rgba(245, 158, 11, 0.15)';
+        el.style.backgroundColor = 'rgba(245, 158, 11, 0.2)';
         el.style.border = '1px solid #f59e0b';
         el.style.color = '#fbbf24';
       }
