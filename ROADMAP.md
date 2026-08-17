@@ -65,8 +65,7 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Direct image upload pipeline using S3 / Cloudflare R2
 - [ ] **Streaming Platform Integration**
   - Direct Spotify / Apple Music setlist playback links
-     
-- - [ ] **Community & Fan Interactivity Engine**
+- [ ] **Community & Fan Interactivity Engine**
   - **Setlist.fm Integration:** Import user attendance via Setlist.fm public API (`/user/{userId}/attended`) to automatically flag attended shows.
   - **Personal Concert Badges:** User status indicators on concert cards (*"I Was There"*, *"I Own Ticket"*, *"Ticket Lost"*, *"I Have Audio Recording"*).
   - **Fan Memories & Stories:** Micro-forum section per concert allowing fans to publish personal concert stories and anecdotes.
