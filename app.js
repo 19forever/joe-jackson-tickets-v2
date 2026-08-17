@@ -37,21 +37,62 @@ const MISSING_TICKET_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
+// Safe Storage helpers for sandboxed / private browsing environments
+function safeGetStorage(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (e) {
+    return null;
+  }
+}
+
+function safeSetStorage(key, val) {
+  try {
+    localStorage.setItem(key, val);
+  } catch (e) {}
+}
+
+function safeRemoveStorage(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch (e) {}
+}
+
+function safeGetSession(key) {
+  try {
+    return sessionStorage.getItem(key);
+  } catch (e) {
+    return null;
+  }
+}
+
+function safeSetSession(key, val) {
+  try {
+    sessionStorage.setItem(key, val);
+  } catch (e) {}
+}
+
+function safeRemoveSession(key) {
+  try {
+    sessionStorage.removeItem(key);
+  } catch (e) {}
+}
+
 // Helper to check if user is in Admin mode
 function checkIsAdmin() {
   const urlParams = new URLSearchParams(window.location.search);
-  const storedPat = localStorage.getItem('jj_github_pat');
+  const storedPat = safeGetStorage('jj_github_pat');
   const adminParam = urlParams.get('admin') === '1';
-  const adminFlag = localStorage.getItem('jj_admin_mode') === 'true';
+  const adminFlag = safeGetStorage('jj_admin_mode') === 'true';
   const hasPat = !!(storedPat && storedPat.trim().length > 0);
   return adminParam || adminFlag || hasPat;
 }
 
 // Global Lock Admin helper to clear PAT & admin flags and return to public user mode
 window.lockAdminSession = function() {
-  localStorage.removeItem('jj_github_pat');
-  localStorage.removeItem('jj_admin_mode');
-  sessionStorage.removeItem('jj_admin_mode');
+  safeRemoveStorage('jj_github_pat');
+  safeRemoveStorage('jj_admin_mode');
+  safeRemoveSession('jj_admin_mode');
   
   const url = new URL(window.location.href);
   if (url.searchParams.has('admin')) {
@@ -97,7 +138,7 @@ window.addEventListener('DOMContentLoaded', () => {
       updateYearBadge();
       populateFilters();
 
-      const savedSearch = sessionStorage.getItem('jj_museum_search');
+      const savedSearch = safeGetSession('jj_museum_search');
       const searchInput = document.getElementById('searchInput');
       if (savedSearch && searchInput) {
         searchInput.value = savedSearch;
@@ -290,7 +331,7 @@ function handleSearchInput() {
   const clearBtn = document.getElementById('searchClearBtn');
   const val = input.value;
   
-  sessionStorage.setItem('jj_museum_search', val);
+  safeSetSession('jj_museum_search', val);
   if (clearBtn) clearBtn.style.display = val.trim().length > 0 ? 'block' : 'none';
   filterData();
 }
@@ -299,7 +340,7 @@ function clearSearchInput() {
   const input = document.getElementById('searchInput');
   const clearBtn = document.getElementById('searchClearBtn');
   if (input) input.value = '';
-  sessionStorage.removeItem('jj_museum_search');
+  safeRemoveSession('jj_museum_search');
   if (clearBtn) clearBtn.style.display = 'none';
   filterData();
 }
@@ -696,14 +737,14 @@ function renderTickets(tickets) {
     const itemId = t.ID_MEMORABILIA || t.ID_LISTKU;
     if (isAdmin && isValidValue(itemId)) {
       iconsHTML += `
-        <button class="icon-btn" title="Edit Record in Editor" onclick="event.stopPropagation(); window.location.href='edit_ticket_new.html?id=${encodeURIComponent(itemId)}';">
+        <button class="icon-btn btn-action-edit" title="Edit Record in Editor" onclick="event.stopPropagation(); window.location.href='edit_ticket_new.html?id=${encodeURIComponent(itemId)}';">
           ✏️
         </button>`;
     }
 
     if (isValidValue(t.YOUTUBE_URL)) {
       iconsHTML += `
-        <button class="icon-btn" title="YouTube video" onclick="event.stopPropagation(); openVideoModal(${globalIndex});">
+        <button class="icon-btn btn-action-video" title="YouTube video" onclick="event.stopPropagation(); openVideoModal(${globalIndex});">
           🎬
         </button>`;
     }
@@ -712,7 +753,7 @@ function renderTickets(tickets) {
     const hasSetlist = isValidValue(t.SETLIST) && songCount > 0;
     if (hasSetlist) {
       iconsHTML += `
-        <button class="icon-btn badge-setlist" title="Setlist (${songCount} songs)" onclick="event.stopPropagation(); toggleCollapsible('setlist-${globalIndex}');">
+        <button class="icon-btn badge-setlist btn-action-setlist" title="Setlist (${songCount} songs)" onclick="event.stopPropagation(); toggleCollapsible('setlist-${globalIndex}');">
           🎵 ${songCount}
         </button>`;
     }
@@ -720,7 +761,7 @@ function renderTickets(tickets) {
     const hasLineup = isValidValue(t.LINEUP);
     if (hasLineup) {
       iconsHTML += `
-        <button class="icon-btn" title="Band Line-up" onclick="event.stopPropagation(); toggleCollapsible('lineup-${globalIndex}');">
+        <button class="icon-btn btn-action-lineup" title="Band Line-up" onclick="event.stopPropagation(); toggleCollapsible('lineup-${globalIndex}');">
           👥
         </button>`;
     }
@@ -740,7 +781,7 @@ function renderTickets(tickets) {
       const relAction = `openQuickImageModal('${relFile}', ${JSON.stringify(rel).replace(/'/g, "&apos;")})`;
 
       iconsHTML += `
-        <button class="icon-btn" title="${title}${hasRelScan ? '' : ' (Missing scan)'}" onclick="event.stopPropagation(); ${relAction};">
+        <button class="icon-btn btn-action-related" title="${title}${hasRelScan ? '' : ' (Missing scan)'}" onclick="event.stopPropagation(); ${relAction};">
           ${icon}
         </button>`;
     });
@@ -770,17 +811,20 @@ function renderTickets(tickets) {
       collapsibleHTML += `<div class="collapsible-content" id="lineup-${globalIndex}"><ul>${members.map(m => `<li>${m}</li>`).join('')}</ul></div>`;
     }
 
+    const catName = getTicketCategory(t);
+
     card.innerHTML = `
       <div class="card-img-wrapper" title="${isMissingScan ? 'Missing scan - Click to preview' : 'Click to view scan'}">
-        <img src="${imgSrc}" alt="Joe Jackson Concert ${t.DATUM ? formatDisplayDate(t.DATUM) : 'Archive Item'} - ${locationText || 'Live Performance'} (${t.KATEGORIE || 'Ticket'})" onerror="this.onerror=null; this.src='${MISSING_TICKET_SVG}';">
+        <img src="${imgSrc}" alt="Joe Jackson Concert ${t.DATUM ? formatDisplayDate(t.DATUM) : 'Archive Item'} - ${locationText || 'Live Performance'} (${catName})" onerror="this.onerror=null; this.src='${MISSING_TICKET_SVG}';">
       </div>
       <div class="card-content">
         <div class="card-main-row">
           <div class="card-info-left">
             ${t.DATUM ? `<div class="card-date">${formatDisplayDate(t.DATUM)}</div>` : ''}
+            <span class="category-badge">${catName}</span>
             <div class="info-text">${locationText}</div>
           </div>
-          ${iconsHTML ? `<div class="card-icon-col">${iconsHTML}</div>` : ''}
+          ${iconsHTML ? `<div class="card-icon-col card-actions list-actions">${iconsHTML}</div>` : ''}
         </div>
         ${collapsibleHTML}
       </div>
@@ -835,15 +879,15 @@ function toggleCollapsible(id) {
   if (el) el.classList.toggle('open');
 }
 
-// Blokování pravého tlačítka a přetahování na obrázcích
+// Global image protection: suppress right-click context menu and drag operations on images
 document.addEventListener('contextmenu', (e) => {
-  if (e.target.tagName === 'IMG') {
+  if (e.target && e.target.closest('img')) {
     e.preventDefault();
   }
 });
 
 document.addEventListener('dragstart', (e) => {
-  if (e.target.tagName === 'IMG') {
+  if (e.target && e.target.closest('img')) {
     e.preventDefault();
   }
 });

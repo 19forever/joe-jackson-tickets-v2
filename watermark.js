@@ -55,18 +55,22 @@
       URL.revokeObjectURL(tempObjectUrl);
     }
 
-    // Calculate dimensions
-    let w = img.naturalWidth || img.width;
-    let h = img.naturalHeight || img.height;
+    // Calculate dimensions strictly respecting original aspect ratio
+    const origW = img.naturalWidth || img.width;
+    const origH = img.naturalHeight || img.height;
 
-    if (w > maxDimension || h > maxDimension) {
-      if (w > h) {
-        h = Math.round((h * maxDimension) / w);
-        w = maxDimension;
-      } else {
-        h = maxDimension;
-        w = Math.round((w * maxDimension) / h);
-      }
+    if (!origW || !origH) {
+      throw new Error('Invalid image dimensions');
+    }
+
+    let w = origW;
+    let h = origH;
+
+    // Scale proportionally if either dimension exceeds maxDimension
+    if (maxDimension && (w > maxDimension || h > maxDimension)) {
+      const scaleFactor = Math.min(maxDimension / origW, maxDimension / origH);
+      w = Math.round(origW * scaleFactor);
+      h = Math.round(origH * scaleFactor);
     }
 
     const canvas = document.createElement('canvas');
@@ -74,21 +78,25 @@
     canvas.height = h;
     const ctx = canvas.getContext('2d');
 
-    // Draw base image
+    // Draw base image cleanly at full canvas size
     ctx.drawImage(img, 0, 0, w, h);
 
     // Calculate dynamic scaling according to image resolution
     const baseDim = Math.max(w, h);
-    const scale = Math.max(0.6, baseDim / 1200);
+    const scale = Math.max(0.55, baseDim / 1300);
 
-    const fontSize = Math.max(14, Math.round(20 * scale));
-    const subFontSize = Math.max(9, Math.round(11 * scale));
-    const paddingX = Math.max(10, Math.round(16 * scale));
-    const paddingY = Math.max(8, Math.round(12 * scale));
-    const margin = Math.max(12, Math.round(18 * scale));
-    const iconOffset = Math.round(26 * scale);
+    const fontSize = Math.max(13, Math.round(18 * scale));
+    const subFontSize = Math.max(8, Math.round(10 * scale));
+    const paddingX = Math.max(8, Math.round(14 * scale));
+    const paddingY = Math.max(6, Math.round(10 * scale));
+    const margin = Math.max(10, Math.round(16 * scale));
+    const iconOffset = Math.round(24 * scale);
 
     ctx.save();
+
+    // Set semi-transparent opacity so watermark does not obscure ticket dates or details
+    const watermarkOpacity = typeof options.opacity === 'number' ? options.opacity : 0.52;
+    ctx.globalAlpha = Math.max(0.1, Math.min(1.0, watermarkOpacity));
 
     // Measure text
     ctx.font = `700 ${fontSize}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
@@ -98,7 +106,7 @@
 
     const contentWidth = Math.max(mainMetrics.width, subMetrics.width);
     const boxWidth = contentWidth + (paddingX * 2) + iconOffset;
-    const boxHeight = fontSize + subFontSize + (paddingY * 2) + Math.round(4 * scale);
+    const boxHeight = fontSize + subFontSize + (paddingY * 2) + Math.round(3 * scale);
 
     // Determine watermark coordinates
     let x = w - boxWidth - margin;
@@ -122,11 +130,11 @@
     x = Math.max(margin, Math.min(x, w - boxWidth - margin));
     y = Math.max(margin, Math.min(y, h - boxHeight - margin));
 
-    // Draw semi-transparent background pill
-    const borderRadius = Math.max(6, Math.round(10 * scale));
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.78)'; // Translucent Slate / Dark Navy
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
-    ctx.lineWidth = Math.max(1, Math.round(1.5 * scale));
+    // Draw subtle semi-transparent background pill
+    const borderRadius = Math.max(6, Math.round(8 * scale));
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.65)'; // Translucent Slate / Navy
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.lineWidth = Math.max(1, Math.round(1.2 * scale));
 
     if (typeof ctx.roundRect === 'function') {
       ctx.beginPath();
@@ -151,19 +159,15 @@
     // Draw Main Text "JJ Memorabilia Museum"
     ctx.font = `700 ${fontSize}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
     ctx.fillStyle = '#ffffff';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
-    ctx.shadowBlur = Math.round(4 * scale);
-    ctx.shadowOffsetX = Math.round(1 * scale);
-    ctx.shadowOffsetY = Math.round(1 * scale);
     ctx.fillText(text, textX, y + paddingY + fontSize - Math.round(2 * scale));
 
     // Draw Subtitle "Joe Jackson Archive • joejackson.band"
-    ctx.shadowBlur = 0;
     ctx.font = `600 ${subFontSize}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
     ctx.fillText(subtext, textX, y + paddingY + fontSize + subFontSize + Math.round(2 * scale));
 
     ctx.restore();
+    ctx.globalAlpha = 1.0;
 
     // Export output
     const dataUrl = canvas.toDataURL(outputFormat, quality);

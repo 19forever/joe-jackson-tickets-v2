@@ -394,19 +394,171 @@ header {
 .tickets-container.list-view {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 2px;
 }
 
 .tickets-container.list-view .ticket-card {
+  display: flex;
   flex-direction: row;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 10px;
+  margin-bottom: 2px;
   height: auto;
+  min-height: 32px;
+  border-radius: 4px;
+  box-shadow: none;
+  border: 1px solid var(--border-color);
+}
+
+.tickets-container.list-view .ticket-card:hover {
+  transform: none;
+  background-color: #141414;
+  border-color: var(--accent-yellow);
 }
 
 .tickets-container.list-view .card-img-wrapper {
-  width: 220px;
-  height: 160px;
+  width: 32px;
+  height: 24px;
   flex-shrink: 0;
+  border-radius: 3px;
+  overflow: hidden;
+  background-color: #0d0d0d;
+}
+
+.tickets-container.list-view .card-img-wrapper img {
+  width: 32px;
+  height: 24px;
+  object-fit: cover;
+  border-radius: 3px;
+}
+
+.tickets-container.list-view .card-content {
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-grow: 1;
+  min-width: 0;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.tickets-container.list-view .card-main-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.tickets-container.list-view .card-info-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.tickets-container.list-view .card-date {
+  font-size: 0.8rem;
+  line-height: 1.2;
+  margin-bottom: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.tickets-container.list-view .category-badge {
+  font-size: 0.7rem;
+  line-height: 1.2;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color-light);
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.tickets-container.list-view .info-text {
+  font-size: 0.8rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.tickets-container.list-view .card-icon-col,
+.tickets-container.list-view .card-actions,
+.tickets-container.list-view .list-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  max-width: none;
+}
+
+.tickets-container.list-view .icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  min-width: 24px;
+  padding: 0 6px;
+  font-size: 0.75rem;
+  line-height: 1;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+/* Explicit Action Icon Ordering: Edit Button Always Last */
+.tickets-container.list-view .btn-action-setlist,
+.tickets-container.list-view .badge-setlist {
+  order: 1;
+}
+
+.tickets-container.list-view .btn-action-lineup {
+  order: 2;
+}
+
+.tickets-container.list-view .btn-action-video,
+.tickets-container.list-view .btn-action-related {
+  order: 3;
+}
+
+.tickets-container.list-view .btn-action-edit {
+  order: 99;
+}
+
+.tickets-container.list-view .collapsible-content {
+  display: none !important;
+}
+
+/* Category Badge (Grid View default) */
+.category-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color-light);
+  margin-bottom: 4px;
 }
 
 /* Ticket Card Styling */
@@ -772,12 +924,15 @@ header {
   }
 
   .tickets-container.list-view .ticket-card {
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
+    padding: 3px 6px;
+    gap: 6px;
   }
 
   .tickets-container.list-view .card-img-wrapper {
-    width: 100%;
-    height: 200px;
+    width: 32px;
+    height: 24px;
   }
 }
 

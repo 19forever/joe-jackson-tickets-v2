@@ -684,11 +684,30 @@
   <script>
     const CSV_FILENAME = 'joe_jackson_tickets_cleaned.csv';
     let currentCsvFile = CSV_FILENAME;
-
-    const SETLIST_API_KEY_DEFAULT = '3pc6VtmOHzQbQVh9xedw_LLpNRCCfDhEvop7';
     let fullCsvData = [];
     let currentRecordIndex = -1;
     let viewerInstance = null;
+
+    // Safe LocalStorage helpers
+    function safeGetStorage(key) {
+      try {
+        return localStorage.getItem(key);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function safeSetStorage(key, val) {
+      try {
+        localStorage.setItem(key, val);
+      } catch (e) {}
+    }
+
+    function safeRemoveStorage(key) {
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {}
+    }
 
     const fields = [
       'ID_MEMORABILIA', 'SHOW_ID', 'DATUM', 'MESTO', 'STAT', 'VENUE',
@@ -698,7 +717,7 @@
     ];
 
     function checkAdminAuth() {
-      const token = localStorage.getItem('jj_github_pat');
+      const token = safeGetStorage('jj_github_pat');
       const gateEl = document.getElementById('gateModal');
       const lockBtn = document.getElementById('lockAdminBtn');
 
@@ -724,17 +743,17 @@
         return;
       }
 
-      localStorage.setItem('jj_github_pat', patVal);
-      localStorage.setItem('jj_admin_mode', 'true');
+      safeSetStorage('jj_github_pat', patVal);
+      safeSetStorage('jj_admin_mode', 'true');
       if (errEl) errEl.style.display = 'none';
       checkAdminAuth();
       showStatus('✅ Admin authenticated successfully. Token stored in browser.', 'green');
     }
 
     function lockAdminSession() {
-      localStorage.removeItem('jj_github_pat');
-      localStorage.removeItem('jj_admin_mode');
-      sessionStorage.removeItem('jj_admin_mode');
+      safeRemoveStorage('jj_github_pat');
+      safeRemoveStorage('jj_admin_mode');
+      try { sessionStorage.removeItem('jj_admin_mode'); } catch (e) {}
       window.location.href = 'index.html';
     }
 
@@ -1140,70 +1159,44 @@
         return;
       }
 
-      showStatus('⚡ Fetching setlist details from Setlist.fm...', 'blue');
+      showStatus('⚡ Fetching setlist details via Cloudflare Worker...', 'blue');
 
       let cleanUrl = setlistUrl.split('?')[0].split('#')[0].trim();
       let setlistId = '';
       const matchHtml = cleanUrl.match(/-([a-z0-9]+)\.html$/i) || cleanUrl.match(/([a-z0-9]+)\.html$/i);
       if (matchHtml) {
         setlistId = matchHtml[1];
-      } else if (/^[a-z0-9]{6,12}$/i.test(cleanUrl)) {
+      } else if (/^[a-z0-9]{5,16}$/i.test(cleanUrl)) {
         setlistId = cleanUrl;
       }
 
       if (!setlistId) {
-        showStatus('❌ Invalid Setlist.fm URL format. Expected URL ending in ...<id>.html', 'red');
+        showStatus('❌ Invalid Setlist.fm URL format. Expected URL ending in ...<id>.html or raw setlist ID.', 'red');
         return;
       }
 
-      const targetApiUrl = `https://api.setlist.fm/rest/1.0/setlist/${setlistId}`;
-      const apiKey = (typeof SETLIST_API_KEY_DEFAULT !== 'undefined' && SETLIST_API_KEY_DEFAULT)
-        ? SETLIST_API_KEY_DEFAULT
-        : '3pc6VtmOHzQbQVh9xedw_LLpNRCCfDhEvop7';
-
-      const fetchOptions = {
-        method: 'GET',
-        headers: {
-          'x-api-key': apiKey,
-          'Accept': 'application/json'
-        }
-      };
-
-      const fetchEndpoints = [
-        targetApiUrl,
-        `https://corsproxy.io/?${encodeURIComponent(targetApiUrl)}`,
-        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetApiUrl)}`
-      ];
-
-      let response = null;
-      let lastErrorMsg = '';
-
-      for (const endpoint of fetchEndpoints) {
-        try {
-          const res = await fetch(endpoint, fetchOptions);
-          if (res.ok) {
-            response = res;
-            break;
-          } else if (res.status === 404) {
-            lastErrorMsg = `Setlist ID '${setlistId}' not found on Setlist.fm (HTTP 404).`;
-            break;
-          } else if (res.status === 401 || res.status === 403) {
-            lastErrorMsg = `Setlist.fm API authorization error (HTTP ${res.status}).`;
-          } else {
-            lastErrorMsg = `HTTP ${res.status} from ${endpoint}`;
-          }
-        } catch (err) {
-          lastErrorMsg = err.message || 'Network or CORS fetch error';
-        }
-      }
-
-      if (!response) {
-        showStatus(`❌ Setlist fetch failed: ${lastErrorMsg}`, 'red');
-        return;
-      }
+      // Direct call to Cloudflare Worker with URL-encoded parameter
+      const workerProxyUrl = `https://jj-setlist-proxy.marek-kraus.workers.dev?id=${encodeURIComponent(setlistId)}`;
 
       try {
-        const data = await response.json();
+        const res = await fetch(workerProxyUrl, {
+          method: 'GET'
+        });
+
+        if (!res.ok) {
+          let errorDetail = '';
+          try {
+            const errJson = await res.json();
+            errorDetail = errJson.message || errJson.error || (typeof errJson === 'string' ? errJson : JSON.stringify(errJson));
+          } catch (e) {
+            try {
+              errorDetail = (await res.text()).trim();
+            } catch (e2) {}
+          }
+          throw new Error(`HTTP ${res.status}${errorDetail ? ` - ${errorDetail}` : ' from proxy worker'}`);
+        }
+
+        const data = await res.json();
         let songNames = [];
 
         if (data && data.sets && data.sets.set) {
@@ -1224,7 +1217,7 @@
         }
 
         if (songNames.length === 0) {
-          showStatus(`⚠️ Setlist retrieved for ID '${setlistId}', but no songs are listed for this concert on Setlist.fm.`, 'yellow');
+          showStatus(`⚠️ Setlist retrieved for ID '${setlistId}', but no songs are listed on Setlist.fm.`, 'yellow');
           return;
         }
 
@@ -1233,12 +1226,10 @@
           setlistField.value = songNames.join(', ');
           recalculateSongCount();
           showStatus(`✅ Successfully retrieved ${songNames.length} songs from Setlist.fm!`, 'green');
-        } else {
-          showStatus(`❌ Could not locate SETLIST form field.`, 'red');
         }
       } catch (err) {
-        console.error('Setlist parsing error:', err);
-        showStatus(`❌ Failed to parse Setlist.fm response: ${err.message}`, 'red');
+        console.error('Setlist fetch error:', err);
+        showStatus(`❌ Fetch failed: ${err.message}`, 'red');
       }
     }
 
@@ -1299,7 +1290,7 @@
     }
 
     function getStoredToken() {
-      return localStorage.getItem('jj_github_pat') || '';
+      return safeGetStorage('jj_github_pat') || '';
     }
 
     function manageToken() {
@@ -1312,13 +1303,13 @@
       if (newToken === null) return;
 
       if (newToken.trim() === '') {
-        localStorage.removeItem('jj_github_pat');
-        localStorage.removeItem('jj_admin_mode');
+        safeRemoveStorage('jj_github_pat');
+        safeRemoveStorage('jj_admin_mode');
         alert('Token removed from browser storage. Returning to public mode.');
         window.location.href = 'index.html';
       } else {
-        localStorage.setItem('jj_github_pat', newToken.trim());
-        localStorage.setItem('jj_admin_mode', 'true');
+        safeSetStorage('jj_github_pat', newToken.trim());
+        safeSetStorage('jj_admin_mode', 'true');
         alert('Token saved successfully in browser!');
       }
     }
@@ -1332,7 +1323,7 @@
         token = token.trim();
 
         if (confirm('Do you want to save this PAT in your browser for future edits?')) {
-          localStorage.setItem('jj_github_pat', token);
+          safeSetStorage('jj_github_pat', token);
         }
       }
 
@@ -1358,7 +1349,7 @@
         if (!getFileRes.ok) {
           const errData = await getFileRes.json().catch(() => ({}));
           if (getFileRes.status === 401) {
-            localStorage.removeItem('jj_github_pat');
+            safeRemoveStorage('jj_github_pat');
             throw new Error('Invalid PAT token or expired credentials (401).');
           } else if (getFileRes.status === 404) {
             throw new Error(`File '${filePath}' not found in repo ${repoOwner}/${repoName}. Check repository name or permissions.`);
