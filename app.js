@@ -37,22 +37,34 @@ const MISSING_TICKET_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
-// Safe Storage helpers for sandboxed / private browsing environments
-function safeGetStorage(key) {
+// Safe Storage helpers leveraging StorageService with fallbacks
+function safeGetStorage(key, defaultVal = null) {
+  if (typeof StorageService !== 'undefined') {
+    return StorageService.get(key, defaultVal);
+  }
   try {
-    return localStorage.getItem(key);
+    const val = localStorage.getItem(key);
+    return val !== null ? val : defaultVal;
   } catch (e) {
-    return null;
+    return defaultVal;
   }
 }
 
 function safeSetStorage(key, val) {
+  if (typeof StorageService !== 'undefined') {
+    StorageService.set(key, val);
+    return;
+  }
   try {
     localStorage.setItem(key, val);
   } catch (e) {}
 }
 
 function safeRemoveStorage(key) {
+  if (typeof StorageService !== 'undefined') {
+    StorageService.remove(key);
+    return;
+  }
   try {
     localStorage.removeItem(key);
   } catch (e) {}
@@ -81,7 +93,7 @@ function safeRemoveSession(key) {
 // Helper to check if user is in Admin mode
 function checkIsAdmin() {
   const urlParams = new URLSearchParams(window.location.search);
-  const storedPat = safeGetStorage('jj_github_pat');
+  const storedPat = safeGetStorage('gh_token') || safeGetStorage('jj_github_pat');
   const adminParam = urlParams.get('admin') === '1';
   const adminFlag = safeGetStorage('jj_admin_mode') === 'true';
   const hasPat = !!(storedPat && storedPat.trim().length > 0);
@@ -90,8 +102,14 @@ function checkIsAdmin() {
 
 // Global Lock Admin helper to clear PAT & admin flags and return to public user mode
 window.lockAdminSession = function() {
-  safeRemoveStorage('jj_github_pat');
-  safeRemoveStorage('jj_admin_mode');
+  if (typeof StorageService !== 'undefined') {
+    StorageService.setGitHubConfig({ token: '' });
+    StorageService.remove('jj_admin_mode');
+  } else {
+    safeRemoveStorage('jj_github_pat');
+    safeRemoveStorage('gh_token');
+    safeRemoveStorage('jj_admin_mode');
+  }
   safeRemoveSession('jj_admin_mode');
   
   const url = new URL(window.location.href);
@@ -118,6 +136,132 @@ function resolveCategoryFromUrl(catParam) {
   if (c === 'videos' || c === 'video' || c === 'youtube') return 'Videos';
   if (c === 'all' || c === 'vše' || c === 'vse') return 'ALL';
   return null;
+}
+
+function normalizeSortParam(sortVal) {
+  if (!sortVal) return null;
+  const s = sortVal.trim().toLowerCase();
+  if (s === 'oldest' || s === 'date-asc' || s === 'date_asc' || s === 'asc' || s === 'date-oldest') return 'oldest';
+  if (s === 'newest' || s === 'date-desc' || s === 'date_desc' || s === 'desc' || s === 'date-newest') return 'newest';
+  if (s === 'random' || s === 'shuffle' || s === 'shuffled') return 'random';
+  if (s === 'missing_first' || s === 'missing-first') return 'missing_first';
+  if (s === 'missing_only' || s === 'missing-only') return 'missing_only';
+  if (s === 'scans_only' || s === 'scans-only') return 'scans_only';
+  return s;
+}
+
+function updateUrlParams() {
+  if (typeof window === 'undefined' || !window.history || !window.history.replaceState) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const hadAdmin = params.has('admin');
+
+  // Search
+  const searchVal = document.getElementById('searchInput')?.value?.trim();
+  if (searchVal) {
+    params.set('search', searchVal);
+    params.delete('q');
+  } else {
+    params.delete('search');
+    params.delete('q');
+  }
+
+  // Category
+  if (currentCategory && currentCategory !== 'ALL') {
+    params.set('category', currentCategory);
+    params.delete('cat');
+  } else {
+    params.delete('category');
+    params.delete('cat');
+  }
+
+  // View layout
+  if (currentLayout) {
+    params.set('view', currentLayout);
+    params.delete('layout');
+  }
+
+  // Sort
+  const sortVal = document.getElementById('sortFilter')?.value;
+  if (sortVal) {
+    params.set('sort', sortVal);
+  } else {
+    params.delete('sort');
+  }
+
+  if (hadAdmin && !params.has('admin')) {
+    params.set('admin', '1');
+  }
+
+  const newQuery = params.toString();
+  const newUrl = newQuery ? `${window.location.pathname}?${newQuery}` : window.location.pathname;
+  window.history.replaceState(null, '', newUrl);
+
+  const adminEditorLink = document.getElementById('adminEditorLink');
+  if (adminEditorLink) {
+    const editQuery = getEditUrlParams();
+    adminEditorLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
+  }
+}
+
+function getEditUrlParams(itemId) {
+  const params = new URLSearchParams();
+  if (itemId) params.set('id', itemId);
+  const curSearch = document.getElementById('searchInput')?.value?.trim();
+  if (curSearch) params.set('search', curSearch);
+  if (currentCategory && currentCategory !== 'ALL') params.set('category', currentCategory);
+  if (currentLayout) params.set('view', currentLayout);
+  const curSort = document.getElementById('sortFilter')?.value;
+  if (curSort) params.set('sort', curSort);
+  return params.toString();
+}
+
+function initializeStateFromUrlAndStorage() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlCategory = urlParams.get('category') || urlParams.get('cat');
+  const urlSearch = urlParams.get('search') || urlParams.get('q');
+  const urlSort = urlParams.get('sort');
+  const urlView = urlParams.get('view') || urlParams.get('layout');
+
+  // Category
+  const resolvedCategory = resolveCategoryFromUrl(urlCategory);
+  if (resolvedCategory) {
+    currentCategory = resolvedCategory;
+  }
+
+  // View layout preference (fallback to StorageService)
+  const savedView = safeGetStorage('jj_museum_view');
+  const resolvedView = (urlView === 'list' || urlView === 'grid') 
+    ? urlView 
+    : (savedView === 'list' || savedView === 'grid' ? savedView : 'grid');
+  setLayout(resolvedView, false);
+
+  // Sort order preference (fallback to StorageService)
+  const sortSelect = document.getElementById('sortFilter');
+  const savedSort = safeGetStorage('jj_museum_sort');
+  const resolvedSort = normalizeSortParam(urlSort) || normalizeSortParam(savedSort) || 'random';
+  if (sortSelect) {
+    sortSelect.value = resolvedSort;
+    safeSetStorage('jj_museum_sort', resolvedSort);
+  }
+
+  // Search
+  const searchInput = document.getElementById('searchInput');
+  if (urlSearch && searchInput) {
+    searchInput.value = urlSearch;
+    safeSetSession('jj_museum_search', urlSearch);
+    const clearBtn = document.getElementById('searchClearBtn');
+    if (clearBtn) clearBtn.style.display = 'block';
+  } else {
+    const savedSearch = safeGetSession('jj_museum_search');
+    if (savedSearch && searchInput) {
+      searchInput.value = savedSearch;
+      const clearBtn = document.getElementById('searchClearBtn');
+      if (clearBtn) clearBtn.style.display = 'block';
+    }
+  }
+
+  updateUrlParams();
 }
 
 // Initialization
@@ -153,29 +297,7 @@ window.addEventListener('DOMContentLoaded', () => {
       updateYearBadge();
       populateFilters();
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlCategory = urlParams.get('category') || urlParams.get('cat');
-      const urlSearch = urlParams.get('search') || urlParams.get('q');
-
-      const resolvedCategory = resolveCategoryFromUrl(urlCategory);
-      if (resolvedCategory) {
-        currentCategory = resolvedCategory;
-      }
-
-      const searchInput = document.getElementById('searchInput');
-      if (urlSearch && searchInput) {
-        searchInput.value = urlSearch;
-        safeSetSession('jj_museum_search', urlSearch);
-        const clearBtn = document.getElementById('searchClearBtn');
-        if (clearBtn) clearBtn.style.display = 'block';
-      } else {
-        const savedSearch = safeGetSession('jj_museum_search');
-        if (savedSearch && searchInput) {
-          searchInput.value = savedSearch;
-          const clearBtn = document.getElementById('searchClearBtn');
-          if (clearBtn) clearBtn.style.display = 'block';
-        }
-      }
+      initializeStateFromUrlAndStorage();
 
       filterData();
       checkOnThisDayAnniversary();
@@ -200,7 +322,16 @@ function setupEventListeners() {
   document.getElementById('surpriseBtn')?.addEventListener('click', openSurpriseTicket);
   document.getElementById('yearFilter')?.addEventListener('change', filterData);
   document.getElementById('cityFilter')?.addEventListener('change', filterData);
-  document.getElementById('sortFilter')?.addEventListener('change', filterData);
+  
+  const sortSelect = document.getElementById('sortFilter');
+  if (sortSelect) {
+    sortSelect.addEventListener('change', () => {
+      safeSetStorage('jj_museum_sort', sortSelect.value);
+      updateUrlParams();
+      filterData();
+    });
+  }
+
   document.getElementById('pageSizeFilter')?.addEventListener('change', changePageSize);
   
   document.getElementById('btnGrid')?.addEventListener('click', () => setLayout('grid'));
@@ -243,7 +374,11 @@ function shuffleArray(array) {
 function reshuffleAndRender() {
   shuffleArray(allTickets);
   const sortSelect = document.getElementById('sortFilter');
-  if (sortSelect) sortSelect.value = 'random';
+  if (sortSelect) {
+    sortSelect.value = 'random';
+    safeSetStorage('jj_museum_sort', 'random');
+  }
+  updateUrlParams();
   filterData();
 }
 
@@ -520,6 +655,7 @@ function handleSearchInput() {
   
   safeSetSession('jj_museum_search', val);
   if (clearBtn) clearBtn.style.display = val.trim().length > 0 ? 'block' : 'none';
+  updateUrlParams();
   filterData();
 }
 
@@ -529,6 +665,7 @@ function clearSearchInput() {
   if (input) input.value = '';
   safeRemoveSession('jj_museum_search');
   if (clearBtn) clearBtn.style.display = 'none';
+  updateUrlParams();
   filterData();
 }
 
@@ -899,17 +1036,32 @@ function renderCategoryTabs(matchesBeforeCategoryFilter) {
       const btn = document.createElement('button');
       btn.className = `tab-btn ${currentCategory === catKey ? 'active' : ''}`;
       btn.innerHTML = `${categoryLabels[catKey]} <span style="opacity: 0.75; font-size: 0.8em;">(${count})</span>`;
-      btn.onclick = () => { currentCategory = catKey; filterData(); };
+      btn.onclick = () => { 
+        currentCategory = catKey; 
+        updateUrlParams();
+        filterData(); 
+      };
       tabsContainer.appendChild(btn);
     }
   });
 }
 
-function setLayout(layout) {
+function setLayout(layout, updateUrl = true) {
+  if (layout !== 'grid' && layout !== 'list') layout = 'grid';
   currentLayout = layout;
-  document.getElementById('btnGrid').className = `toggle-btn ${layout === 'grid' ? 'active' : ''}`;
-  document.getElementById('btnList').className = `toggle-btn ${layout === 'list' ? 'active' : ''}`;
-  document.getElementById('ticketsContainer').className = `tickets-container ${layout}-view`;
+  safeSetStorage('jj_museum_view', layout);
+  
+  const btnGrid = document.getElementById('btnGrid');
+  const btnList = document.getElementById('btnList');
+  const ticketsContainer = document.getElementById('ticketsContainer');
+  
+  if (btnGrid) btnGrid.className = `toggle-btn ${layout === 'grid' ? 'active' : ''}`;
+  if (btnList) btnList.className = `toggle-btn ${layout === 'list' ? 'active' : ''}`;
+  if (ticketsContainer) ticketsContainer.className = `tickets-container ${layout}-view`;
+  
+  if (updateUrl) {
+    updateUrlParams();
+  }
   renderPaginated();
 }
 
@@ -998,11 +1150,8 @@ function filterData() {
 
   const adminEditorLink = document.getElementById('adminEditorLink');
   if (adminEditorLink) {
-    const curSearch = document.getElementById('searchInput')?.value?.trim();
-    const editParams = new URLSearchParams();
-    if (curSearch) editParams.set('search', curSearch);
-    if (currentCategory && currentCategory !== 'ALL') editParams.set('category', currentCategory);
-    adminEditorLink.href = editParams.toString() ? `edit_ticket_new.html?${editParams.toString()}` : 'edit_ticket_new.html';
+    const editQuery = getEditUrlParams();
+    adminEditorLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
   }
 }
 
@@ -1043,13 +1192,9 @@ function renderTickets(tickets) {
 
     const itemId = t.ID_MEMORABILIA || t.ID_LISTKU;
     if (isAdmin && isValidValue(itemId)) {
-      const editParams = new URLSearchParams();
-      editParams.set('id', itemId);
-      const curSearch = document.getElementById('searchInput')?.value?.trim();
-      if (curSearch) editParams.set('search', curSearch);
-      if (currentCategory && currentCategory !== 'ALL') editParams.set('category', currentCategory);
+      const editQuery = getEditUrlParams(itemId);
       iconsHTML += `
-        <button class="icon-btn btn-action-edit" title="Edit Record in Editor" onclick="event.stopPropagation(); window.location.href='edit_ticket_new.html?${editParams.toString()}';">
+        <button class="icon-btn btn-action-edit" title="Edit Record in Editor" onclick="event.stopPropagation(); window.location.href='edit_ticket_new.html?${editQuery}';">
           ✏️
         </button>`;
     }
