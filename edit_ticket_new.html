@@ -25,6 +25,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
   <script src="watermark.js"></script>
+  <script src="storage-service.js"></script>
+  <script src="github-service.js"></script>
 
   <style>
     :root {
@@ -702,15 +704,17 @@
     let viewerInstance = null;
 
     function safeGetStorage(key) {
-      try { return localStorage.getItem(key); } catch (e) { return null; }
+      return typeof StorageService !== 'undefined' ? StorageService.get(key) : localStorage.getItem(key);
     }
 
     function safeSetStorage(key, val) {
-      try { localStorage.setItem(key, val); } catch (e) {}
+      if (typeof StorageService !== 'undefined') StorageService.set(key, val);
+      else localStorage.setItem(key, val);
     }
 
     function safeRemoveStorage(key) {
-      try { localStorage.removeItem(key); } catch (e) {}
+      if (typeof StorageService !== 'undefined') StorageService.remove(key);
+      else localStorage.removeItem(key);
     }
 
     const fields = [
@@ -720,7 +724,8 @@
     ];
 
     function checkAdminAuth() {
-      const token = safeGetStorage('gh_token') || safeGetStorage('jj_github_pat') || (typeof localStorage !== 'undefined' ? (localStorage.getItem('gh_token') || localStorage.getItem('jj_github_pat')) : null);
+      const cfg = typeof StorageService !== 'undefined' ? StorageService.getGitHubConfig() : { token: safeGetStorage('gh_token') || safeGetStorage('jj_github_pat') };
+      const token = cfg.token;
       const gateEl = document.getElementById('gateModal');
       const lockBtn = document.getElementById('lockAdminBtn');
 
@@ -746,18 +751,29 @@
         return;
       }
 
-      safeSetStorage('jj_github_pat', patVal);
-      safeSetStorage('gh_token', patVal);
-      safeSetStorage('jj_admin_mode', 'true');
+      if (typeof StorageService !== 'undefined') {
+        StorageService.setGitHubConfig({ token: patVal });
+        StorageService.set('jj_admin_mode', 'true');
+      } else {
+        safeSetStorage('jj_github_pat', patVal);
+        safeSetStorage('gh_token', patVal);
+        safeSetStorage('jj_admin_mode', 'true');
+      }
+
       if (errEl) errEl.style.display = 'none';
       checkAdminAuth();
       showStatus('✅ Admin authenticated successfully. Token stored in browser.', 'green');
     }
 
     function lockAdminSession() {
-      safeRemoveStorage('jj_github_pat');
-      safeRemoveStorage('gh_token');
-      safeRemoveStorage('jj_admin_mode');
+      if (typeof StorageService !== 'undefined') {
+        StorageService.setGitHubConfig({ token: '' });
+        StorageService.remove('jj_admin_mode');
+      } else {
+        safeRemoveStorage('jj_github_pat');
+        safeRemoveStorage('gh_token');
+        safeRemoveStorage('jj_admin_mode');
+      }
       try { sessionStorage.removeItem('jj_admin_mode'); } catch (e) {}
       const urlParams = new URLSearchParams(window.location.search);
       const backParams = new URLSearchParams();
@@ -792,18 +808,28 @@
     }
 
     function manageToken() {
-      const current = safeGetStorage('gh_token') || safeGetStorage('jj_github_pat') || (typeof localStorage !== 'undefined' ? (localStorage.getItem('gh_token') || localStorage.getItem('jj_github_pat')) : null) || '';
+      const cfg = typeof StorageService !== 'undefined' ? StorageService.getGitHubConfig() : { token: safeGetStorage('gh_token') || safeGetStorage('jj_github_pat') || '' };
+      const current = cfg.token || '';
       const val = prompt('Enter your GitHub Personal Access Token (PAT):', current);
       if (val !== null) {
         if (val.trim()) {
-          safeSetStorage('gh_token', val.trim());
-          safeSetStorage('jj_github_pat', val.trim());
-          safeSetStorage('jj_admin_mode', 'true');
+          if (typeof StorageService !== 'undefined') {
+            StorageService.setGitHubConfig({ token: val.trim() });
+            StorageService.set('jj_admin_mode', 'true');
+          } else {
+            safeSetStorage('gh_token', val.trim());
+            safeSetStorage('jj_github_pat', val.trim());
+            safeSetStorage('jj_admin_mode', 'true');
+          }
           checkAdminAuth();
           showStatus('✅ GitHub PAT updated.', 'green');
         } else {
-          safeRemoveStorage('gh_token');
-          safeRemoveStorage('jj_github_pat');
+          if (typeof StorageService !== 'undefined') {
+            StorageService.setGitHubConfig({ token: '' });
+          } else {
+            safeRemoveStorage('gh_token');
+            safeRemoveStorage('jj_github_pat');
+          }
           checkAdminAuth();
         }
       }
@@ -1183,8 +1209,8 @@
 
     async function commitToGitHub() {
       saveCurrentFormToMemory();
-      const token = localStorage.getItem('gh_token') || localStorage.getItem('jj_github_pat');
-      if (!token) {
+      const cfg = typeof StorageService !== 'undefined' ? StorageService.getGitHubConfig() : { token: localStorage.getItem('gh_token') || localStorage.getItem('jj_github_pat') };
+      if (!cfg.token) {
         manageToken();
         return;
       }
@@ -1192,64 +1218,13 @@
       showStatus('🚀 Committing changes directly to GitHub repository...', 'yellow');
 
       try {
-        const owner = localStorage.getItem('gh_owner') || '19forever';
-        const repo = localStorage.getItem('gh_repo') || 'joe-jackson-tickets-v2';
-        const file = localStorage.getItem('gh_file') || 'joe_jackson_tickets_cleaned.csv';
-        const url = `https://api.github.com/repos/${owner}/${repo}/contents/${file}`;
-
-        // Step A: Perform GET request to retrieve current sha
-        const getRes = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!getRes.ok) {
-          let errData = {};
-          try { errData = await getRes.json(); } catch (e) {}
-          console.error("GitHub Commit Error:", getRes.status, errData);
-          if (getRes.status === 401 || getRes.status === 403) {
-            showStatus("❌ Invalid GitHub Token or missing 'repo' permissions.", 'red');
-          } else if (getRes.status === 404) {
-            showStatus("❌ File or Repository not found on GitHub.", 'red');
-          } else {
-            showStatus(`❌ GitHub Error (${getRes.status}): ${errData.message || 'Failed to fetch file metadata'}`, 'red');
-          }
-          return;
-        }
-
-        const fileData = await getRes.json();
-        const currentSha = fileData.sha;
-
-        // Step B: Perform PUT request with updated payload
         const updatedCsvContent = Papa.unparse(fullCsvData);
-        const putRes = await fetch(url, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            message: "Update ticket metadata via Admin Editor",
-            content: utf8_to_b64(updatedCsvContent),
-            sha: currentSha
-          })
-        });
+        const result = await GitHubService.commitFile(updatedCsvContent, "Update ticket metadata via Admin Editor");
 
-        const jsonResponse = await putRes.json().catch(() => ({}));
-
-        // Step C: Handle HTTP responses explicitly
-        if (putRes.status === 200 || putRes.status === 201) {
-          showStatus("✅ Saved to GitHub successfully!", 'green');
+        if (result.success) {
+          showStatus(result.message || "✅ Saved successfully to GitHub.", 'green');
         } else {
-          console.error("GitHub Commit Error:", putRes.status, jsonResponse);
-          if (putRes.status === 401 || putRes.status === 403) {
-            showStatus("❌ Invalid GitHub Token or missing 'repo' permissions.", 'red');
-          } else if (putRes.status === 404) {
-            showStatus("❌ File or Repository not found on GitHub.", 'red');
-          } else {
-            showStatus(`❌ GitHub Error (${putRes.status}): ${jsonResponse.message || 'Failed to commit updates'}`, 'red');
-          }
+          showStatus(result.message || "❌ Failed to commit to GitHub.", 'red');
         }
       } catch (err) {
         console.error("GitHub Commit Error:", err);
