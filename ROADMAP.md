@@ -86,6 +86,24 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
 ---
 
 ## Post-Launch Enhancements & Future Upgrades
+- [ ] **Codebase Refactoring & Architecture Cleanup**
+  - **Unified `localStorage` Manager:** Centralize all application state (GitHub token, repository settings, active layout views, sorting orders, and category filters) into a single key-value wrapper to eliminate legacy key fallbacks (`jj_github_pat` vs. `gh_token`).
+  - **Isolated GitHub API Service (`github-service.js`):** Extract GitHub REST API operations (SHA retrieval, UTF-8 Base64 encoding, commits, and error handling for 401/403/404 HTTP codes) out of `edit_ticket_new.html` into a dedicated, reusable module.
+  - **Shared Tour Slug & Form Helpers:** Consolidate tour selector datalists, auto-slug generation (`TOUR_ID`), and date parsing logic shared between `app.js`, `edit_ticket_new.html`, and `ticket_form.html`.
+- [ ] **Context-Aware Admin Editor Form Fields (`edit_ticket_new.html`)**
+  - Dynamically show/hide non-relevant input fields based on selected `KATEGORIE` (e.g., hide concert setlist, date, and venue inputs when editing tour-wide items like Passes or Tour Books).
+- [ ] **Community & Fan Interactivity Engine (Supabase / Cloudflare D1 Backend)**
+  - **Setlist.fm Import:** Sync user attendance via Setlist.fm public API (`/user/{userId}/attended`) to automatically display attendance badges.
+  - **Personal Concert Statuses:** User interactive badges per show (*"I Was There"*, *"I Own Ticket"*, *"Ticket Lost/Traded"*, *"I Have Audio Recording"*).
+  - **Concert Memories & Stories:** Micro-forum section allowing registered fans to share personal concert anecdotes per date.
+  - **Data Correction & Bootleg Submissions:** Quick-action reporting tool for missing setlists or rare audio recording details.
+  - **Personal Concert Passport:** Generatable summary card displaying personal attendance stats across tours, countries, and venues.
+- [ ] **Fan Submission Portal with Cloud Storage**
+  - Direct image upload pipeline using S3 / Cloudflare R2
+- [-] **Streaming Platform Integration**
+  - Direct Spotify / Apple Music setlist playback links
+      - tested, but failed to generate custom playlists
+## Post-Launch Enhancements & Future Upgrades
 - [ ] **Context-Aware Admin Editor Form Fields (`edit_ticket_new.html`)**
   - Dynamically show/hide non-relevant input fields based on selected `KATEGORIE` (e.g., hide concert setlist, date, and venue inputs when editing tour-wide items like Passes or Tour Books).
 - [ ] **Community & Fan Interactivity Engine (Supabase / Cloudflare D1 Backend)**
