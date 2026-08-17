@@ -719,7 +719,7 @@
     ];
 
     function checkAdminAuth() {
-      const token = safeGetStorage('jj_github_pat');
+      const token = safeGetStorage('gh_token') || safeGetStorage('jj_github_pat') || (typeof localStorage !== 'undefined' ? (localStorage.getItem('gh_token') || localStorage.getItem('jj_github_pat')) : null);
       const gateEl = document.getElementById('gateModal');
       const lockBtn = document.getElementById('lockAdminBtn');
 
@@ -746,6 +746,7 @@
       }
 
       safeSetStorage('jj_github_pat', patVal);
+      safeSetStorage('gh_token', patVal);
       safeSetStorage('jj_admin_mode', 'true');
       if (errEl) errEl.style.display = 'none';
       checkAdminAuth();
@@ -754,14 +755,19 @@
 
     function lockAdminSession() {
       safeRemoveStorage('jj_github_pat');
+      safeRemoveStorage('gh_token');
       safeRemoveStorage('jj_admin_mode');
       try { sessionStorage.removeItem('jj_admin_mode'); } catch (e) {}
       const urlParams = new URLSearchParams(window.location.search);
       const backParams = new URLSearchParams();
       const searchParam = urlParams.get('search') || urlParams.get('q');
       const catParam = urlParams.get('category') || urlParams.get('cat');
+      const viewParam = urlParams.get('view') || urlParams.get('layout');
+      const sortParam = urlParams.get('sort');
       if (searchParam) backParams.set('search', searchParam);
       if (catParam) backParams.set('category', catParam);
+      if (viewParam) backParams.set('view', viewParam);
+      if (sortParam) backParams.set('sort', sortParam);
       window.location.href = backParams.toString() ? `index.html?${backParams.toString()}` : 'index.html';
     }
 
@@ -770,8 +776,12 @@
       const backParams = new URLSearchParams();
       const searchParam = urlParams.get('search') || urlParams.get('q');
       const catParam = urlParams.get('category') || urlParams.get('cat');
+      const viewParam = urlParams.get('view') || urlParams.get('layout');
+      const sortParam = urlParams.get('sort');
       if (searchParam) backParams.set('search', searchParam);
       if (catParam) backParams.set('category', catParam);
+      if (viewParam) backParams.set('view', viewParam);
+      if (sortParam) backParams.set('sort', sortParam);
 
       const targetUrl = backParams.toString() ? `index.html?${backParams.toString()}` : 'index.html';
 
@@ -781,15 +791,17 @@
     }
 
     function manageToken() {
-      const current = safeGetStorage('jj_github_pat') || '';
+      const current = safeGetStorage('gh_token') || safeGetStorage('jj_github_pat') || (typeof localStorage !== 'undefined' ? (localStorage.getItem('gh_token') || localStorage.getItem('jj_github_pat')) : null) || '';
       const val = prompt('Enter your GitHub Personal Access Token (PAT):', current);
       if (val !== null) {
         if (val.trim()) {
+          safeSetStorage('gh_token', val.trim());
           safeSetStorage('jj_github_pat', val.trim());
           safeSetStorage('jj_admin_mode', 'true');
           checkAdminAuth();
           showStatus('✅ GitHub PAT updated.', 'green');
         } else {
+          safeRemoveStorage('gh_token');
           safeRemoveStorage('jj_github_pat');
           checkAdminAuth();
         }
@@ -1106,6 +1118,10 @@
       showStatus(`📋 Duplicated record as ${newId}.`, 'green');
     }
 
+    function utf8_to_b64(str) {
+      return window.btoa(unescape(encodeURIComponent(str)));
+    }
+
     function downloadUpdatedCSV() {
       saveCurrentFormToMemory();
       const csvStr = Papa.unparse(fullCsvData);
@@ -1121,7 +1137,7 @@
 
     async function commitToGitHub() {
       saveCurrentFormToMemory();
-      const token = safeGetStorage('jj_github_pat');
+      const token = localStorage.getItem('gh_token') || localStorage.getItem('jj_github_pat');
       if (!token) {
         manageToken();
         return;
@@ -1130,44 +1146,67 @@
       showStatus('🚀 Committing changes directly to GitHub repository...', 'yellow');
 
       try {
-        const repo = 'marek-kraus/joe-jackson-tickets';
-        const path = CSV_FILENAME;
-        const url = `https://api.github.com/repos/${repo}/contents/${path}`;
+        const owner = localStorage.getItem('gh_owner') || '19forever';
+        const repo = localStorage.getItem('gh_repo') || 'joe-jackson-tickets-v2';
+        const file = localStorage.getItem('gh_file') || 'joe_jackson_tickets_cleaned.csv';
+        const url = `https://api.github.com/repos/${owner}/${repo}/contents/${file}`;
 
-        // 1. Get Current File SHA
+        // Step A: Perform GET request to retrieve current sha
         const getRes = await fetch(url, {
-          headers: { 'Authorization': `token ${token}` }
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         });
-        if (!getRes.ok) throw new Error(`Failed to fetch file metadata from GitHub (${getRes.status})`);
+
+        if (!getRes.ok) {
+          let errData = {};
+          try { errData = await getRes.json(); } catch (e) {}
+          console.error("GitHub Commit Error:", getRes.status, errData);
+          if (getRes.status === 401 || getRes.status === 403) {
+            showStatus("❌ Invalid GitHub Token or missing 'repo' permissions.", 'red');
+          } else if (getRes.status === 404) {
+            showStatus("❌ File or Repository not found on GitHub.", 'red');
+          } else {
+            showStatus(`❌ GitHub Error (${getRes.status}): ${errData.message || 'Failed to fetch file metadata'}`, 'red');
+          }
+          return;
+        }
+
         const fileData = await getRes.json();
-        const sha = fileData.sha;
+        const currentSha = fileData.sha;
 
-        // 2. Encode Content
-        const csvContent = Papa.unparse(fullCsvData);
-        const encodedContent = btoa(unescape(encodeURIComponent(csvContent)));
-
-        // 3. Put Update
+        // Step B: Perform PUT request with updated payload
+        const updatedCsvContent = Papa.unparse(fullCsvData);
         const putRes = await fetch(url, {
           method: 'PUT',
           headers: {
-            'Authorization': `token ${token}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            message: `Update ${CSV_FILENAME} via Museum Curator Editor`,
-            content: encodedContent,
-            sha: sha
+            message: "Update ticket metadata via Admin Editor",
+            content: utf8_to_b64(updatedCsvContent),
+            sha: currentSha
           })
         });
 
-        if (!putRes.ok) {
-          const errData = await putRes.json();
-          throw new Error(errData.message || `GitHub error status ${putRes.status}`);
-        }
+        const jsonResponse = await putRes.json().catch(() => ({}));
 
-        showStatus('🎉 Successfully committed and published updates to GitHub repository!', 'green');
+        // Step C: Handle HTTP responses explicitly
+        if (putRes.status === 200 || putRes.status === 201) {
+          showStatus("✅ Saved to GitHub successfully!", 'green');
+        } else {
+          console.error("GitHub Commit Error:", putRes.status, jsonResponse);
+          if (putRes.status === 401 || putRes.status === 403) {
+            showStatus("❌ Invalid GitHub Token or missing 'repo' permissions.", 'red');
+          } else if (putRes.status === 404) {
+            showStatus("❌ File or Repository not found on GitHub.", 'red');
+          } else {
+            showStatus(`❌ GitHub Error (${putRes.status}): ${jsonResponse.message || 'Failed to commit updates'}`, 'red');
+          }
+        }
       } catch (err) {
-        console.error(err);
+        console.error("GitHub Commit Error:", err);
         showStatus('❌ Failed to commit to GitHub: ' + err.message, 'red');
       }
     }
