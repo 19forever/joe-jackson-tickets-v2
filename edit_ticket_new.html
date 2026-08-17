@@ -599,7 +599,8 @@
           <div class="form-group">
             <label for="TOUR_NAME">Tour Name (TOUR_NAME)</label>
             <div style="display: flex; gap: 8px; align-items: center;">
-              <input type="text" id="TOUR_NAME" list="tourNamesList" placeholder="Select or type tour name..." style="flex: 1;">
+              <input type="text" id="TOUR_NAME" list="toursList" placeholder="Select or type tour name..." style="flex: 1;">
+              <datalist id="toursList"></datalist>
               <datalist id="tourNamesList"></datalist>
               <button type="button" class="btn-token" onclick="addNewTourPrompt()" style="padding: 10px 12px; font-size: 0.8rem; white-space: nowrap;" title="Enter a new tour name">➕ New Tour</button>
             </div>
@@ -842,84 +843,32 @@
         });
       }
 
-      // Auto-compute TOUR_ID from TOUR_NAME
-      const tourNameInput = document.getElementById('TOUR_NAME');
-      const tourIdInput = document.getElementById('TOUR_ID');
-      function syncTourId() {
-        if (!tourNameInput || !tourIdInput) return;
-        const tourName = tourNameInput.value;
-        if (tourName && tourName.trim()) {
-          const tourId = 'tour-' + tourName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
-          tourIdInput.value = tourId;
-        } else {
-          tourIdInput.value = '';
-        }
+    function getCustomTours() {
+      try {
+        const stored = sessionStorage.getItem('custom_tours_list');
+        return stored ? JSON.parse(stored) : [];
+      } catch (e) {
+        return [];
       }
-      if (tourNameInput && tourIdInput) {
-        tourNameInput.addEventListener('input', syncTourId);
-        tourNameInput.addEventListener('change', syncTourId);
-      }
-
-      // Load CSV
-      Papa.parse(CSV_FILENAME, {
-        download: true,
-        header: true,
-        skipEmptyLines: true,
-        complete: function(results) {
-          fullCsvData = results.data;
-          populateJumpDropdown();
-          populateTourList();
-
-          const urlParams = new URLSearchParams(window.location.search);
-          const targetId = urlParams.get('id');
-          const targetIndex = urlParams.get('index');
-
-          if (targetId) {
-            const idx = fullCsvData.findIndex(r => r.ID_MEMORABILIA === targetId);
-            if (idx !== -1) loadRecordByIndex(idx);
-            else loadRecordByIndex(0);
-          } else if (targetIndex !== null && !isNaN(parseInt(targetIndex, 10))) {
-            loadRecordByIndex(parseInt(targetIndex, 10));
-          } else {
-            loadRecordByIndex(0);
-          }
-        },
-        error: function(err) {
-          showStatus('❌ Failed to load CSV file: ' + err.message, 'red');
-        }
-      });
-    });
-
-    function populateTourList() {
-      const datalist = document.getElementById('tourNamesList');
-      if (!datalist || !Array.isArray(fullCsvData)) return;
-      const tours = new Set();
-      fullCsvData.forEach(row => {
-        if (row && row.TOUR_NAME && row.TOUR_NAME.trim()) {
-          tours.add(row.TOUR_NAME.trim());
-        }
-      });
-      datalist.innerHTML = '';
-      Array.from(tours).sort().forEach(tour => {
-        const opt = document.createElement('option');
-        opt.value = tour;
-        datalist.appendChild(opt);
-      });
     }
 
-    function addNewTourPrompt() {
-      const input = document.getElementById('TOUR_NAME');
-      const tourIdInput = document.getElementById('TOUR_ID');
-      const newName = prompt('Enter New Concert Tour Name:');
-      if (newName && newName.trim()) {
-        const trimmed = newName.trim();
-        if (input) {
-          input.value = trimmed;
-          input.dispatchEvent(new Event('input'));
-          input.dispatchEvent(new Event('change'));
+    function saveCustomTour(tourName) {
+      if (!tourName || typeof tourName !== 'string') return;
+      const trimmed = tourName.trim();
+      if (!trimmed) return;
+
+      // 1. Update sessionStorage
+      try {
+        const list = getCustomTours();
+        if (!list.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
+          list.push(trimmed);
+          sessionStorage.setItem('custom_tours_list', JSON.stringify(list));
         }
-        // Add to datalist if not already there
-        const datalist = document.getElementById('tourNamesList');
+      } catch (e) {}
+
+      // 2. Append to datalist(s)
+      ['toursList', 'tourNamesList'].forEach(id => {
+        const datalist = document.getElementById(id);
         if (datalist) {
           const exists = Array.from(datalist.options).some(opt => opt.value.toLowerCase() === trimmed.toLowerCase());
           if (!exists) {
@@ -928,10 +877,107 @@
             datalist.appendChild(opt);
           }
         }
-      } else if (input) {
-        input.focus();
+      });
+    }
+
+    // Auto-compute TOUR_ID from TOUR_NAME
+    const tourNameInput = document.getElementById('TOUR_NAME');
+    const tourIdInput = document.getElementById('TOUR_ID');
+    function syncTourId() {
+      if (!tourNameInput || !tourIdInput) return;
+      const tourName = tourNameInput.value;
+      if (tourName && tourName.trim()) {
+        const trimmed = tourName.trim();
+        const tourId = 'tour-' + trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        tourIdInput.value = tourId;
+        saveCustomTour(trimmed);
+      } else {
+        tourIdInput.value = '';
       }
     }
+    if (tourNameInput && tourIdInput) {
+      tourNameInput.addEventListener('input', syncTourId);
+      tourNameInput.addEventListener('change', syncTourId);
+    }
+
+    // Load CSV
+    Papa.parse(CSV_FILENAME, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        fullCsvData = results.data;
+        populateJumpDropdown();
+        populateTourList();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetId = urlParams.get('id');
+        const targetIndex = urlParams.get('index');
+
+        if (targetId) {
+          const idx = fullCsvData.findIndex(r => r.ID_MEMORABILIA === targetId);
+          if (idx !== -1) loadRecordByIndex(idx);
+          else loadRecordByIndex(0);
+        } else if (targetIndex !== null && !isNaN(parseInt(targetIndex, 10))) {
+          loadRecordByIndex(parseInt(targetIndex, 10));
+        } else {
+          loadRecordByIndex(0);
+        }
+      },
+      error: function(err) {
+        showStatus('❌ Failed to load CSV file: ' + err.message, 'red');
+      }
+    });
+  });
+
+  function populateTourList() {
+    const tours = new Set();
+    if (Array.isArray(fullCsvData)) {
+      fullCsvData.forEach(row => {
+        if (row && row.TOUR_NAME && row.TOUR_NAME.trim()) {
+          tours.add(row.TOUR_NAME.trim());
+        }
+      });
+    }
+
+    // Merge custom tours stored in sessionStorage
+    const customTours = getCustomTours();
+    customTours.forEach(t => {
+      if (t && typeof t === 'string' && t.trim()) {
+        tours.add(t.trim());
+      }
+    });
+
+    const sortedTours = Array.from(tours).sort((a, b) => a.localeCompare(b));
+
+    ['toursList', 'tourNamesList'].forEach(id => {
+      const datalist = document.getElementById(id);
+      if (datalist) {
+        datalist.innerHTML = '';
+        sortedTours.forEach(tour => {
+          const opt = document.createElement('option');
+          opt.value = tour;
+          datalist.appendChild(opt);
+        });
+      }
+    });
+  }
+
+  function addNewTourPrompt() {
+    const input = document.getElementById('TOUR_NAME');
+    const newName = prompt('Enter New Concert Tour Name:');
+    if (newName && newName.trim()) {
+      const trimmed = newName.trim();
+      if (input) {
+        input.value = trimmed;
+        input.dispatchEvent(new Event('input'));
+        input.dispatchEvent(new Event('change'));
+      }
+      saveCustomTour(trimmed);
+    } else if (input) {
+      input.focus();
+    }
+  }
 
     function populateJumpDropdown() {
       const select = document.getElementById('jumpSelect');

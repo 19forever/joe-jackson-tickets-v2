@@ -196,7 +196,8 @@
       <div class="form-group">
         <label for="tour_name">Tour Name</label>
         <div style="display: flex; gap: 8px; align-items: center;">
-          <input type="text" id="tour_name" name="Tour Name" list="tourNamesList" placeholder="Select or type tour name..." style="flex: 1;">
+          <input type="text" id="tour_name" name="Tour Name" list="toursList" placeholder="Select or type tour name..." style="flex: 1;">
+          <datalist id="toursList"></datalist>
           <datalist id="tourNamesList"></datalist>
           <button type="button" class="btn-new-tour" onclick="addNewTourPrompt()" title="Enter a new tour name">➕ New Tour</button>
         </div>
@@ -275,35 +276,90 @@
   <script>
     const CSV_FILENAME = 'jj_tickets_data.csv';
 
+    function getCustomTours() {
+      try {
+        const stored = sessionStorage.getItem('custom_tours_list');
+        return stored ? JSON.parse(stored) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveCustomTour(tourName) {
+      if (!tourName || typeof tourName !== 'string') return;
+      const trimmed = tourName.trim();
+      if (!trimmed) return;
+
+      // 1. Update sessionStorage
+      try {
+        const list = getCustomTours();
+        if (!list.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
+          list.push(trimmed);
+          sessionStorage.setItem('custom_tours_list', JSON.stringify(list));
+        }
+      } catch (e) {}
+
+      // 2. Append to datalist(s)
+      ['toursList', 'tourNamesList'].forEach(id => {
+        const datalist = document.getElementById(id);
+        if (datalist) {
+          const exists = Array.from(datalist.options).some(opt => opt.value.toLowerCase() === trimmed.toLowerCase());
+          if (!exists) {
+            const opt = document.createElement('option');
+            opt.value = trimmed;
+            datalist.appendChild(opt);
+          }
+        }
+      });
+    }
+
     function syncTourId() {
       const tourNameInput = document.getElementById('tour_name');
       const tourIdInput = document.getElementById('tour_id');
       if (!tourNameInput || !tourIdInput) return;
       const tourName = tourNameInput.value;
       if (tourName && tourName.trim()) {
-        const tourId = 'tour-' + tourName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+        const trimmed = tourName.trim();
+        const tourId = 'tour-' + trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-');
         tourIdInput.value = tourId;
+        saveCustomTour(trimmed);
       } else {
         tourIdInput.value = '';
       }
     }
 
     function populateTourList(data) {
-      const datalist = document.getElementById('tourNamesList');
-      if (!datalist || !Array.isArray(data)) return;
       const tours = new Set();
-      data.forEach(row => {
-        if (!row) return;
-        const name = row.TOUR_NAME || row.tour_name || row['Tour Name'];
-        if (name && typeof name === 'string' && name.trim()) {
-          tours.add(name.trim());
+      if (Array.isArray(data)) {
+        data.forEach(row => {
+          if (!row) return;
+          const name = row.TOUR_NAME || row.tour_name || row['Tour Name'];
+          if (name && typeof name === 'string' && name.trim()) {
+            tours.add(name.trim());
+          }
+        });
+      }
+
+      // Merge custom tours stored in sessionStorage
+      const customTours = getCustomTours();
+      customTours.forEach(t => {
+        if (t && typeof t === 'string' && t.trim()) {
+          tours.add(t.trim());
         }
       });
-      datalist.innerHTML = '';
-      Array.from(tours).sort().forEach(tour => {
-        const opt = document.createElement('option');
-        opt.value = tour;
-        datalist.appendChild(opt);
+
+      const sortedTours = Array.from(tours).sort((a, b) => a.localeCompare(b));
+
+      ['toursList', 'tourNamesList'].forEach(id => {
+        const datalist = document.getElementById(id);
+        if (datalist) {
+          datalist.innerHTML = '';
+          sortedTours.forEach(tour => {
+            const opt = document.createElement('option');
+            opt.value = tour;
+            datalist.appendChild(opt);
+          });
+        }
       });
     }
 
@@ -317,15 +373,7 @@
           input.dispatchEvent(new Event('input'));
           input.dispatchEvent(new Event('change'));
         }
-        const datalist = document.getElementById('tourNamesList');
-        if (datalist) {
-          const exists = Array.from(datalist.options).some(opt => opt.value.toLowerCase() === trimmed.toLowerCase());
-          if (!exists) {
-            const opt = document.createElement('option');
-            opt.value = trimmed;
-            datalist.appendChild(opt);
-          }
-        }
+        saveCustomTour(trimmed);
       } else if (input) {
         input.focus();
       }
