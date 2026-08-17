@@ -682,7 +682,7 @@
   </div>
 
   <script>
-    const CSV_FILENAME = 'joe_jackson_tickets_cleaned.csv';
+    const CSV_FILENAME = 'joe_jackson_tickets_master.csv';
     let currentCsvFile = CSV_FILENAME;
     let fullCsvData = [];
     let currentRecordIndex = -1;
@@ -800,7 +800,7 @@
       const urlParams = new URLSearchParams(window.location.search);
       const targetId = urlParams.get('id');
 
-      // Load joe_jackson_tickets_cleaned.csv
+      // Load joe_jackson_tickets_master.csv
       Papa.parse(CSV_FILENAME, {
         download: true,
         header: true,
