@@ -87,6 +87,9 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Multi-criteria filtering by Tour, Category, Country, Year, City, Venue, and Contributor
   - Comprehensive metadata search across all historical records including `TOUR_NAME` and `TOUR_ID`
   - Audio player preview integration and CSV data export
+- [x] **Admin Typography Switcher (Client Preview Engine)**
+  - Live typography switcher integrated into Admin mode for real-time font comparison (Default Inter vs. Tall Condensed Barlow vs. Light Slim).
+  - State persistence saved in `localStorage` (`jj_selected_font`) without affecting public visitor interface.
 - [x] **Tour-Wide Memorabilia Engine & Strict Date-Matching**
   - Option A (Exact Date Match): Event-specific items (posters, tickets, articles) only link to concert cards sharing their exact `DATUM`.
   - Option B (Tour-Wide Memorabilia): Undated tour items (`DATUM` empty) automatically map across all shows matching their `TOUR_ID`.
