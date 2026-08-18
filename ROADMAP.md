@@ -1,6 +1,6 @@
 # 🗺️ Joe Jackson Ticket Museum — Roadmap & Project Plan
 
-**Poslední aktualizace / Last Updated:** 18. srpna 2026
+**Last Updated:** August 18th, 2026
 
 ## Overview
 An interactive digital museum and archive dedicated to Joe Jackson's live concert tour history (1978–2026), ticket stubs, venue metadata, setlists, and memorabilia.
