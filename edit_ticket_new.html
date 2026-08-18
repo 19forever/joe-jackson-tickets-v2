@@ -296,6 +296,50 @@
 
     .thumb-item:hover, .thumb-item.active { opacity: 1; border-color: var(--accent-yellow); }
 
+    /* Inbox Scan Hover Zoom Popover */
+    .inbox-scan-hover-popover {
+      position: fixed;
+      display: none;
+      z-index: 9999;
+      pointer-events: none;
+      background: #111111;
+      border: 1px solid var(--accent-yellow);
+      border-radius: 8px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.85), 0 0 16px rgba(255, 193, 7, 0.25);
+      padding: 6px;
+      width: 260px;
+      max-width: 280px;
+      max-height: 340px;
+      box-sizing: border-box;
+      transition: opacity 0.15s ease-out;
+      opacity: 0;
+    }
+
+    .inbox-scan-hover-popover.active {
+      display: block;
+      opacity: 1;
+    }
+
+    .inbox-scan-hover-popover img {
+      display: block;
+      width: 100%;
+      max-height: 290px;
+      object-fit: contain;
+      border-radius: 4px;
+      background: #000000;
+    }
+
+    .inbox-scan-hover-popover .popover-caption {
+      margin-top: 5px;
+      font-size: 0.7rem;
+      color: var(--accent-yellow);
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: monospace;
+    }
+
     /* Right Column: Form Panels */
     .form-panel {
       background-color: var(--bg-panel);
@@ -613,11 +657,12 @@
         <div class="grid-2">
           <div class="form-group">
             <label for="edit_TOUR_NAME">Tour Name (TOUR_NAME)</label>
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <input type="text" id="edit_TOUR_NAME" name="TOUR_NAME" list="toursList" placeholder="Select or type tour name..." style="flex: 1;">
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <input type="text" id="edit_TOUR_NAME" name="TOUR_NAME" list="toursList" placeholder="Select or type tour name..." style="flex: 1; min-width: 200px;">
               <datalist id="toursList"></datalist>
               <datalist id="tourNamesList"></datalist>
               <button type="button" class="btn-token" onclick="addNewTourPrompt()" style="padding: 10px 12px; font-size: 0.8rem; white-space: nowrap;" title="Enter a new tour name">➕ New Tour</button>
+              <button type="button" class="btn-token" onclick="clearCustomToursList()" style="padding: 10px 12px; font-size: 0.8rem; white-space: nowrap;" title="Reset saved custom tours list">🧹 Reset Custom Tours</button>
             </div>
           </div>
           <div class="form-group">
@@ -923,7 +968,7 @@
       });
     }
 
-    // Auto-compute TOUR_ID from TOUR_NAME
+    // Auto-compute TOUR_ID from TOUR_NAME (without auto-saving custom tours on each keystroke)
     function syncTourId() {
       const tourNameInput = getField('TOUR_NAME');
       const tourIdInput = getField('TOUR_ID');
@@ -933,10 +978,26 @@
         const trimmed = tourName.trim();
         const tourId = 'tour-' + trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-');
         tourIdInput.value = tourId;
-        saveCustomTour(trimmed);
       } else {
         tourIdInput.value = '';
       }
+    }
+
+    function clearCustomToursList() {
+      if (!confirm('Are you sure you want to clear all custom added tours and rebuild the list strictly from CSV records?')) {
+        return;
+      }
+      try {
+        if (typeof StorageService !== 'undefined') {
+          StorageService.set('custom_tours_list', []);
+        }
+      } catch (e) {}
+      try {
+        sessionStorage.removeItem('custom_tours_list');
+      } catch (e) {}
+
+      populateDatalists(fullCsvData);
+      showStatus('✅ Custom tours list cleared and rebuilt from CSV records.', 'green');
     }
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -976,7 +1037,22 @@
       const tourNameInput = getField('TOUR_NAME');
       if (tourNameInput) {
         tourNameInput.addEventListener('input', syncTourId);
-        tourNameInput.addEventListener('change', syncTourId);
+        tourNameInput.addEventListener('change', function() {
+          syncTourId();
+          const val = this.value ? this.value.trim() : '';
+          if (val.length >= 3) {
+            saveCustomTour(val);
+          }
+        });
+        tourNameInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') {
+            syncTourId();
+            const val = this.value ? this.value.trim() : '';
+            if (val.length >= 3) {
+              saveCustomTour(val);
+            }
+          }
+        });
       }
 
       const recordSelectEl = document.getElementById('recordSelect') || document.getElementById('jumpSelect');
@@ -1207,15 +1283,22 @@
 
   function addNewTourPrompt() {
     const input = getField('TOUR_NAME');
-    const newName = prompt('Enter New Concert Tour Name:');
-    if (newName && newName.trim()) {
-      const trimmed = newName.trim();
+    const newName = prompt('Enter New Concert Tour Name (or type CLEAR to reset custom tours):');
+    if (newName === null) return;
+    const trimmed = newName.trim();
+    if (trimmed.toUpperCase() === 'CLEAR') {
+      clearCustomToursList();
+      return;
+    }
+    if (trimmed) {
       if (input) {
         input.value = trimmed;
+        syncTourId();
         input.dispatchEvent(new Event('input'));
         input.dispatchEvent(new Event('change'));
       }
       saveCustomTour(trimmed);
+      showStatus(`✅ Tour "${trimmed}" added and saved to options.`, 'green');
     } else if (input) {
       input.focus();
     }
@@ -1454,6 +1537,66 @@
       showStatus(`📋 Duplicated record as ${newId}.`, 'green');
     }
 
+    function showInboxHoverPopover(e, imgSrc, filename) {
+      let popover = document.getElementById('inboxScanHoverPopover');
+      if (!popover) {
+        popover = document.createElement('div');
+        popover.id = 'inboxScanHoverPopover';
+        popover.className = 'inbox-scan-hover-popover';
+        popover.innerHTML = '<img id="inboxPopoverImg" src="" alt="Scan Preview"><div id="inboxPopoverCap" class="popover-caption"></div>';
+        document.body.appendChild(popover);
+      }
+
+      const imgEl = popover.querySelector('#inboxPopoverImg');
+      const capEl = popover.querySelector('#inboxPopoverCap');
+      if (imgEl) {
+        imgEl.src = imgSrc;
+        imgEl.onerror = function() {
+          if (filename) this.src = `./scans/${encodeURIComponent(filename)}`;
+        };
+      }
+      if (capEl) capEl.textContent = filename || '';
+
+      popover.classList.add('active');
+      positionInboxHoverPopover(e, popover);
+    }
+
+    function positionInboxHoverPopover(e, popover) {
+      if (!popover) popover = document.getElementById('inboxScanHoverPopover');
+      if (!popover || !popover.classList.contains('active')) return;
+
+      const target = e.currentTarget || e.target;
+      if (!target) return;
+      const rect = target.getBoundingClientRect();
+      const popoverWidth = 270;
+      const popoverHeight = 310;
+
+      // Prefer placing to the right of thumbnail
+      let left = rect.right + 12;
+      // If overflowing viewport on the right, position to the left of the card / thumbnail
+      if (left + popoverWidth > window.innerWidth - 12) {
+        left = Math.max(10, rect.left - popoverWidth - 12);
+      }
+
+      // Vertically center with the thumbnail
+      let top = rect.top + (rect.height / 2) - (popoverHeight / 2);
+      // Clamp within viewport
+      if (top < 10) top = 10;
+      if (top + popoverHeight > window.innerHeight - 10) {
+        top = Math.max(10, window.innerHeight - popoverHeight - 10);
+      }
+
+      popover.style.left = `${left}px`;
+      popover.style.top = `${top}px`;
+    }
+
+    function hideInboxHoverPopover() {
+      const popover = document.getElementById('inboxScanHoverPopover');
+      if (popover) {
+        popover.classList.remove('active');
+      }
+    }
+
     async function scanUnassignedImages() {
       const container = document.getElementById('unassignedScansList');
       const scanBtn = document.getElementById('btnScanFolder');
@@ -1534,12 +1677,26 @@
           const leftDiv = document.createElement('div');
           leftDiv.style.cssText = 'display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;';
 
+          const imgSrc = item.download_url || `./scans/${encodeURIComponent(item.name)}`;
           const img = document.createElement('img');
-          img.src = item.download_url || `./scans/${encodeURIComponent(item.name)}`;
+          img.src = imgSrc;
           img.alt = item.name;
-          img.style.cssText = 'width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color); background: #000; flex-shrink: 0;';
+          img.style.cssText = 'width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color); background: #000; flex-shrink: 0; cursor: pointer; transition: transform 0.15s, border-color 0.15s;';
           img.onerror = function() {
             this.src = `./scans/${encodeURIComponent(item.name)}`;
+          };
+          img.onmouseenter = function(e) {
+            this.style.borderColor = 'var(--accent-yellow)';
+            this.style.transform = 'scale(1.05)';
+            showInboxHoverPopover(e, this.src, item.name);
+          };
+          img.onmousemove = function(e) {
+            positionInboxHoverPopover(e);
+          };
+          img.onmouseleave = function() {
+            this.style.borderColor = 'var(--border-color)';
+            this.style.transform = 'scale(1)';
+            hideInboxHoverPopover();
           };
 
           const nameSpan = document.createElement('span');
@@ -1557,6 +1714,7 @@
           btn.style.cssText = 'width: 32px; height: 32px; min-width: 32px; min-height: 32px; padding: 0; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 4px;';
           btn.textContent = '➕';
           btn.onclick = function() {
+            hideInboxHoverPopover();
             createRecordFromScan(item.name);
           };
 
