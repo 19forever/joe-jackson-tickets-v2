@@ -531,7 +531,7 @@
     </div>
     
     <div style="display: flex; gap: 10px; align-items: center;">
-      <select id="jumpSelect" class="select-jump" onchange="jumpToSelectedRecord()"></select>
+      <select id="recordSelect" class="select-jump" onchange="jumpToSelectedRecord()"></select>
       <div class="record-counter" id="recordCounter">Record 0 of 0</div>
     </div>
 
@@ -848,40 +848,6 @@
       }
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      checkAdminAuth();
-      updateBackToMuseumLinks();
-
-      const wmInputEl = document.getElementById('adminWatermarkInput');
-      if (wmInputEl) {
-        wmInputEl.addEventListener('change', async function(e) {
-          const file = e.target.files[0];
-          const box = document.getElementById('adminWatermarkBox');
-          const dlBtn = document.getElementById('adminWatermarkDownload');
-
-          if (!file) {
-            box.style.display = 'none';
-            return;
-          }
-
-          try {
-            showStatus('🎨 Watermarking image with "JJ Memorabilia Museum"...', 'yellow');
-            const result = await JJWatermark.apply(file, {
-              text: 'JJ Memorabilia Museum',
-              subtext: 'Joe Jackson Archive • joejackson.band',
-              position: 'bottom-right'
-            });
-            dlBtn.href = result.url;
-            dlBtn.download = `watermarked_${file.name}`;
-            box.style.display = 'block';
-            showStatus('✅ Watermark applied successfully! Click button to download.', 'green');
-          } catch (err) {
-            console.error(err);
-            showStatus('❌ Watermark processing failed: ' + err.message, 'red');
-          }
-        });
-      }
-
     function getCustomTours() {
       const list = [];
       try {
@@ -959,41 +925,178 @@
         tourIdInput.value = '';
       }
     }
-    const tourNameInput = getField('TOUR_NAME');
-    if (tourNameInput) {
-      tourNameInput.addEventListener('input', syncTourId);
-      tourNameInput.addEventListener('change', syncTourId);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      checkAdminAuth();
+      updateBackToMuseumLinks();
+
+      const wmInputEl = document.getElementById('adminWatermarkInput');
+      if (wmInputEl) {
+        wmInputEl.addEventListener('change', async function(e) {
+          const file = e.target.files[0];
+          const box = document.getElementById('adminWatermarkBox');
+          const dlBtn = document.getElementById('adminWatermarkDownload');
+
+          if (!file) {
+            box.style.display = 'none';
+            return;
+          }
+
+          try {
+            showStatus('🎨 Watermarking image with "JJ Memorabilia Museum"...', 'yellow');
+            const result = await JJWatermark.apply(file, {
+              text: 'JJ Memorabilia Museum',
+              subtext: 'Joe Jackson Archive • joejackson.band',
+              position: 'bottom-right'
+            });
+            dlBtn.href = result.url;
+            dlBtn.download = `watermarked_${file.name}`;
+            box.style.display = 'block';
+            showStatus('✅ Watermark applied successfully! Click button to download.', 'green');
+          } catch (err) {
+            console.error(err);
+            showStatus('❌ Watermark processing failed: ' + err.message, 'red');
+          }
+        });
+      }
+
+      const tourNameInput = getField('TOUR_NAME');
+      if (tourNameInput) {
+        tourNameInput.addEventListener('input', syncTourId);
+        tourNameInput.addEventListener('change', syncTourId);
+      }
+
+      const recordSelectEl = document.getElementById('recordSelect') || document.getElementById('jumpSelect');
+      if (recordSelectEl) {
+        recordSelectEl.addEventListener('change', jumpToSelectedRecord);
+      }
+
+      // Load CSV dataset on page load
+      loadCsvData();
+    });
+
+  const GITHUB_RAW_FALLBACK_URL = 'https://raw.githubusercontent.com/19forever/joe-jackson-tickets-v2/main/joe_jackson_tickets_cleaned.csv';
+  const DEFAULT_FALLBACK_RECORDS = [
+    {
+      ID_MEMORABILIA: 'TICKET_0001',
+      KATEGORIE: 'tickets',
+      TOUR_NAME: 'Big World Tour 1986',
+      DATUM: '1986-05-10',
+      MESTO: 'London',
+      STAT: 'UK',
+      VENUE: 'Royal Albert Hall',
+      LINEUP: 'Joe Jackson (vocals, piano), Rick Ford (bass), Vinnie Zummo (guitar), Gary Burke (drums)',
+      SOUBOR_SKEN: 'ticket_1986_london.jpg'
+    }
+  ];
+
+  function loadCsvData() {
+    const ghConfig = typeof StorageService !== 'undefined' && typeof StorageService.getGitHubConfig === 'function'
+      ? StorageService.getGitHubConfig()
+      : { file: 'joe_jackson_tickets_cleaned.csv' };
+    const targetFile = ghConfig.file || CSV_FILENAME;
+
+    function handleParsedData(data) {
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        useMockFallback('Parsed data array is empty');
+        return;
+      }
+
+      // Step 1: Load and parse CSV into fullCsvData
+      fullCsvData = data.filter(row => row && Object.keys(row).length > 0 && (row.ID_MEMORABILIA || row.DATUM || row.TOUR_NAME || row.MESTO || row.STAT));
+      if (fullCsvData.length === 0) {
+        fullCsvData = data;
+      }
+
+      // Step 2: Populate dropdown selector with all loaded records formatted as [YYYY-MM-DD] City (Category)
+      populateRecordSelect();
+
+      // Step 3: Call populateDatalists(fullCsvData) to instantly extract unique TOUR_NAME, CITY, VENUE, and COUNTRY values
+      populateDatalists(fullCsvData);
+
+      // Step 4: Load target record by URL parameter `id` (or default to the first record index 0)
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetId = urlParams.get('id');
+      const targetIndex = urlParams.get('index');
+
+      let initialIndex = 0;
+      if (targetId) {
+        const idx = fullCsvData.findIndex(r => (r.ID_MEMORABILIA || '').trim() === targetId.trim());
+        if (idx !== -1) initialIndex = idx;
+      } else if (targetIndex !== null && !isNaN(parseInt(targetIndex, 10))) {
+        const pIdx = parseInt(targetIndex, 10);
+        if (pIdx >= 0 && pIdx < fullCsvData.length) initialIndex = pIdx;
+      }
+
+      loadRecordByIndex(initialIndex);
     }
 
-    // Load CSV
-    Papa.parse(CSV_FILENAME, {
+    function useMockFallback(reason) {
+      console.warn("Using Fallback 3 (Mock/Default Record):", reason);
+      showStatus('⚠️ Network load failed. Loaded default placeholder record.', 'yellow');
+      handleParsedData(DEFAULT_FALLBACK_RECORDS);
+    }
+
+    function tryGitHubRawFallback() {
+      console.info("Attempting Fallback 2: Fetching raw CSV from GitHub repository...");
+      fetch(GITHUB_RAW_FALLBACK_URL)
+        .then(res => {
+          if (!res.ok) throw new Error(`GitHub raw fetch returned HTTP ${res.status}`);
+          return res.text();
+        })
+        .then(csvText => {
+          const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+          if (parsed.data && parsed.data.length > 0) {
+            handleParsedData(parsed.data);
+          } else {
+            useMockFallback('GitHub raw CSV parsed with 0 rows');
+          }
+        })
+        .catch(err => {
+          console.warn("Fallback 2 (GitHub raw) failed:", err);
+          useMockFallback(err.message);
+        });
+    }
+
+    function tryLocalFetchFallback() {
+      console.info("Attempting Fallback 1: Local fetch()...");
+      fetch(targetFile)
+        .then(res => {
+          if (!res.ok) throw new Error(`Local fetch returned HTTP ${res.status}`);
+          return res.text();
+        })
+        .then(csvText => {
+          const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+          if (parsed.data && parsed.data.length > 0) {
+            handleParsedData(parsed.data);
+          } else {
+            tryGitHubRawFallback();
+          }
+        })
+        .catch(err => {
+          console.warn("Fallback 1 (local fetch) failed:", err);
+          tryGitHubRawFallback();
+        });
+    }
+
+    // Primary: Attempt Papa.parse download
+    Papa.parse(targetFile, {
       download: true,
       header: true,
       skipEmptyLines: true,
       complete: function(results) {
-        fullCsvData = results.data;
-        populateJumpDropdown();
-        populateDatalists(fullCsvData);
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const targetId = urlParams.get('id');
-        const targetIndex = urlParams.get('index');
-
-        if (targetId) {
-          const idx = fullCsvData.findIndex(r => r.ID_MEMORABILIA === targetId);
-          if (idx !== -1) loadRecordByIndex(idx);
-          else loadRecordByIndex(0);
-        } else if (targetIndex !== null && !isNaN(parseInt(targetIndex, 10))) {
-          loadRecordByIndex(parseInt(targetIndex, 10));
+        if (results.data && results.data.length > 0) {
+          handleParsedData(results.data);
         } else {
-          loadRecordByIndex(0);
+          tryLocalFetchFallback();
         }
       },
       error: function(err) {
-        showStatus('❌ Failed to load CSV file: ' + err.message, 'red');
+        console.warn("Primary Papa.parse download failed:", err);
+        tryLocalFetchFallback();
       }
     });
-  });
+  }
 
   function populateDatalists(dataset) {
     const data = Array.isArray(dataset) ? dataset : (Array.isArray(fullCsvData) ? fullCsvData : []);
@@ -1105,88 +1208,104 @@
     }
   }
 
-    function populateJumpDropdown() {
-      const select = document.getElementById('jumpSelect');
-      if (!select) return;
-      select.innerHTML = '';
-      fullCsvData.forEach((row, i) => {
-        const opt = document.createElement('option');
-        opt.value = i;
-        const dateOrTour = row.DATUM || row.TOUR_NAME || 'No date';
-        const locationOrTour = row.MESTO || row.TOUR_NAME || 'Unknown';
-        opt.textContent = `${i + 1}. [${dateOrTour}] ${locationOrTour} (${row.KATEGORIE || 'Item'})`;
-        select.appendChild(opt);
-      });
-    }
+  function populateRecordSelect() {
+    const select = document.getElementById('recordSelect') || document.getElementById('jumpSelect');
+    if (!select) return;
+    select.innerHTML = '';
+    fullCsvData.forEach((row, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      const dateStr = (row.DATUM && String(row.DATUM).trim()) || 'YYYY-MM-DD';
+      const cityStr = (row.MESTO && String(row.MESTO).trim()) || (row.STAT && String(row.STAT).trim()) || (row.TOUR_NAME && String(row.TOUR_NAME).trim()) || 'Unknown City';
+      const catStr = (row.KATEGORIE && String(row.KATEGORIE).trim()) || 'tickets';
+      opt.textContent = `[${dateStr}] ${cityStr} (${catStr})`;
+      select.appendChild(opt);
+    });
+  }
 
-    function loadRecordByIndex(index) {
-      if (index < 0 || index >= fullCsvData.length) return;
-      currentRecordIndex = index;
-      const r = fullCsvData[index];
+  function populateJumpDropdown() {
+    populateRecordSelect();
+  }
 
-      const recordIdTitleEl = document.getElementById('recordIdTitle');
-      if (recordIdTitleEl) recordIdTitleEl.textContent = r.ID_MEMORABILIA || `Record #${index + 1}`;
+  function loadRecordByIndex(index) {
+    if (!fullCsvData || fullCsvData.length === 0) {
       const recordCounterEl = document.getElementById('recordCounter');
-      if (recordCounterEl) recordCounterEl.textContent = `Record ${index + 1} of ${fullCsvData.length}`;
-      
-      const jumpSelect = document.getElementById('jumpSelect');
-      if (jumpSelect) jumpSelect.value = index;
+      if (recordCounterEl) recordCounterEl.textContent = 'Record 0 of 0';
+      return;
+    }
+    if (index < 0) index = 0;
+    if (index >= fullCsvData.length) index = fullCsvData.length - 1;
+    currentRecordIndex = index;
+    const r = fullCsvData[index];
 
-      const prevBtn = document.getElementById('prevBtn');
-      if (prevBtn) prevBtn.disabled = (index === 0);
-      const nextBtn = document.getElementById('nextBtn');
-      if (nextBtn) nextBtn.disabled = (index === fullCsvData.length - 1);
+    const recordIdTitleEl = document.getElementById('recordIdTitle');
+    if (recordIdTitleEl) recordIdTitleEl.textContent = r.ID_MEMORABILIA || `Record #${index + 1}`;
+    const recordCounterEl = document.getElementById('recordCounter');
+    if (recordCounterEl) recordCounterEl.textContent = `Record ${index + 1} of ${fullCsvData.length}`;
+    
+    const select = document.getElementById('recordSelect') || document.getElementById('jumpSelect');
+    if (select) select.value = index;
 
-      fields.forEach(f => {
-        const el = getField(f);
-        if (el) {
-          const val = r[f] !== undefined && r[f] !== null ? String(r[f]).trim() : '';
-          if (el.tagName === 'SELECT') {
-            el.value = val;
-            if (el.selectedIndex === -1 || el.value !== val) {
-              const lowerVal = val.toLowerCase();
-              let matched = false;
-              for (let i = 0; i < el.options.length; i++) {
-                const opt = el.options[i];
-                if (opt.value.toLowerCase() === lowerVal || opt.text.toLowerCase() === lowerVal) {
-                  el.selectedIndex = i;
-                  matched = true;
-                  break;
-                }
-              }
-              if (!matched && val) {
-                const newOpt = document.createElement('option');
-                newOpt.value = val;
-                newOpt.textContent = val;
-                el.appendChild(newOpt);
-                el.value = val;
+    const prevBtn = document.getElementById('prevBtn');
+    if (prevBtn) prevBtn.disabled = (index === 0);
+    const nextBtn = document.getElementById('nextBtn');
+    if (nextBtn) nextBtn.disabled = (index === fullCsvData.length - 1);
+
+    fields.forEach(f => {
+      const el = getField(f);
+      if (el) {
+        const val = r[f] !== undefined && r[f] !== null ? String(r[f]).trim() : '';
+        if (el.tagName === 'SELECT') {
+          el.value = val;
+          if (el.selectedIndex === -1 || el.value !== val) {
+            const lowerVal = val.toLowerCase();
+            let matched = false;
+            for (let i = 0; i < el.options.length; i++) {
+              const opt = el.options[i];
+              if (opt.value.toLowerCase() === lowerVal || opt.text.toLowerCase() === lowerVal) {
+                el.selectedIndex = i;
+                matched = true;
+                break;
               }
             }
-            el.dispatchEvent(new Event('change'));
-          } else {
-            el.value = val;
+            if (!matched && val) {
+              const newOpt = document.createElement('option');
+              newOpt.value = val;
+              newOpt.textContent = val;
+              el.appendChild(newOpt);
+              el.value = val;
+            }
           }
+          el.dispatchEvent(new Event('change'));
+        } else {
+          el.value = val;
         }
-      });
+      }
+    });
 
-      updateImageFromInput();
-      updateYtPreview();
-      checkDataQuality();
+    updateImageFromInput();
+    updateYtPreview();
+    checkDataQuality();
+  }
+
+  function navigateRecord(delta) {
+    saveCurrentFormToMemory();
+    const newIndex = currentRecordIndex + delta;
+    if (newIndex >= 0 && newIndex < fullCsvData.length) {
+      loadRecordByIndex(newIndex);
     }
+  }
 
-    function navigateRecord(delta) {
-      saveCurrentFormToMemory();
-      const newIndex = currentRecordIndex + delta;
-      if (newIndex >= 0 && newIndex < fullCsvData.length) {
-        loadRecordByIndex(newIndex);
+  function jumpToSelectedRecord() {
+    saveCurrentFormToMemory();
+    const select = document.getElementById('recordSelect') || document.getElementById('jumpSelect');
+    if (select && select.value !== '') {
+      const idx = parseInt(select.value, 10);
+      if (!isNaN(idx) && idx >= 0 && idx < fullCsvData.length) {
+        loadRecordByIndex(idx);
       }
     }
-
-    function jumpToSelectedRecord() {
-      saveCurrentFormToMemory();
-      const select = document.getElementById('jumpSelect');
-      if (select) loadRecordByIndex(parseInt(select.value, 10));
-    }
+  }
 
     function saveCurrentFormToMemory() {
       if (currentRecordIndex < 0 || currentRecordIndex >= fullCsvData.length) return;
