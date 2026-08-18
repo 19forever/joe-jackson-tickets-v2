@@ -1545,7 +1545,7 @@
           const nameSpan = document.createElement('span');
           nameSpan.textContent = item.name;
           nameSpan.title = item.name;
-          nameSpan.style.cssText = 'font-size: 0.75rem; color: var(--text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; flex: 1;';
+          nameSpan.style.cssText = 'font-size: 0.75rem; color: var(--text-color); word-break: break-word; overflow-wrap: anywhere; line-height: 1.3; font-family: monospace; flex: 1;';
 
           leftDiv.appendChild(img);
           leftDiv.appendChild(nameSpan);
@@ -1553,8 +1553,9 @@
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'btn-add-new';
-          btn.style.cssText = 'padding: 4px 8px; font-size: 0.75rem; white-space: nowrap; flex-shrink: 0;';
-          btn.textContent = '➕ Create Record';
+          btn.title = 'Create record from this image';
+          btn.style.cssText = 'width: 32px; height: 32px; min-width: 32px; min-height: 32px; padding: 0; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 4px;';
+          btn.textContent = '➕';
           btn.onclick = function() {
             createRecordFromScan(item.name);
           };
