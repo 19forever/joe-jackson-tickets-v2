@@ -104,8 +104,13 @@
       padding: 8px 14px;
       border-radius: 6px;
       font-size: 0.8rem;
+      line-height: 1.2;
       font-weight: 600;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
       transition: all 0.2s;
     }
 
@@ -118,13 +123,18 @@
       background-color: #1a1a1a;
       border: 1px solid var(--border-color-light);
       color: var(--text-main);
-      padding: 8px 16px;
+      padding: 8px 14px;
       border-radius: 6px;
       text-decoration: none;
       font-size: 0.8rem;
+      line-height: 1.2;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
       transition: all 0.2s;
     }
 
@@ -132,6 +142,28 @@
       border-color: var(--accent-yellow);
       color: var(--accent-yellow);
       background-color: #222;
+    }
+
+    .btn-lock {
+      background-color: #ef4444;
+      color: #fff;
+      border: 1px solid #ef4444;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      line-height: 1.2;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+
+    .btn-lock:hover {
+      background-color: #dc2626;
+      border-color: #dc2626;
     }
 
     /* Navigation Bar */
@@ -515,18 +547,6 @@
     .gate-icon { font-size: 2.5rem; margin-bottom: 12px; }
     .gate-card h2 { font-size: 1.25rem; color: #fff; margin-bottom: 8px; font-weight: 700; }
     .gate-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.4; }
-    .btn-lock {
-      background-color: #ef4444;
-      color: #fff;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    .btn-lock:hover { background-color: #dc2626; }
   </style>
 </head>
 <body>
@@ -660,12 +680,12 @@
         <div class="grid-2">
           <div class="form-group">
             <label for="edit_TOUR_NAME">Tour Name (TOUR_NAME)</label>
-            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-              <input type="text" id="edit_TOUR_NAME" name="TOUR_NAME" list="toursList" placeholder="Select or type tour name..." style="flex: 1; min-width: 200px;">
+            <div style="display: flex; gap: 6px; align-items: center; width: 100%;">
+              <input type="text" id="edit_TOUR_NAME" name="TOUR_NAME" list="toursList" placeholder="Select or type tour name..." style="flex: 1; min-width: 0;">
               <datalist id="toursList"></datalist>
               <datalist id="tourNamesList"></datalist>
-              <button type="button" class="btn-token" onclick="addNewTourPrompt()" style="padding: 10px 12px; font-size: 0.8rem; white-space: nowrap;" title="Enter a new tour name">➕ New Tour</button>
-              <button type="button" class="btn-token" onclick="clearCustomToursList()" style="padding: 10px 12px; font-size: 0.8rem; white-space: nowrap;" title="Reset saved custom tours list">🧹 Reset Custom Tours</button>
+              <button type="button" class="btn-token btn-new-tour" onclick="addNewTourPrompt()" style="padding: 8px 10px; font-size: 0.75rem; white-space: nowrap; flex-shrink: 0;" title="Enter a new tour name">➕ New Tour</button>
+              <button type="button" class="btn-token btn-reset-tours" onclick="clearCustomToursList()" style="padding: 8px 10px; font-size: 0.75rem; white-space: nowrap; flex-shrink: 0;" title="Reset saved custom tours list">🧹 Reset Custom Tours</button>
             </div>
           </div>
           <div class="form-group">
@@ -982,7 +1002,10 @@
       const tourName = tourNameInput.value;
       if (tourName && tourName.trim()) {
         const trimmed = tourName.trim();
-        const tourId = 'tour-' + trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const slug = trimmed.toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+        const tourId = slug ? 'tour-' + slug : '';
         tourIdInput.value = tourId;
       } else {
         tourIdInput.value = '';

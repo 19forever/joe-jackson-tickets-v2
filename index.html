@@ -101,13 +101,15 @@
 
       <select id="yearFilter"><option value="">All Years</option></select>
       <select id="cityFilter"><option value="">All Cities</option></select>
-      <select id="sortFilter">
+      <select id="sortFilter" title="Sort tickets">
         <option value="random">🎲 Random / Shuffled</option>
         <option value="oldest">Date (Oldest First)</option>
         <option value="newest">Date (Newest First)</option>
-        <option value="missing_first">📷 Missing Scans First</option>
-        <option value="missing_only">🔍 Missing Scans Only</option>
-        <option value="scans_only">🖼️ With Scans Only</option>
+        <option value="missing_first" class="admin-only-option">📷 Missing Scans First</option>
+        <option value="missing_only" class="admin-only-option">🔍 Missing Scans Only</option>
+        <option value="scans_only" class="admin-only-option">🖼️ With Scans Only</option>
+        <option value="missing_setlists" class="admin-only-option">📝 Missing Setlists First</option>
+        <option value="incomplete_metadata" class="admin-only-option">⚠️ Incomplete Metadata First</option>
       </select>
       <select id="pageSizeFilter">
         <option value="25">25 / page</option>
@@ -152,6 +154,103 @@
   <!-- Tour Filter Integration Script -->
   <script>
     (function() {
+      // 1. Helper to check if Admin Mode is active
+      function isAdminModeActive() {
+        let adminFlag = false;
+        let hasPat = false;
+        if (typeof StorageService !== 'undefined') {
+          adminFlag = StorageService.get('jj_admin_mode') === 'true';
+          const pat = StorageService.get('gh_token') || StorageService.get('jj_github_pat');
+          hasPat = !!(pat && pat.trim().length > 0);
+        } else {
+          try {
+            adminFlag = localStorage.getItem('jj_admin_mode') === 'true' || sessionStorage.getItem('jj_admin_mode') === 'true';
+            const pat = localStorage.getItem('gh_token') || localStorage.getItem('jj_github_pat');
+            hasPat = !!(pat && pat.trim().length > 0);
+          } catch(e) {}
+        }
+        const urlParams = new URLSearchParams(window.location.search);
+        const adminParam = urlParams.get('admin') === '1';
+        return adminFlag || hasPat || adminParam;
+      }
+      window.isAdminModeActive = isAdminModeActive;
+
+      // 2. Manage administrative sort options and admin controls
+      let sortOptionsCatalog = null;
+
+      function updateAdminSortAndControls() {
+        const sortSelect = document.getElementById('sortFilter') || document.getElementById('sortSelect');
+        const isAdmin = isAdminModeActive();
+
+        if (sortSelect) {
+          if (!sortOptionsCatalog) {
+            sortOptionsCatalog = Array.from(sortSelect.options).map(opt => ({
+              value: opt.value,
+              text: opt.textContent,
+              isAdminOnly: opt.classList.contains('admin-only-option') || ['missing_first', 'missing_only', 'scans_only', 'missing_setlists', 'incomplete_metadata'].includes(opt.value)
+            }));
+          }
+
+          const currentValue = sortSelect.value;
+          const currentIsAdminOnly = sortOptionsCatalog.find(o => o.value === currentValue)?.isAdminOnly;
+
+          sortSelect.innerHTML = '';
+          sortOptionsCatalog.forEach(optData => {
+            if (!optData.isAdminOnly || isAdmin) {
+              const opt = document.createElement('option');
+              opt.value = optData.value;
+              opt.textContent = optData.text;
+              if (optData.isAdminOnly) {
+                opt.classList.add('admin-only-option');
+              }
+              sortSelect.appendChild(opt);
+            }
+          });
+
+          let targetValue = currentValue;
+          if (!isAdmin && currentIsAdminOnly) {
+            // Fallback to default date sort (newest / date-desc)
+            targetValue = 'newest';
+          }
+
+          let found = false;
+          for (let i = 0; i < sortSelect.options.length; i++) {
+            if (sortSelect.options[i].value === targetValue) {
+              sortSelect.selectedIndex = i;
+              found = true;
+              break;
+            }
+          }
+          if (!found && sortSelect.options.length > 0) {
+            sortSelect.selectedIndex = 0;
+          }
+
+          if (targetValue !== currentValue) {
+            if (typeof updateUrlParams === 'function') updateUrlParams();
+            if (typeof filterData === 'function') filterData();
+          }
+        }
+
+        // Restrict any admin-only controls
+        document.querySelectorAll('.admin-only-control, .admin-only').forEach(el => {
+          el.style.display = isAdmin ? '' : 'none';
+        });
+
+        const tourFilter = document.getElementById('tourFilter');
+        if (tourFilter && tourFilter.classList.contains('admin-only-control')) {
+          tourFilter.style.display = isAdmin ? '' : 'none';
+        }
+
+        // Synchronize header admin controls
+        const adminEditorLink = document.getElementById('adminEditorLink');
+        const adminLoginLink = document.getElementById('adminLoginLink');
+        const adminLockBtn = document.getElementById('adminLockBtn');
+        if (adminEditorLink) adminEditorLink.style.display = isAdmin ? 'inline-flex' : 'none';
+        if (adminLockBtn) adminLockBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+        if (adminLoginLink) adminLoginLink.style.display = isAdmin ? 'none' : 'inline-flex';
+      }
+      window.updateAdminSortAndControls = updateAdminSortAndControls;
+
       function populateTourFilter() {
         const tourSelect = document.getElementById('tourFilter');
         if (!tourSelect) return;
@@ -204,6 +303,7 @@
           origPopulateFilters.apply(this, arguments);
         }
         populateTourFilter();
+        updateAdminSortAndControls();
       };
 
       // Hook into updateUrlParams
@@ -325,6 +425,26 @@
           filteredTickets = filteredTickets.filter(t => (typeof isValidValue === 'function') ? !isValidValue(t.SOUBOR_SKEN) : !t.SOUBOR_SKEN);
         } else if (sort === 'scans_only') {
           filteredTickets = filteredTickets.filter(t => (typeof isValidValue === 'function') ? isValidValue(t.SOUBOR_SKEN) : !!t.SOUBOR_SKEN);
+        } else if (sort === 'missing_setlists') {
+          filteredTickets.sort((a, b) => {
+            const aHas = (typeof isValidValue === 'function') ? (isValidValue(a.SETLIST) ? 1 : 0) : (a.SETLIST ? 1 : 0);
+            const bHas = (typeof isValidValue === 'function') ? (isValidValue(b.SETLIST) ? 1 : 0) : (b.SETLIST ? 1 : 0);
+            return aHas - bHas;
+          });
+        } else if (sort === 'incomplete_metadata') {
+          filteredTickets.sort((a, b) => {
+            const getMissingScore = (item) => {
+              let score = 0;
+              if (!item.VENUE && !item.MISTO_KONANI) score++;
+              if (!item.MESTO) score++;
+              if (!item.STAT) score++;
+              if (!item.SOUBOR_SKEN) score++;
+              if (!item.SETLIST) score++;
+              if (!item.TOUR_NAME) score++;
+              return score;
+            };
+            return getMissingScore(b) - getMissingScore(a);
+          });
         }
 
         currentPage = 1;
@@ -337,8 +457,10 @@
         }
       };
 
-      // Attach event listener to tourFilter
+      // Attach event listeners
       document.addEventListener('DOMContentLoaded', () => {
+        updateAdminSortAndControls();
+
         const tourFilter = document.getElementById('tourFilter');
         if (tourFilter) {
           tourFilter.addEventListener('change', () => {
@@ -346,6 +468,10 @@
             if (typeof filterData === 'function') filterData();
           });
         }
+
+        window.addEventListener('storage', () => {
+          updateAdminSortAndControls();
+        });
       });
     })();
   </script>
