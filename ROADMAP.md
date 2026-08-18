@@ -61,6 +61,8 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
 ---
 
 ## 🔮 Post-Launch Enhancements & Future Upgrades
+- [ ] **Concurrent Editing Conflict Guard (`edit_ticket_new.html`)**
+  - Implement pre-commit fetch & row-level merge ("Fetch Before Commit") to prevent two admins from overwriting each other's changes when saving CSV records simultaneously via GitHub API (`409 Conflict` mitigation).
 - [ ] **Codebase Refactoring & Architecture Cleanup**
   - **Unified `localStorage` Manager:** Centralize all application state (GitHub token, repository settings, active layout views, sorting orders, and category filters) into a single key-value wrapper to eliminate legacy key fallbacks (`jj_github_pat` vs. `gh_token`).
   - **Isolated GitHub API Service (`github-service.js`):** Extract GitHub REST API operations (SHA retrieval, UTF-8 Base64 encoding, commits, and error handling for 401/403/404 HTTP codes) out of `edit_ticket_new.html` into a dedicated, reusable module.
@@ -83,6 +85,10 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
 ## ✅ Completed Features Archive
 
 ### Core Web Application & UI (`index.html`, `styles.css`, `app.js`)
+- [x] **Universal Media Player Modal & Concert Context Header**
+  - Enhanced video/audio player modal with unified support for YouTube videos, Archive.org embeds, and direct MP3 audio files.
+  - Added real-time ticket scan placeholder inside player window during audio playback.
+  - Structured concert metadata header above media frame displaying formatted Date, Venue, and Location.
 - [x] **Interactive Museum Interface**
   - Multi-criteria filtering by Tour, Category, Country, Year, City, Venue, and Contributor
   - Comprehensive metadata search across all historical records including `TOUR_NAME` and `TOUR_ID`
