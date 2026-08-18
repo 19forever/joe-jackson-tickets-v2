@@ -38,7 +38,13 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Display a subtle link on item detail cards with 0 songs: *"Know this setlist? Add it on Setlist.fm or contribute a program scan."*
 - [ ] **Verification Filter**:
   - Add quick filter checkboxes in Museum View and Admin Editor to easily isolate unverified shows or shows with missing setlist songs.
-
+  - 
+### 5. Theme Switcher (Light / Dark / Auto Mode)
+- [ ] **Světlý a tmavý režim (`index.html` / `styles.css`)**:
+  - Přidání přepínače motivu vedle přepínače fontů v hlavičce.
+  - Vytvoření světlé varianty CSS proměnných (`:root` / `.theme-light`) pro čtení na přímém slunci.
+  - Detekce systémového nastavení uživatele (`prefers-color-scheme: dark`).
+  - Ukládání preferovaného režimu do `localStorage` (`jj_selected_theme`).
 ---
 
 ## ⏳ Pending Client Approval & Pre-Launch Tasks
