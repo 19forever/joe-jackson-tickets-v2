@@ -757,7 +757,9 @@ header {
   max-width: 110px;
 }
 
-.icon-btn {
+.icon-btn,
+.card-actions .icon-btn,
+.card-icon-col .icon-btn {
   background: #1a1a1a;
   border: 1px solid var(--border-color-light);
   color: var(--text-main);
@@ -769,6 +771,12 @@ header {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  height: 28px;
+  line-height: 1;
+  min-width: 32px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  box-sizing: border-box;
   transition: all 0.2s ease;
   text-decoration: none;
 }
@@ -805,6 +813,9 @@ header {
   background: rgba(245, 158, 11, 0.25);
   border: 1px solid #f59e0b;
   color: #fbbf24;
+  min-width: 3.2rem;
+  padding: 0 6px;
+  box-sizing: border-box;
 }
 
 .badge-setlist:hover,
