@@ -43,6 +43,10 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - "➕ New Tour" quick action for seamless addition of new tour titles
   - Real-time auto-generated read-only `TOUR_ID` slug creation (`tour-name-year`)
   - "🧹 Reset Custom Tours" utility clearing unpersisted temporary inputs and rebuilding lists exclusively from valid CSV records
+- [x] **Compact & Context-Aware Navigation Bar**
+  - Streamlined `[ ◄ ] Record X of Y [ ► ]` navigation layout without redundant "Previous/Next" button text
+  - Full URL state persistence preserving active Category tabs (`category`), Tour filters (`tour`), Search queries (`search`), and Sorting order (`sort`) from `index.html`
+  - Strict sub-indexing ensuring `◄` and `►` buttons cycle exclusively within the filtered subset (e.g. iterating strictly through the 19 items in `Posters`)
 - [x] **Admin Authentication Gate**
   - Secured session access via GitHub Personal Access Token (PAT)
 - [x] **Direct GitHub v2 Publishing**
@@ -55,9 +59,6 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Direct integration with GitHub REST API (`/scans/` contents endpoint)
   - Differential analysis detecting uploaded image files (`.jpg`, `.png`, `.webp`) unlinked to any CSV record
   - Interactive cards featuring hover-zoom thumbnail popovers, full filename displays (`word-break: break-word`), and 1-click "➕ Create Record" pre-filling
-- [x] **Context-Aware Navigation Pipeline**
-  - Filter and sort state preservation across URL query strings (`search`, `category`, `tour`, `sort`)
-  - Editor sub-indexing allowing Next/Previous button navigation strictly bounded to active filtered subsets
 - [x] **Strict Multi-Criteria Duplicate Detection**
   - Real-time duplicate prevention validating combination of Date (`DATUM`), City (`MESTO`), AND Category (`KATEGORIE`)
   - Dynamic re-evaluation on category selection change
