@@ -1706,98 +1706,116 @@
       }
     }
 
+    const SETLIST_FM_API_KEY = '3pc6VtmOHzQbQVh9xedw_LLpNRCCfDhEvop7';
+
+    function extractSetlistId(urlOrId) {
+      if (!urlOrId) return '';
+      const trimmed = urlOrId.trim();
+      const match = trimmed.match(/([a-fA-F0-9]+)(?:\.html)?(?:[?#].*)?$/i);
+      if (match && match[1]) {
+        return match[1];
+      }
+      return trimmed;
+    }
+
     async function fetchSetlistSongs() {
       const urlInput = getField('SETLIST_URL');
       const url = urlInput ? urlInput.value.trim() : '';
       if (!url) {
-        alert('Please enter a valid Setlist.fm URL first.');
+        alert('Please enter a valid Setlist.fm URL or Setlist ID first.');
         return;
       }
-      showStatus('⚡ Fetching songs from Setlist.fm...', 'yellow');
 
-      const encodedUrl = encodeURIComponent(url);
-      const proxies = [
-        `https://jj-setlist-proxy.19forever.workers.dev/?url=${encodedUrl}`,
-        `https://corsproxy.io/?${encodedUrl}`,
-        `https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`
-      ];
+      const setlistId = extractSetlistId(url);
+      if (!setlistId) {
+        alert('Could not extract a valid Setlist ID from the provided URL.');
+        return;
+      }
 
-      let html = null;
+      showStatus('⚡ Fetching songs via official Setlist.fm API...', 'yellow');
+
+      let data = null;
       let lastError = null;
 
-      for (const proxyUrl of proxies) {
+      // 1. Attempt primary fetch via custom Cloudflare Worker proxy
+      try {
+        const workerUrl = `https://jj-setlist-proxy.19forever.workers.dev/setlist/${setlistId}`;
+        const res = await fetch(workerUrl, {
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        if (res.ok) {
+          data = await res.json();
+        } else {
+          throw new Error(`Worker HTTP ${res.status}`);
+        }
+      } catch (workerErr) {
+        console.warn('Cloudflare worker proxy attempt failed, falling back to direct API via corsproxy:', workerErr);
+        lastError = workerErr;
+      }
+
+      // 2. Secondary fallback via corsproxy with official API key and endpoint
+      if (!data) {
         try {
-          const res = await fetch(proxyUrl, {
+          const directApiUrl = `https://api.setlist.fm/rest/1.0/setlist/${setlistId}`;
+          const proxyApiUrl = `https://corsproxy.io/?${encodeURIComponent(directApiUrl)}`;
+          const res = await fetch(proxyApiUrl, {
             headers: {
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+              'x-api-key': SETLIST_FM_API_KEY,
+              'Accept': 'application/json'
             }
           });
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}`);
+          if (res.ok) {
+            data = await res.json();
+          } else {
+            throw new Error(`Direct API HTTP ${res.status}`);
           }
-          const text = await res.text();
-          if (text && (text.includes('songName') || text.includes('songLabel') || text.includes('setlistList') || text.includes('/song/'))) {
-            html = text;
-            break;
-          } else if (text && text.length > 500) {
-            html = text;
-            break;
-          }
-        } catch (err) {
-          lastError = err;
-          console.warn(`Proxy ${proxyUrl} failed:`, err);
+        } catch (directErr) {
+          console.error('Direct Setlist.fm API fetch failed:', directErr);
+          lastError = directErr;
         }
       }
 
-      if (!html) {
-        showStatus('❌ Failed to fetch Setlist.fm data via proxies. Please check the URL or try again.', 'red');
+      if (!data) {
+        showStatus('❌ Failed to fetch Setlist.fm API: ' + (lastError ? lastError.message : 'Unknown error'), 'red');
         return;
       }
 
       try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-
-        const songSelectors = [
-          '.songPart .songLabel',
-          '.setlistList .songLabel',
-          '.song .songName',
-          '.songName',
-          'li.setlistSong a.songLabel',
-          'li.setlistSong a[href*="/song/"]',
-          'a[href*="/song/"]'
-        ];
-
-        let songNodes = [];
-        for (const selector of songSelectors) {
-          const nodes = doc.querySelectorAll(selector);
-          if (nodes && nodes.length > 0) {
-            songNodes = Array.from(nodes);
-            break;
-          }
+        const songs = [];
+        if (data.sets) {
+          const sets = Array.isArray(data.sets.set) ? data.sets.set : (data.sets.set ? [data.sets.set] : []);
+          sets.forEach(s => {
+            if (!s) return;
+            const songList = Array.isArray(s.song) ? s.song : (s.song ? [s.song] : []);
+            songList.forEach(songItem => {
+              if (songItem && songItem.name && typeof songItem.name === 'string') {
+                const name = songItem.name.trim();
+                if (name && !name.toLowerCase().startsWith('[intro') && !name.toLowerCase().startsWith('[tape')) {
+                  songs.push(name);
+                }
+              }
+            });
+          });
         }
 
-        const songTitles = [];
-        songNodes.forEach(node => {
-          let title = node.textContent.trim();
-          title = title.replace(/\s+/g, ' ');
-          if (title && !title.toLowerCase().startsWith('[intro') && !title.toLowerCase().startsWith('[tape') && !songTitles.includes(title)) {
-            songTitles.push(title);
-          }
-        });
-
-        if (songTitles.length > 0) {
+        if (songs.length > 0) {
           const setlistEl = getField('SETLIST');
           if (setlistEl) {
-            setlistEl.value = songTitles.join(', ');
+            setlistEl.value = songs.join(', ');
+          }
+          const countEl = getField('POCET_SKLADEB');
+          if (countEl) {
+            countEl.value = songs.length;
           }
           recalculateSongCount();
-          showStatus(`✅ Successfully imported ${songTitles.length} songs from Setlist.fm!`, 'green');
+          showStatus(`✅ Successfully fetched ${songs.length} songs via official Setlist.fm API`, 'green');
         } else {
-          showStatus('⚠️ Could not extract song labels from page. Please enter songs manually.', 'yellow');
+          showStatus('⚠️ No songs found in this setlist on Setlist.fm.', 'yellow');
         }
       } catch (parseErr) {
-        showStatus('❌ Error parsing Setlist.fm data: ' + parseErr.message, 'red');
+        showStatus('❌ Error processing Setlist.fm JSON: ' + parseErr.message, 'red');
       }
     }
     const fetchSetlistFromUrl = fetchSetlistSongs;
