@@ -9,7 +9,15 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
 
 ## 💡 Active Feature Backlog & New Ideas (Up Next)
 
-### 1. Rescheduled & COVID-19 Cancelled Show Handling
+### 1. Legal Disclaimer & Copyright Notice Footer
+- [ ] **Copyright & Fair Use Notice (`index.html` / `stats.html`)**:
+  - Add a subtle, professional footer disclaimer to all public pages stating:
+    - *Non-commercial, educational & fan-archival nature of the museum.*
+    - *All trademarks, logos, and artist names belong to Joe Jackson and their respective copyright holders.*
+    - *Scans & digital representations contributed by private donors (`CONTRIBUTOR`).*
+    - *Direct DMCA / Takedown contact email for copyright owners.*
+
+### 2. Rescheduled & COVID-19 Cancelled Show Handling
 - [ ] **Rescheduled Show Metadata (`ORIGINAL_DATE` / `RESCHEDULED_NOTE`)**:
   - Keep `DATUM` strictly mapped to the actual performed show date (maintaining timeline and map accuracy).
   - Add optional `ORIGINAL_DATE` or `RESCHEDULED_NOTE` attribute to preserve historical ticket print dates (e.g. ticket printed for Oct 20, 2020, but concert took place May 14, 2022).
@@ -17,11 +25,11 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
 - [ ] **Cancelled Show Tracking (`CANCELLED`)**:
   - Support cancelled shows (e.g., COVID-19 cancellations) with dedicated status badges: `❌ Cancelled Show`.
 
-### 2. Multi-Scan Count Badge on Concert Cards
+### 3. Multi-Scan Count Badge on Concert Cards
 - [ ] **Multi-Scan Indicator**:
   - Automatically evaluate `SOUBOR_SKEN` string length. If multiple scans exist (`comma-separated > 1`), display a subtle thumbnail badge (e.g. `📷 2` or `🖼️ 3`) to inform visitors that front/back sides or additional program pages are available inside the detail viewer.
 
-### 3. Setlist.fm Cross-Reference & Date Verification Badges
+### 4. Setlist.fm Cross-Reference & Date Verification Badges
 - [ ] **Verification Badges in Museum View (`index.html`)**:
   - 🟢 **Setlist Confirmed**: Record has `SETLIST_URL` and `POCET_SKLADEB > 0`.
   - 🟡 **Date Confirmed**: Record has a valid `SETLIST_URL` but `POCET_SKLADEB = 0` (serves as an external cross-reference confirming the show date/venue).
