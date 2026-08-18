@@ -92,7 +92,7 @@
         <button class="search-clear-btn" id="searchClearBtn" title="Clear search">✕</button>
       </div>
 
-      <select id="tourFilter" title="Filter by Concert Tour">
+      <select id="tourFilter" class="admin-only-control" title="Filter by Concert Tour">
         <option value="">All Tours</option>
       </select>
 
@@ -192,7 +192,10 @@
           }
 
           const currentValue = sortSelect.value;
-          const currentIsAdminOnly = sortOptionsCatalog.find(o => o.value === currentValue)?.isAdminOnly;
+          const urlParams = new URLSearchParams(window.location.search);
+          const urlSort = urlParams.get('sort');
+          const isCurrentAdminOnly = sortOptionsCatalog.find(o => o.value === currentValue)?.isAdminOnly;
+          const isUrlAdminOnly = urlSort && sortOptionsCatalog.find(o => o.value === urlSort)?.isAdminOnly;
 
           sortSelect.innerHTML = '';
           sortOptionsCatalog.forEach(optData => {
@@ -208,7 +211,7 @@
           });
 
           let targetValue = currentValue;
-          if (!isAdmin && currentIsAdminOnly) {
+          if (!isAdmin && (isCurrentAdminOnly || isUrlAdminOnly)) {
             // Fallback to default date sort (newest / date-desc)
             targetValue = 'newest';
           }
@@ -223,9 +226,10 @@
           }
           if (!found && sortSelect.options.length > 0) {
             sortSelect.selectedIndex = 0;
+            targetValue = sortSelect.value;
           }
 
-          if (targetValue !== currentValue) {
+          if (targetValue !== currentValue || (!isAdmin && isUrlAdminOnly)) {
             if (typeof updateUrlParams === 'function') updateUrlParams();
             if (typeof filterData === 'function') filterData();
           }
@@ -233,12 +237,20 @@
 
         // Restrict any admin-only controls
         document.querySelectorAll('.admin-only-control, .admin-only').forEach(el => {
-          el.style.display = isAdmin ? '' : 'none';
+          el.style.display = isAdmin ? 'inline-block' : 'none';
         });
 
+        // Ensure tourFilter is strictly hidden for non-admin users
         const tourFilter = document.getElementById('tourFilter');
-        if (tourFilter && tourFilter.classList.contains('admin-only-control')) {
-          tourFilter.style.display = isAdmin ? '' : 'none';
+        if (tourFilter) {
+          if (isAdmin) {
+            tourFilter.style.display = 'inline-block';
+          } else {
+            tourFilter.style.display = 'none';
+            if (tourFilter.value) {
+              tourFilter.value = '';
+            }
+          }
         }
 
         // Synchronize header admin controls
