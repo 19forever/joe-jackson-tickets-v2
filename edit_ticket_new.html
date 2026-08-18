@@ -589,9 +589,10 @@
 
   <!-- Navigation & Action Bar -->
   <div class="record-nav-bar">
-    <div style="display: flex; gap: 8px; align-items: center;">
-      <button class="nav-btn" id="prevBtn" onclick="navigateRecord(-1)">◄ Previous</button>
-      <button class="nav-btn" id="nextBtn" onclick="navigateRecord(1)">Next ►</button>
+    <div style="display: flex; align-items: center;">
+      <button class="nav-btn" id="prevBtn" onclick="navigateRecord(-1)" title="Previous Record">◄</button>
+      <div class="record-counter" id="recordCounter" style="margin: 0 8px;">Record 1 of 19</div>
+      <button class="nav-btn" id="nextBtn" onclick="navigateRecord(1)" title="Next Record">►</button>
     </div>
     
     <div style="display: flex; gap: 10px; align-items: center;">
@@ -599,7 +600,6 @@
         <option value="">All Tours (Show All)</option>
       </select>
       <select id="recordSelect" class="select-jump" onchange="jumpToSelectedRecord()"></select>
-      <div class="record-counter" id="recordCounter">Record 0 of 0</div>
     </div>
 
     <div style="display: flex; gap: 8px; align-items: center;">
@@ -1143,8 +1143,8 @@
         }
       }
 
-      // Initialize activeIndices
-      filterRecordsByTour();
+      // Initialize filtered/activeIndices from URL parameters (category, tour, search, sort)
+      applyUrlFiltersAndSort();
 
       // Step 4: Load target record by URL parameter `id` (or default to the first record index)
       const targetId = urlParams.get('id');
@@ -1156,8 +1156,9 @@
         if (idx !== -1) {
           initialIndex = idx;
           if (!activeIndices.includes(idx)) {
-            if (tourSelect) tourSelect.value = '';
-            filterRecordsByTour('');
+            activeIndices.unshift(idx);
+            filteredIndices = activeIndices;
+            populateRecordSelect();
           }
         }
       } else if (targetIndex !== null && !isNaN(parseInt(targetIndex, 10))) {
@@ -1165,8 +1166,9 @@
         if (pIdx >= 0 && pIdx < fullCsvData.length) {
           initialIndex = pIdx;
           if (!activeIndices.includes(pIdx)) {
-            if (tourSelect) tourSelect.value = '';
-            filterRecordsByTour('');
+            activeIndices.unshift(pIdx);
+            filteredIndices = activeIndices;
+            populateRecordSelect();
           }
         }
       }
@@ -1351,39 +1353,108 @@
     populateDatalists(dataset || fullCsvData);
   }
 
-  function filterRecordsByTour(targetTour) {
+  function applyUrlFiltersAndSort() {
     saveCurrentFormToMemory();
+    const urlParams = new URLSearchParams(window.location.search);
+    const catParam = (urlParams.get('category') || urlParams.get('cat') || '').trim().toLowerCase();
+    
     const tourSelect = document.getElementById('tourFilterSelect');
-    if (targetTour !== undefined && tourSelect) {
-      tourSelect.value = targetTour;
+    const selectedTour = tourSelect ? tourSelect.value.trim() : (urlParams.get('tour') || urlParams.get('tour_name') || '').trim();
+    if (tourSelect && selectedTour && tourSelect.value !== selectedTour) {
+      tourSelect.value = selectedTour;
     }
-    const selectedTour = tourSelect ? tourSelect.value.trim() : '';
 
-    if (!selectedTour) {
-      activeIndices = fullCsvData.map((_, i) => i);
-    } else {
-      const lower = selectedTour.toLowerCase();
-      activeIndices = [];
-      fullCsvData.forEach((row, i) => {
-        if (!row) return;
+    const searchParam = (urlParams.get('search') || urlParams.get('q') || '').trim().toLowerCase();
+    const sortParam = (urlParams.get('sort') || '').trim().toLowerCase();
+
+    activeIndices = [];
+    fullCsvData.forEach((row, i) => {
+      if (!row) return;
+
+      // 1. Strict Category Parameter Handling
+      if (catParam && catParam !== 'all') {
+        const rowCat = (row.KATEGORIE || row.kategorie || row.Category || row.category || '').trim().toLowerCase();
+        if (catParam === 'videos') {
+          const hasVideo = !!(row.YOUTUBE_URL || row.youtube_url);
+          if (!hasVideo && rowCat !== 'videos') return;
+        } else if (rowCat !== catParam) {
+          return;
+        }
+      }
+
+      // 2. Tour filter
+      if (selectedTour) {
+        const lowerTour = selectedTour.toLowerCase();
         const tourName = (row.TOUR_NAME || row.tour_name || row.Tour || '').trim().toLowerCase();
         const tourId = (row.TOUR_ID || row.tour_id || '').trim().toLowerCase();
-        if (tourName === lower || tourId === lower) {
-          activeIndices.push(i);
+        if (tourName !== lowerTour && tourId !== lowerTour) {
+          return;
         }
+      }
+
+      // 3. Search query filter
+      if (searchParam) {
+        const combinedText = [
+          row.ID_MEMORABILIA, row.DATUM, row.MESTO, row.STAT, row.VENUE,
+          row.TOUR_NAME, row.TOUR_ID, row.KATEGORIE, row.CONTRIBUTOR,
+          row.LINEUP, row.SETLIST
+        ].filter(Boolean).join(' ').toLowerCase();
+        if (!combinedText.includes(searchParam)) {
+          return;
+        }
+      }
+
+      activeIndices.push(i);
+    });
+
+    // 4. Sort application
+    if (sortParam === 'oldest') {
+      activeIndices.sort((a, b) => (fullCsvData[a]?.DATUM || '').localeCompare(fullCsvData[b]?.DATUM || ''));
+    } else if (sortParam === 'newest') {
+      activeIndices.sort((a, b) => (fullCsvData[b]?.DATUM || '').localeCompare(fullCsvData[a]?.DATUM || ''));
+    } else if (sortParam === 'missing_first') {
+      activeIndices.sort((a, b) => {
+        const aHas = (fullCsvData[a]?.SOUBOR_SKEN && String(fullCsvData[a].SOUBOR_SKEN).trim()) ? 1 : 0;
+        const bHas = (fullCsvData[b]?.SOUBOR_SKEN && String(fullCsvData[b].SOUBOR_SKEN).trim()) ? 1 : 0;
+        return aHas - bHas;
       });
     }
 
+    filteredIndices = activeIndices;
     populateRecordSelect();
+    return activeIndices;
+  }
+
+  function filterRecordsByTour(targetTour) {
+    if (targetTour !== undefined) {
+      const tourSelect = document.getElementById('tourFilterSelect');
+      if (tourSelect) tourSelect.value = targetTour;
+    }
+    applyUrlFiltersAndSort();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const catParam = (urlParams.get('category') || urlParams.get('cat') || '').trim();
+    const catDisplay = catParam && catParam.toLowerCase() !== 'all' ? (catParam.charAt(0).toUpperCase() + catParam.slice(1)) : '';
+    const tourSelect = document.getElementById('tourFilterSelect');
+    const selectedTour = tourSelect ? tourSelect.value.trim() : '';
+
+    let filterLabel = '';
+    if (catDisplay && selectedTour) {
+      filterLabel = `${catDisplay} • Tour: ${selectedTour}`;
+    } else if (catDisplay) {
+      filterLabel = catDisplay;
+    } else if (selectedTour) {
+      filterLabel = `Tour: ${selectedTour}`;
+    }
 
     if (activeIndices.length === 0) {
       const recordCounterEl = document.getElementById('recordCounter');
-      if (recordCounterEl) recordCounterEl.textContent = `0 records (Tour: ${selectedTour})`;
+      if (recordCounterEl) recordCounterEl.textContent = `0 records (${filterLabel || 'Filtered'})`;
       const prevBtn = document.getElementById('prevBtn');
       if (prevBtn) prevBtn.disabled = true;
       const nextBtn = document.getElementById('nextBtn');
       if (nextBtn) nextBtn.disabled = true;
-      showStatus(`⚠️ No records found for tour "${selectedTour}".`, 'yellow');
+      showStatus(`⚠️ No records found for ${filterLabel || 'active filter'}.`, 'yellow');
     } else {
       if (activeIndices.includes(currentRecordIndex)) {
         loadRecordByIndex(currentRecordIndex);
@@ -1425,6 +1496,7 @@
     if (!activeIndices || activeIndices.length === 0) {
       activeIndices = fullCsvData.map((_, i) => i);
     }
+    filteredIndices = activeIndices;
     activeIndices.forEach(idx => {
       const row = fullCsvData[idx];
       if (!row) return;
@@ -1456,6 +1528,7 @@
     if (!activeIndices || activeIndices.length === 0) {
       activeIndices = fullCsvData.map((_, i) => i);
     }
+    filteredIndices = activeIndices;
 
     let posInActive = activeIndices.indexOf(index);
     if (posInActive === -1) {
@@ -1465,11 +1538,19 @@
     const recordIdTitleEl = document.getElementById('recordIdTitle');
     if (recordIdTitleEl) recordIdTitleEl.textContent = r.ID_MEMORABILIA || `Record #${index + 1}`;
     
+    const urlParams = new URLSearchParams(window.location.search);
+    const catParam = (urlParams.get('category') || urlParams.get('cat') || '').trim();
+    const catDisplay = catParam && catParam.toLowerCase() !== 'all' ? (catParam.charAt(0).toUpperCase() + catParam.slice(1)) : '';
     const tourFilterSelect = document.getElementById('tourFilterSelect');
     const selectedTour = tourFilterSelect ? tourFilterSelect.value.trim() : '';
     const recordCounterEl = document.getElementById('recordCounter');
+
     if (recordCounterEl) {
-      if (selectedTour) {
+      if (catDisplay && selectedTour) {
+        recordCounterEl.textContent = `Record ${posInActive + 1} of ${activeIndices.length} (${catDisplay} • Tour: ${selectedTour})`;
+      } else if (catDisplay) {
+        recordCounterEl.textContent = `Record ${posInActive + 1} of ${activeIndices.length} (${catDisplay})`;
+      } else if (selectedTour) {
         recordCounterEl.textContent = `Record ${posInActive + 1} of ${activeIndices.length} (Tour: ${selectedTour})`;
       } else {
         recordCounterEl.textContent = `Record ${index + 1} of ${fullCsvData.length}`;

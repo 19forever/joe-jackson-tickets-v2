@@ -356,10 +356,35 @@
           ? origGetEditUrlParams.apply(this, arguments) 
           : '';
         const params = new URLSearchParams(queryStr);
+
+        // Include active category in editor query string
+        if (typeof currentCategory !== 'undefined' && currentCategory && currentCategory !== 'ALL') {
+          params.set('category', currentCategory.toLowerCase());
+        }
+
+        // Include active tour filter in editor query string
         const curTour = document.getElementById('tourFilter')?.value?.trim();
         if (curTour) {
           params.set('tour', curTour);
         }
+
+        // Include search query in editor query string
+        const curSearch = document.getElementById('searchInput')?.value?.trim();
+        if (curSearch) {
+          params.set('search', curSearch);
+        }
+
+        // Include sort in editor query string
+        const curSort = document.getElementById('sortFilter')?.value?.trim();
+        if (curSort) {
+          params.set('sort', curSort);
+        }
+
+        // Include specific item ID if editing a card
+        if (itemId) {
+          params.set('id', itemId);
+        }
+
         return params.toString();
       };
 
