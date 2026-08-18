@@ -1,7 +1,11 @@
-# Joe Jackson Ticket Museum - Roadmap & Project Plan
+# 🗺️ Joe Jackson Ticket Museum — Roadmap & Project Plan
+
+**Poslední aktualizace / Last Updated:** 18. srpna 2026
 
 ## Overview
 An interactive digital museum and archive dedicated to Joe Jackson's live concert tour history (1978–2026), ticket stubs, venue metadata, setlists, and memorabilia.
+
+---
 
 ## Completed Features
 
@@ -32,12 +36,18 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Automatic fallback to standard date sorting for non-authenticated visitors
 
 ### Analytics & Mapping (`stats.html`)
-- [x] **Interactive World Tour Map**
+- [x] **Interactive World Tour Map & Dynamic Tour Routes**
   - Geographical concert mapping powered by Leaflet.js with tour route visualizations
-- [x] **Museum Analytics**
-  - Interactive charts via Chart.js (Timeline, Categories, Top Cities, Venues, Songs, Donors)
+  - **Dynamic Tour Extraction:** Automatically parses unique tour titles directly from CSV records (e.g., `2007 * Joe Jackson Trio Tour`) instead of static hardcoded date ranges.
+  - **Exact Tour Polyline Routes:** Sequential Leaflet route polylines filtered strictly by exact `TOUR_NAME`.
+- [x] **Museum Analytics & Clean Setlist Metrics**
+  - Interactive charts via Chart.js (Timeline, Categories, Top Cities, Venues, Songs, Donors).
+  - **Setlist Section Filter:** Automatic exclusion of non-song section headers (e.g. `[Encore 1]`, `[Set 1]`, `[Set 2]`) from song frequency rankings.
 
 ### Admin Editor & API Integration (`edit_ticket_new.html`)
+- [x] **Official Setlist.fm REST API & Cloudflare Worker Integration**
+  - Dedicated Cloudflare Worker proxy (`https://jj-setlist-proxy.marek-kraus.workers.dev`) bypassing browser CORS preflight/OPTIONS restrictions.
+  - Direct REST JSON processing with official API key (`x-api-key`), extracting clean song lists across multi-set and encore structures.
 - [x] **Dynamic Tour Manager & Auto-Slug Generation**
   - Live `<datalist>` selector populated with unique existing tours from dataset
   - "➕ New Tour" quick action for seamless addition of new tour titles
@@ -59,11 +69,10 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Direct integration with GitHub REST API (`/scans/` contents endpoint)
   - Differential analysis detecting uploaded image files (`.jpg`, `.png`, `.webp`) unlinked to any CSV record
   - Interactive cards featuring hover-zoom thumbnail popovers, full filename displays (`word-break: break-word`), and 1-click "➕ Create Record" pre-filling
+  - **Batch Memory Editing:** Capability to create multiple records locally in memory (`fullCsvData`) before sending a single bulk commit to GitHub.
 - [x] **Strict Multi-Criteria Duplicate Detection**
   - Real-time duplicate prevention validating combination of Date (`DATUM`), City (`MESTO`), AND Category (`KATEGORIE`)
   - Dynamic re-evaluation on category selection change
-- [x] **Setlist.fm API Integration**
-  - Custom dedicated Cloudflare Worker proxy (`jj-setlist-proxy`) bypassing browser CORS preflight restrictions
 - [x] **High-Definition Inspection**
   - Full-resolution zoomable image modal powered by Viewer.js
 
@@ -75,7 +84,11 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
 - [x] **Canvas Watermarking Utility**
   - Aspect-ratio-preserving canvas watermarker with semi-transparent overlay ("JJ Memorabilia Museum")
 
-### Codebase Health & Architecture
+### Codebase Health & Dataset Integrity
+- [x] **Full CSV Dataset Audit (`joe_jackson_tickets_cleaned.csv`)**
+  - Cleaned and validated 664+ concert and memorabilia records.
+  - Standardized date formatting across all entries (resolved non-standard dates like `1998-3-30` -> `1998-03-30`).
+  - Confirmed 100% quotation balance and row column count integrity (18 columns).
 - [x] **Data Model Expansion for Tour-Wide Memorabilia**
   - Standardized integration of `TOUR_ID` and `TOUR_NAME` attributes across dataset, app logic, admin editor, and contribution pipeline
 - [x] **Robust CSV Data Engine & UTF-8 BOM Handling**
@@ -84,8 +97,20 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
 - [x] **Refactored Codebase & Storage Safety**
   - Isolated `localStorage`/`sessionStorage` wrappers with try-catch fallbacks for private browsing compatibility
   - Cleaned up obsolete CSS selectors, dead code, and duplicated utility functions
-- [x] **Normalized Dataset (`joe_jackson_tickets_cleaned.csv`)**
-  - Standardized concert metadata spanning 1978–2026
+
+---
+
+## 🆕 New Features & Ideas (In Backlog)
+
+### Setlist.fm Cross-Reference & Date Verification Badges
+- [ ] **Verification Badges in Museum View (`index.html`)**:
+  - 🟢 **Setlist Confirmed**: Record has `SETLIST_URL` and `POCET_SKLADEB > 0`.
+  - 🟡 **Date Confirmed**: Record has a valid `SETLIST_URL` but `POCET_SKLADEB = 0` (serves as an external cross-reference confirming the show date/venue).
+  - ⚪ **Unverified Date**: Record lacks a `SETLIST_URL` link.
+- [ ] **Passive Community Nudge**:
+  - Display a subtle link on item detail cards with 0 songs: *"Know this setlist? Add it on Setlist.fm or contribute a program scan."*
+- [ ] **Verification Filter**:
+  - Add quick filter checkboxes in Museum View and Admin Editor to easily isolate unverified shows or shows with missing setlist songs.
 
 ---
 
@@ -115,5 +140,4 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
 - [ ] **Fan Submission Portal with Cloud Storage**
   - Direct image upload pipeline using S3 / Cloudflare R2
 - [-] **Streaming Platform Integration**
-  - Direct Spotify / Apple Music setlist playback links
-      - tested, but failed to generate custom playlists
+  - Direct Spotify / Apple Music setlist playback links (tested, but failed to generate custom playlists)
