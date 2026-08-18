@@ -92,6 +92,10 @@
         <button class="search-clear-btn" id="searchClearBtn" title="Clear search">✕</button>
       </div>
 
+      <select id="tourFilter" title="Filter by Concert Tour">
+        <option value="">All Tours</option>
+      </select>
+
       <button class="surprise-btn" id="reshuffleBtn" title="Reshuffle all records">🎲 Reshuffle</button>
       <button class="surprise-btn" id="surpriseBtn" title="Open a random memorabilia record">✨ Surprise Me!</button>
 
@@ -144,6 +148,207 @@
   <!-- Main Application Script -->
   <script src="storage-service.js"></script>
   <script src="app.js"></script>
+
+  <!-- Tour Filter Integration Script -->
+  <script>
+    (function() {
+      function populateTourFilter() {
+        const tourSelect = document.getElementById('tourFilter');
+        if (!tourSelect) return;
+
+        const currentSelected = tourSelect.value;
+        const toursSet = new Set();
+
+        if (typeof allTickets !== 'undefined' && Array.isArray(allTickets)) {
+          allTickets.forEach(t => {
+            if (!t) return;
+            const tourName = t.TOUR_NAME || t.tour_name || '';
+            const valid = (typeof isValidValue === 'function') ? isValidValue(tourName) : (tourName && tourName.trim().length > 0);
+            if (valid) {
+              toursSet.add(tourName.trim());
+            }
+          });
+        }
+
+        tourSelect.innerHTML = '<option value="">All Tours</option>';
+        const sortedTours = Array.from(toursSet).sort((a, b) => a.localeCompare(b));
+        sortedTours.forEach(tour => {
+          const opt = document.createElement('option');
+          opt.value = tour;
+          opt.textContent = tour;
+          tourSelect.appendChild(opt);
+        });
+
+        // Restore selection from URL or Session
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlTour = urlParams.get('tour') || urlParams.get('tour_name') || urlParams.get('tour_id');
+        const savedTour = (typeof safeGetSession === 'function') ? safeGetSession('jj_museum_tour') : sessionStorage.getItem('jj_museum_tour');
+        const targetTour = urlTour || savedTour || currentSelected;
+
+        if (targetTour) {
+          const targetLower = targetTour.trim().toLowerCase();
+          for (let i = 0; i < tourSelect.options.length; i++) {
+            const opt = tourSelect.options[i];
+            if (opt.value.toLowerCase() === targetLower) {
+              tourSelect.selectedIndex = i;
+              break;
+            }
+          }
+        }
+      }
+
+      // Hook into populateFilters
+      const origPopulateFilters = window.populateFilters;
+      window.populateFilters = function() {
+        if (typeof origPopulateFilters === 'function') {
+          origPopulateFilters.apply(this, arguments);
+        }
+        populateTourFilter();
+      };
+
+      // Hook into updateUrlParams
+      const origUpdateUrlParams = window.updateUrlParams;
+      window.updateUrlParams = function() {
+        if (typeof origUpdateUrlParams === 'function') {
+          origUpdateUrlParams.apply(this, arguments);
+        }
+        if (typeof window === 'undefined' || !window.history || !window.history.replaceState) return;
+        const params = new URLSearchParams(window.location.search);
+        const tourVal = document.getElementById('tourFilter')?.value?.trim();
+        if (tourVal) {
+          params.set('tour', tourVal);
+          if (typeof safeSetSession === 'function') safeSetSession('jj_museum_tour', tourVal);
+          else sessionStorage.setItem('jj_museum_tour', tourVal);
+        } else {
+          params.delete('tour');
+          params.delete('tour_name');
+          params.delete('tour_id');
+          if (typeof safeRemoveSession === 'function') safeRemoveSession('jj_museum_tour');
+          else sessionStorage.removeItem('jj_museum_tour');
+        }
+        const newQuery = params.toString();
+        const newUrl = newQuery ? `${window.location.pathname}?${newQuery}` : window.location.pathname;
+        window.history.replaceState(null, '', newUrl);
+
+        const adminEditorLink = document.getElementById('adminEditorLink');
+        if (adminEditorLink && typeof getEditUrlParams === 'function') {
+          const editQuery = getEditUrlParams();
+          adminEditorLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
+        }
+      };
+
+      // Hook into getEditUrlParams
+      const origGetEditUrlParams = window.getEditUrlParams;
+      window.getEditUrlParams = function(itemId) {
+        let queryStr = (typeof origGetEditUrlParams === 'function') 
+          ? origGetEditUrlParams.apply(this, arguments) 
+          : '';
+        const params = new URLSearchParams(queryStr);
+        const curTour = document.getElementById('tourFilter')?.value?.trim();
+        if (curTour) {
+          params.set('tour', curTour);
+        }
+        return params.toString();
+      };
+
+      // Replace / Hook filterData
+      window.filterData = function() {
+        const rawQuery = document.getElementById('searchInput')?.value || '';
+        const query = rawQuery.toLowerCase().trim();
+        const selectedYear = document.getElementById('yearFilter')?.value || '';
+        const selectedCity = document.getElementById('cityFilter')?.value || '';
+        const selectedTour = document.getElementById('tourFilter')?.value || '';
+        const sort = document.getElementById('sortFilter')?.value || 'random';
+
+        const dateCandidates = (typeof parseDateCandidates === 'function') ? parseDateCandidates(rawQuery) : [];
+
+        const matchesBase = allTickets.filter(t => {
+          const locationText = (typeof formatLocationText === 'function') ? formatLocationText(t).toLowerCase() : '';
+          const itemYear = (t.DATUM && t.DATUM.length >= 4) ? t.DATUM.substring(0, 4) : '';
+          const rawDate = (t.DATUM || '').toLowerCase();
+          const formattedDate = (typeof formatDisplayDate === 'function') ? formatDisplayDate(t.DATUM).toLowerCase() : '';
+          const venue = (t.VENUE || t.MISTO_KONANI || '').toLowerCase();
+          const city = (t.MESTO || '').toLowerCase();
+          const country = (t.STAT || '').toLowerCase();
+          const contributor = (t.PRISPEVATEL || t.CONTRIBUTOR || '').toLowerCase();
+          const category = (t.KATEGORIE || '').toLowerCase();
+          const supportingAct = (t.SUPPORTING_ACT || '').toLowerCase();
+          const lineup = (t.LINEUP || '').toLowerCase();
+          const setlist = (t.SETLIST || '').toLowerCase();
+          const tourName = (t.TOUR_NAME || '').toLowerCase();
+          const tourId = (t.TOUR_ID || '').toLowerCase();
+
+          const dateMatch = dateCandidates.length > 0 && (typeof matchDateAgainstCandidates === 'function') && matchDateAgainstCandidates(t.DATUM, dateCandidates);
+
+          const textMatch = !query ||
+            locationText.includes(query) ||
+            venue.includes(query) ||
+            city.includes(query) ||
+            country.includes(query) ||
+            contributor.includes(query) ||
+            category.includes(query) ||
+            rawDate.includes(query) ||
+            formattedDate.includes(query) ||
+            supportingAct.includes(query) ||
+            lineup.includes(query) ||
+            setlist.includes(query) ||
+            tourName.includes(query) ||
+            tourId.includes(query);
+
+          const qMatch = !query || dateMatch || textMatch;
+          const yMatch = !selectedYear || String(itemYear) === String(selectedYear);
+          const cMatch = !selectedCity || city === selectedCity.toLowerCase();
+          const tMatch = !selectedTour || tourName === selectedTour.toLowerCase() || tourId === selectedTour.toLowerCase();
+
+          return qMatch && yMatch && cMatch && tMatch;
+        });
+
+        if (typeof renderCategoryTabs === 'function') renderCategoryTabs(matchesBase);
+
+        filteredTickets = matchesBase.filter(t => {
+          if (currentCategory === 'ALL') return true;
+          if (currentCategory === 'Videos') return (typeof isValidValue === 'function') ? isValidValue(t.YOUTUBE_URL) : !!t.YOUTUBE_URL;
+          return getTicketCategory(t).toLowerCase() === currentCategory.toLowerCase();
+        });
+
+        if (sort === 'oldest') {
+          filteredTickets.sort((a, b) => (a.DATUM || '').localeCompare(b.DATUM || ''));
+        } else if (sort === 'newest') {
+          filteredTickets.sort((a, b) => (b.DATUM || '').localeCompare(a.DATUM || ''));
+        } else if (sort === 'missing_first') {
+          filteredTickets.sort((a, b) => {
+            const aHas = (typeof isValidValue === 'function') ? (isValidValue(a.SOUBOR_SKEN) ? 1 : 0) : (a.SOUBOR_SKEN ? 1 : 0);
+            const bHas = (typeof isValidValue === 'function') ? (isValidValue(b.SOUBOR_SKEN) ? 1 : 0) : (b.SOUBOR_SKEN ? 1 : 0);
+            return aHas - bHas;
+          });
+        } else if (sort === 'missing_only') {
+          filteredTickets = filteredTickets.filter(t => (typeof isValidValue === 'function') ? !isValidValue(t.SOUBOR_SKEN) : !t.SOUBOR_SKEN);
+        } else if (sort === 'scans_only') {
+          filteredTickets = filteredTickets.filter(t => (typeof isValidValue === 'function') ? isValidValue(t.SOUBOR_SKEN) : !!t.SOUBOR_SKEN);
+        }
+
+        currentPage = 1;
+        if (typeof renderPaginated === 'function') renderPaginated();
+
+        const adminEditorLink = document.getElementById('adminEditorLink');
+        if (adminEditorLink && typeof getEditUrlParams === 'function') {
+          const editQuery = getEditUrlParams();
+          adminEditorLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
+        }
+      };
+
+      // Attach event listener to tourFilter
+      document.addEventListener('DOMContentLoaded', () => {
+        const tourFilter = document.getElementById('tourFilter');
+        if (tourFilter) {
+          tourFilter.addEventListener('change', () => {
+            if (typeof updateUrlParams === 'function') updateUrlParams();
+            if (typeof filterData === 'function') filterData();
+          });
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
 
