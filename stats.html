@@ -309,6 +309,14 @@
       </div>
     </div>
 
+    <!-- Top Tours by Memorabilia Count -->
+    <div class="chart-box">
+      <h3>🏆 Top 10 Tours by Items</h3>
+      <div class="chart-wrapper">
+        <canvas id="chartTours"></canvas>
+      </div>
+    </div>
+
     <!-- Category Breakdown (Donut Chart) -->
     <div class="chart-box">
       <h3>🪪 Items by Category</h3>
@@ -373,38 +381,24 @@
     Chart.defaults.color = '#9ca3af';
     Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
 
-    const TOURS = [
-      { id: 'ALL', name: '🌍 All Tours & Concerts (1978–2026)', start: '1978-01-01', end: '2026-12-31' },
-      { id: 'JJB', name: '🎸 Look Sharp! / I\'m The Man Tour (1978–1980)', start: '1978-01-01', end: '1980-12-31' },
-      { id: 'JJ', name: '🎷 Jumpin\' Jive Tour (1981)', start: '1981-01-01', end: '1981-12-31' },
-      { id: 'ND', name: '🌃 Night and Day Tour (1982–1983)', start: '1982-01-01', end: '1983-12-31' },
-      { id: 'BS', name: '🎺 Body and Soul Tour (1984–1985)', start: '1984-01-01', end: '1985-12-31' },
-      { id: 'BW', name: '🌎 Big World Tour (1986–1987)', start: '1986-01-01', end: '1987-12-31' },
-      { id: 'BG', name: '🔥 Blaze of Glory Tour (1988–1989)', start: '1988-01-01', end: '1989-12-31' },
-      { id: 'LL', name: '🎭 Laughter & Lust Tour (1990–1992)', start: '1990-01-01', end: '1992-12-31' },
-      { id: 'HH', name: '🎻 Heaven & Hell / Night Music (1993–1999)', start: '1993-01-01', end: '1999-12-31' },
-      { id: 'ND2', name: '🗽 Night and Day II Tour (2000–2001)', start: '2000-01-01', end: '2001-12-31' },
-      { id: 'V4', name: '💿 Volume 4 Reunion Tour (2002–2003)', start: '2002-01-01', end: '2003-12-31' },
-      { id: 'TR', name: '🎻 Joe Jackson & Todd Rundgren feat. Ethel (2004–2005)', start: '2004-10-01', end: '2005-05-31' },
-      { id: 'TRIO', name: '🎹 Rain & Trio Tours (2004–2011)', start: '2004-01-01', end: '2011-12-31' },
-      { id: 'DUKE', name: '👑 The Duke Tour (2012–2014)', start: '2012-01-01', end: '2014-12-31' },
-      { id: 'FF', name: '⏩ Fast Forward Tour (2015–2018)', start: '2015-01-01', end: '2018-12-31' },
-      { id: '4D', name: '✨ Four Decade / Sing You Sinners (2019–2023)', start: '2019-01-01', end: '2023-12-31' },
-      { id: 'WRT', name: '🎩 What A Racket / Two Rounds (2024–2026)', start: '2024-01-01', end: '2026-12-31' }
-    ];
-
     const CITY_COORDS = {
       "London": [51.5074, -0.1278], "New York": [40.7128, -74.0060], "Paris": [48.8566, 2.3522],
       "Amsterdam": [52.3676, 4.9041], "Hamburg": [53.5511, 9.9937], "Berlin": [52.5200, 13.4050],
       "Köln": [50.9375, 6.9603], "Cologne": [50.9375, 6.9603], "Brussels": [50.8503, 4.3517],
       "Rotterdam": [51.9244, 4.4777], "Groningen": [53.2194, 6.5665], "Eindhoven": [51.4416, 5.4697],
+      "Utrecht": [52.0907, 5.1214], "Den Haag": [52.0705, 4.3007], "The Hague": [52.0705, 4.3007],
       "Mainz": [50.0000, 8.2711], "München": [48.1351, 11.5820], "Munich": [48.1351, 11.5820],
+      "Frankfurt": [50.1109, 8.6821], "Stuttgart": [48.7758, 9.1829], "Düsseldorf": [51.2277, 6.7735],
       "Boston": [42.3601, -71.0589], "Chicago": [41.8781, -87.6298], "Los Angeles": [34.0522, -118.2437],
-      "Washington": [38.9072, -77.0369], "Toronto": [43.6532, -79.3832], "Vancouver": [49.2827, -123.1207],
-      "Sydney": [-33.8688, 151.2093], "Melbourne": [-37.8136, 144.9631], "Tokyo": [35.6762, 139.6503],
+      "Washington": [38.9072, -77.0369], "Philadelphia": [39.9526, -75.1652], "San Francisco": [37.7749, -122.4194],
+      "Seattle": [47.6062, -122.3321], "Portland": [45.5152, -122.6784], "Atlanta": [33.7490, -84.3880],
+      "Toronto": [43.6532, -79.3832], "Montreal": [45.5017, -73.5673], "Vancouver": [49.2827, -123.1207],
+      "Sydney": [-33.8688, 151.2093], "Melbourne": [-37.8136, 144.9631], "Brisbane": [-27.4698, 153.0251],
+      "Tokyo": [35.6762, 139.6503], "Osaka": [34.6937, 135.5023],
       "Rome": [41.9028, 12.4964], "Milan": [45.4642, 9.1900], "Vienna": [48.2082, 16.3738],
       "Zurich": [47.3769, 8.5417], "Basel": [47.5596, 7.5886], "Dublin": [53.3498, -6.2603],
-      "Prague": [50.0755, 14.4378], "Asbury Park": [40.2204, -74.0121], "San Francisco": [37.7749, -122.4194]
+      "Prague": [50.0755, 14.4378], "Asbury Park": [40.2204, -74.0121], "Detroit": [42.3314, -83.0458],
+      "Minneapolis": [44.9778, -93.2650], "Denver": [39.7392, -104.9903], "Austin": [30.2672, -97.7431]
     };
 
     let globalRawData = [];
@@ -413,8 +407,6 @@
     let mapPolyline = null;
 
     window.addEventListener('DOMContentLoaded', () => {
-      populateTourDropdown();
-
       Papa.parse(CSV_FILENAME, {
         download: true,
         header: true,
@@ -426,20 +418,34 @@
       });
     });
 
-    function populateTourDropdown() {
-      const select = document.getElementById('tourSelect');
-      TOURS.forEach(tour => {
-        const opt = document.createElement('option');
-        opt.value = tour.id;
-        opt.textContent = tour.name;
-        select.appendChild(opt);
-      });
-    }
-
     function isValid(val) {
       if (!val) return false;
       const clean = String(val).trim().toLowerCase();
       return clean !== '' && clean !== 'není k dispozici' && clean !== 'n/a' && clean !== 'undefined' && clean !== 'null';
+    }
+
+    function populateTourDropdown(toursMap) {
+      const select = document.getElementById('tourSelect');
+      if (!select) return;
+      select.innerHTML = '';
+
+      const allOpt = document.createElement('option');
+      allOpt.value = 'ALL';
+      allOpt.textContent = '🌍 All Tours & Concerts';
+      select.appendChild(allOpt);
+
+      const nonTourOpt = document.createElement('option');
+      nonTourOpt.value = 'NON_TOUR';
+      nonTourOpt.textContent = '🎸 Ad-hoc / Non-tour Shows';
+      select.appendChild(nonTourOpt);
+
+      const sortedTours = Object.keys(toursMap).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      sortedTours.forEach(tourName => {
+        const opt = document.createElement('option');
+        opt.value = tourName;
+        opt.textContent = `${tourName} (${toursMap[tourName]})`;
+        select.appendChild(opt);
+      });
     }
 
     function processAndRenderStats(data) {
@@ -451,6 +457,7 @@
       const contributorsMap = {};
       const songsMap = {};
       const musiciansMap = {};
+      const toursMap = {};
       
       let totalRecords = data.length;
       let ticketCount = 0;
@@ -467,6 +474,11 @@
         if (yearMatch) {
           const year = yearMatch[0];
           yearsMap[year] = (yearsMap[year] || 0) + 1;
+        }
+
+        if (isValid(item.TOUR_NAME)) {
+          const tourName = item.TOUR_NAME.trim();
+          toursMap[tourName] = (toursMap[tourName] || 0) + 1;
         }
 
         if (isValid(item.MESTO)) {
@@ -516,10 +528,13 @@
       document.getElementById('statCountries').textContent = Object.keys(countriesMap).length;
       document.getElementById('statContributors').textContent = Object.keys(contributorsMap).length;
 
+      populateTourDropdown(toursMap);
+
       initMap();
       updateMapTour();
 
       renderYearBarChart(yearsMap);
+      renderBarChart('chartTours', toursMap, 10, '#38bdf8');
       renderDoughnutChart('chartCategories', categoriesMap);
       renderBarChart('chartContributors', contributorsMap, 10, '#c084fc');
       renderBarChart('chartSongs', songsMap, 10, '#facc15');
@@ -545,15 +560,20 @@
     function updateMapTour() {
       if (!leafletMap) return;
 
-      const selectedTourId = document.getElementById('tourSelect').value;
-      const tour = TOURS.find(t => t.id === selectedTourId) || TOURS[0];
+      const selectedTour = document.getElementById('tourSelect')?.value || 'ALL';
 
       mapMarkersGroup.clearLayers();
-      if (mapPolyline) { leafletMap.removeLayer(mapPolyline); mapPolyline = null; }
+      if (mapPolyline) {
+        leafletMap.removeLayer(mapPolyline);
+        mapPolyline = null;
+      }
 
       const tourShows = globalRawData.filter(item => {
-        const datum = item.DATUM || '';
-        return isValid(item.MESTO) && datum >= tour.start && datum <= tour.end;
+        if (!isValid(item.MESTO)) return false;
+        const itemTour = (item.TOUR_NAME || '').trim();
+        if (selectedTour === 'ALL') return true;
+        if (selectedTour === 'NON_TOUR') return !itemTour;
+        return itemTour.toLowerCase() === selectedTour.toLowerCase();
       }).sort((a, b) => (a.DATUM || '').localeCompare(b.DATUM || ''));
 
       const routeCoords = [];
@@ -563,7 +583,7 @@
         const city = show.MESTO.trim();
         let coords = CITY_COORDS[city];
         if (!coords) {
-          const matchKey = Object.keys(CITY_COORDS).find(k => city.toLowerCase().includes(k.toLowerCase()));
+          const matchKey = Object.keys(CITY_COORDS).find(k => city.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(city.toLowerCase()));
           if (matchKey) coords = CITY_COORDS[matchKey];
         }
 
@@ -571,34 +591,37 @@
           routeCoords.push(coords);
           bounds.push(coords);
 
+          const isSingleTour = selectedTour !== 'ALL';
           const circle = L.circleMarker(coords, {
             color: '#38bdf8',
             fillColor: '#facc15',
             fillOpacity: 0.85,
-            radius: selectedTourId === 'ALL' ? 6 : 9
+            radius: isSingleTour ? 8 : 6
           });
 
+          const tourBadge = show.TOUR_NAME ? `<br><span style="color:#38bdf8; font-size:0.8rem;">🎪 ${show.TOUR_NAME}</span>` : '';
           circle.bindPopup(`
-            <strong style="color:#facc15; font-size:0.95rem;">#${idx + 1} ${city}</strong><br>
+            <strong style="color:#facc15; font-size:0.95rem;">${isSingleTour ? '#' + (idx + 1) + ' ' : ''}${city}</strong><br>
             <span style="color:#fff;">📅 ${show.DATUM || 'N/A'}</span><br>
             <span style="color:#9ca3af; font-size:0.8rem;">🎭 ${show.VENUE || 'N/A'}</span>
+            ${tourBadge}
           `);
 
           mapMarkersGroup.addLayer(circle);
         }
       });
 
-      if (selectedTourId !== 'ALL' && routeCoords.length > 1) {
+      if (selectedTour !== 'ALL' && selectedTour !== 'NON_TOUR' && routeCoords.length > 1) {
         mapPolyline = L.polyline(routeCoords, {
           color: '#38bdf8',
-          weight: 2,
-          opacity: 0.6,
-          dashArray: '5, 8'
+          weight: 3,
+          opacity: 0.75,
+          dashArray: '6, 8'
         }).addTo(leafletMap);
       }
 
       if (bounds.length > 0) {
-        leafletMap.fitBounds(bounds, { padding: [30, 30] });
+        leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
       } else {
         leafletMap.setView([30.0, 10.0], 2);
       }
