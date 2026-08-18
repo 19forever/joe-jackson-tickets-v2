@@ -42,12 +42,21 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
 ---
 
 ## ⏳ Pending Client Approval & Pre-Launch Tasks
-- [ ] **Client Final Review & Sign-Off**
-  - Local environment testing and final client demonstration
+
+### Launch & SEO Essentials
+- [ ] **Legal & Copyright Footer Integration**
+  - Implement non-commercial archival disclaimer and DMCA takedown contact in website footer.
+- [ ] **Search Engine Indexing & Bot Directives**
+  - Create `robots.txt` (blocking `/edit_ticket_new.html` from search crawlers).
+  - Generate `sitemap.xml` covering main pages (`/`, `/stats.html`, `/ticket_form.html`).
+- [ ] **Social Media Sharing & Asset Audit**
+  - Verify physical existence of `favicon.svg` and `favicon.ico` in repo root.
+  - Create high-resolution `og-image.jpg` (1200×630px) for rich previews on social networks (Facebook, WhatsApp, X).
 - [ ] **Custom Domain Deployment (`joejackson.band`)**
-  - Configure A records and CNAME in DNS for GitHub Pages after client approval
-- [ ] **SEO & Metadata Finalization**
-  - Deploy Open Graph tags, `sitemap.xml`, and `robots.txt`
+  - Add `CNAME` file to GitHub Pages repository.
+  - Configure A/CNAME DNS records with domain registrar.
+- [ ] **Broken Asset Fallback**
+  - Verify graceful UI image placeholder display when `SOUBOR_SKEN` paths fail to load.
 
 ---
 
