@@ -577,11 +577,47 @@ function formatDisplayDate(dateStr) {
   return `${day}${suffix} ${months[monthIdx]} ${year}`;
 }
 
-function getYouTubeEmbedUrl(url) {
+function getMediaEmbedInfo(url) {
   if (!url || typeof url !== 'string') return null;
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}?autoplay=1` : null;
+  const cleanUrl = url.trim();
+  if (!cleanUrl) return null;
+
+  // 1. YouTube
+  const ytRegex = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/i;
+  const ytMatch = cleanUrl.match(ytRegex);
+  if (ytMatch && ytMatch[2].length === 11) {
+    return {
+      type: 'youtube',
+      src: `https://www.youtube.com/embed/${ytMatch[2]}?autoplay=1`
+    };
+  }
+
+  // 2. Archive.org (details -> embed)
+  const archiveRegex = /^(?:https?:\/\/)?(?:www\.)?archive\.org\/(?:details|embed)\/([^/?#]+)/i;
+  const archiveMatch = cleanUrl.match(archiveRegex);
+  if (archiveMatch && archiveMatch[1]) {
+    const itemId = archiveMatch[1];
+    return {
+      type: 'archive',
+      src: `https://archive.org/embed/${itemId}`
+    };
+  }
+
+  // 3. Direct Audio (.mp3, .ogg, .wav)
+  const audioRegex = /\.(mp3|ogg|wav)(\?.*)?$/i;
+  if (audioRegex.test(cleanUrl)) {
+    return {
+      type: 'audio',
+      src: cleanUrl
+    };
+  }
+
+  return null;
+}
+
+function getYouTubeEmbedUrl(url) {
+  const info = getMediaEmbedInfo(url);
+  return (info && (info.type === 'youtube' || info.type === 'archive')) ? info.src : null;
 }
 
 function formatLocationText(t) {
@@ -599,23 +635,29 @@ function formatLocationText(t) {
   return locStr;
 }
 
-// Video Modal Management
+// Video / Media Modal Management
 function openVideoModal(ticketIndex) {
   let t = (typeof ticketIndex === 'number') ? filteredTickets[ticketIndex] : null;
   let rawUrl = t ? t.YOUTUBE_URL : ticketIndex;
 
-  const embedUrl = getYouTubeEmbedUrl(rawUrl);
-  if (!embedUrl) {
-    if (rawUrl) window.open(rawUrl, '_blank');
+  const mediaInfo = getMediaEmbedInfo(rawUrl);
+  if (!mediaInfo) {
+    if (rawUrl && typeof rawUrl === 'string') window.open(rawUrl, '_blank');
     return;
   }
 
   const modal = document.getElementById('videoModal');
-  const iframe = document.getElementById('videoIframe');
+  const frameWrapper = document.querySelector('.jj-video-frame-wrapper');
   const lineupCol = document.getElementById('videoLineupCol');
   const setlistCol = document.getElementById('videoSetlistCol');
 
-  if (!modal || !iframe || !lineupCol || !setlistCol) return;
+  if (!modal || !frameWrapper || !lineupCol || !setlistCol) return;
+
+  // Determine scan image from ticket
+  const rawSken = (t && t.SOUBOR_SKEN && isValidValue(t.SOUBOR_SKEN)) ? t.SOUBOR_SKEN : '';
+  const skenFiles = rawSken.split(',').map(s => s.trim()).filter(Boolean);
+  const firstImgFile = skenFiles[0] || '';
+  const imgSrc = isValidValue(firstImgFile) ? `./scans/${firstImgFile}` : MISSING_TICKET_SVG;
 
   let lineupHTML = `<h4 style="color: var(--accent-blue);">👥 Band Line-up</h4>`;
   if (t && isValidValue(t.LINEUP)) {
@@ -651,15 +693,27 @@ function openVideoModal(ticketIndex) {
   }
   setlistCol.innerHTML = setlistHTML;
 
-  iframe.src = embedUrl;
+  if (mediaInfo.type === 'audio') {
+    frameWrapper.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; padding: 20px; box-sizing: border-box;">
+        <img src="${imgSrc}" alt="Ticket Scan" onerror="this.onerror=null; this.src='${MISSING_TICKET_SVG}';" style="max-height: 320px; object-fit: contain; margin: 0 auto 15px auto; display: block; border-radius: 8px;">
+        <audio controls autoplay src="${mediaInfo.src}" style="width: 100%; max-width: 500px; display: block; margin: 0 auto;"></audio>
+      </div>
+    `;
+  } else {
+    frameWrapper.innerHTML = `<iframe id="videoIframe" src="${mediaInfo.src}" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+  }
+
   modal.classList.add('active');
 }
 
 function closeVideoModal() {
   const modal = document.getElementById('videoModal');
-  const iframe = document.getElementById('videoIframe');
+  const frameWrapper = document.querySelector('.jj-video-frame-wrapper');
   if (modal) modal.classList.remove('active');
-  if (iframe) iframe.src = '';
+  if (frameWrapper) {
+    frameWrapper.innerHTML = '<iframe id="videoIframe" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>';
+  }
 }
 
 function getTicketCategory(t) {
