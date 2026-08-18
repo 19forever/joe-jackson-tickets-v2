@@ -575,6 +575,9 @@
     </div>
     
     <div style="display: flex; gap: 10px; align-items: center;">
+      <select id="tourFilterSelect" class="select-jump" onchange="filterRecordsByTour()" style="max-width: 200px;">
+        <option value="">All Tours (Show All)</option>
+      </select>
       <select id="recordSelect" class="select-jump" onchange="jumpToSelectedRecord()"></select>
       <div class="record-counter" id="recordCounter">Record 0 of 0</div>
     </div>
@@ -761,6 +764,7 @@
   <script>
     const CSV_FILENAME = 'joe_jackson_tickets_cleaned.csv';
     let fullCsvData = [];
+    let activeIndices = [];
     let currentRecordIndex = -1;
     let viewerInstance = null;
 
@@ -866,10 +870,12 @@
       const catParam = urlParams.get('category') || urlParams.get('cat');
       const viewParam = urlParams.get('view') || urlParams.get('layout');
       const sortParam = urlParams.get('sort');
+      const tourParam = document.getElementById('tourFilterSelect')?.value || urlParams.get('tour') || urlParams.get('tour_name');
       if (searchParam) backParams.set('search', searchParam);
       if (catParam) backParams.set('category', catParam);
       if (viewParam) backParams.set('view', viewParam);
       if (sortParam) backParams.set('sort', sortParam);
+      if (tourParam) backParams.set('tour', tourParam);
 
       const targetUrl = backParams.toString() ? `index.html?${backParams.toString()}` : 'index.html';
 
@@ -1097,24 +1103,49 @@
         fullCsvData = data;
       }
 
-      // Step 2: Populate dropdown selector with all loaded records formatted as [YYYY-MM-DD] City (Category)
-      populateRecordSelect();
-
-      // Step 3: Call populateDatalists(fullCsvData) to instantly extract unique TOUR_NAME, CITY, VENUE, and COUNTRY values
+      // Step 2: Call populateDatalists(fullCsvData) to extract unique TOUR_NAME, CITY, VENUE, and COUNTRY values and populate tour dropdown
       populateDatalists(fullCsvData);
 
-      // Step 4: Load target record by URL parameter `id` (or default to the first record index 0)
+      // Step 3: Check URL parameter for tour filter
       const urlParams = new URLSearchParams(window.location.search);
+      const urlTour = urlParams.get('tour') || urlParams.get('tour_name');
+      const tourSelect = document.getElementById('tourFilterSelect');
+      if (urlTour && tourSelect) {
+        const lowerUrlTour = urlTour.trim().toLowerCase();
+        for (let i = 0; i < tourSelect.options.length; i++) {
+          if (tourSelect.options[i].value.toLowerCase() === lowerUrlTour) {
+            tourSelect.selectedIndex = i;
+            break;
+          }
+        }
+      }
+
+      // Initialize activeIndices
+      filterRecordsByTour();
+
+      // Step 4: Load target record by URL parameter `id` (or default to the first record index)
       const targetId = urlParams.get('id');
       const targetIndex = urlParams.get('index');
 
-      let initialIndex = 0;
+      let initialIndex = activeIndices.length > 0 ? activeIndices[0] : 0;
       if (targetId) {
         const idx = fullCsvData.findIndex(r => (r.ID_MEMORABILIA || '').trim() === targetId.trim());
-        if (idx !== -1) initialIndex = idx;
+        if (idx !== -1) {
+          initialIndex = idx;
+          if (!activeIndices.includes(idx)) {
+            if (tourSelect) tourSelect.value = '';
+            filterRecordsByTour('');
+          }
+        }
       } else if (targetIndex !== null && !isNaN(parseInt(targetIndex, 10))) {
         const pIdx = parseInt(targetIndex, 10);
-        if (pIdx >= 0 && pIdx < fullCsvData.length) initialIndex = pIdx;
+        if (pIdx >= 0 && pIdx < fullCsvData.length) {
+          initialIndex = pIdx;
+          if (!activeIndices.includes(pIdx)) {
+            if (tourSelect) tourSelect.value = '';
+            filterRecordsByTour('');
+          }
+        }
       }
 
       loadRecordByIndex(initialIndex);
@@ -1242,6 +1273,22 @@
       }
     });
 
+    // Clear and populate tourFilterSelect dropdown
+    const tourFilterSelect = document.getElementById('tourFilterSelect');
+    if (tourFilterSelect) {
+      const curSelected = tourFilterSelect.value;
+      tourFilterSelect.innerHTML = '<option value="">All Tours (Show All)</option>';
+      sortedTours.forEach(tour => {
+        const opt = document.createElement('option');
+        opt.value = tour;
+        opt.textContent = tour;
+        tourFilterSelect.appendChild(opt);
+      });
+      if (curSelected) {
+        tourFilterSelect.value = curSelected;
+      }
+    }
+
     // Clear and populate countries
     const countriesDatalist = document.getElementById('countriesList');
     if (countriesDatalist) {
@@ -1281,6 +1328,50 @@
     populateDatalists(dataset || fullCsvData);
   }
 
+  function filterRecordsByTour(targetTour) {
+    saveCurrentFormToMemory();
+    const tourSelect = document.getElementById('tourFilterSelect');
+    if (targetTour !== undefined && tourSelect) {
+      tourSelect.value = targetTour;
+    }
+    const selectedTour = tourSelect ? tourSelect.value.trim() : '';
+
+    if (!selectedTour) {
+      activeIndices = fullCsvData.map((_, i) => i);
+    } else {
+      const lower = selectedTour.toLowerCase();
+      activeIndices = [];
+      fullCsvData.forEach((row, i) => {
+        if (!row) return;
+        const tourName = (row.TOUR_NAME || row.tour_name || row.Tour || '').trim().toLowerCase();
+        const tourId = (row.TOUR_ID || row.tour_id || '').trim().toLowerCase();
+        if (tourName === lower || tourId === lower) {
+          activeIndices.push(i);
+        }
+      });
+    }
+
+    populateRecordSelect();
+
+    if (activeIndices.length === 0) {
+      const recordCounterEl = document.getElementById('recordCounter');
+      if (recordCounterEl) recordCounterEl.textContent = `0 records (Tour: ${selectedTour})`;
+      const prevBtn = document.getElementById('prevBtn');
+      if (prevBtn) prevBtn.disabled = true;
+      const nextBtn = document.getElementById('nextBtn');
+      if (nextBtn) nextBtn.disabled = true;
+      showStatus(`⚠️ No records found for tour "${selectedTour}".`, 'yellow');
+    } else {
+      if (activeIndices.includes(currentRecordIndex)) {
+        loadRecordByIndex(currentRecordIndex);
+      } else {
+        loadRecordByIndex(activeIndices[0]);
+      }
+    }
+
+    updateBackToMuseumLinks();
+  }
+
   function addNewTourPrompt() {
     const input = getField('TOUR_NAME');
     const newName = prompt('Enter New Concert Tour Name (or type CLEAR to reset custom tours):');
@@ -1308,9 +1399,14 @@
     const select = document.getElementById('recordSelect') || document.getElementById('jumpSelect');
     if (!select) return;
     select.innerHTML = '';
-    fullCsvData.forEach((row, i) => {
+    if (!activeIndices || activeIndices.length === 0) {
+      activeIndices = fullCsvData.map((_, i) => i);
+    }
+    activeIndices.forEach(idx => {
+      const row = fullCsvData[idx];
+      if (!row) return;
       const opt = document.createElement('option');
-      opt.value = i;
+      opt.value = idx;
       const dateStr = (row.DATUM && String(row.DATUM).trim()) || 'YYYY-MM-DD';
       const cityStr = (row.MESTO && String(row.MESTO).trim()) || (row.STAT && String(row.STAT).trim()) || (row.TOUR_NAME && String(row.TOUR_NAME).trim()) || 'Unknown City';
       const catStr = (row.KATEGORIE && String(row.KATEGORIE).trim()) || 'tickets';
@@ -1332,20 +1428,38 @@
     if (index < 0) index = 0;
     if (index >= fullCsvData.length) index = fullCsvData.length - 1;
     currentRecordIndex = index;
-    const r = fullCsvData[index];
+    const r = fullCsvData[index] || {};
+
+    if (!activeIndices || activeIndices.length === 0) {
+      activeIndices = fullCsvData.map((_, i) => i);
+    }
+
+    let posInActive = activeIndices.indexOf(index);
+    if (posInActive === -1) {
+      posInActive = 0;
+    }
 
     const recordIdTitleEl = document.getElementById('recordIdTitle');
     if (recordIdTitleEl) recordIdTitleEl.textContent = r.ID_MEMORABILIA || `Record #${index + 1}`;
+    
+    const tourFilterSelect = document.getElementById('tourFilterSelect');
+    const selectedTour = tourFilterSelect ? tourFilterSelect.value.trim() : '';
     const recordCounterEl = document.getElementById('recordCounter');
-    if (recordCounterEl) recordCounterEl.textContent = `Record ${index + 1} of ${fullCsvData.length}`;
+    if (recordCounterEl) {
+      if (selectedTour) {
+        recordCounterEl.textContent = `Record ${posInActive + 1} of ${activeIndices.length} (Tour: ${selectedTour})`;
+      } else {
+        recordCounterEl.textContent = `Record ${index + 1} of ${fullCsvData.length}`;
+      }
+    }
     
     const select = document.getElementById('recordSelect') || document.getElementById('jumpSelect');
     if (select) select.value = index;
 
     const prevBtn = document.getElementById('prevBtn');
-    if (prevBtn) prevBtn.disabled = (index === 0);
+    if (prevBtn) prevBtn.disabled = (posInActive <= 0);
     const nextBtn = document.getElementById('nextBtn');
-    if (nextBtn) nextBtn.disabled = (index === fullCsvData.length - 1);
+    if (nextBtn) nextBtn.disabled = (posInActive >= activeIndices.length - 1);
 
     fields.forEach(f => {
       const el = getField(f);
@@ -1382,13 +1496,19 @@
     updateImageFromInput();
     updateYtPreview();
     checkDataQuality();
+    updateBackToMuseumLinks();
   }
 
   function navigateRecord(delta) {
     saveCurrentFormToMemory();
-    const newIndex = currentRecordIndex + delta;
-    if (newIndex >= 0 && newIndex < fullCsvData.length) {
-      loadRecordByIndex(newIndex);
+    if (!activeIndices || activeIndices.length === 0) {
+      activeIndices = fullCsvData.map((_, i) => i);
+    }
+    let posInActive = activeIndices.indexOf(currentRecordIndex);
+    if (posInActive === -1) posInActive = 0;
+    const newPos = posInActive + delta;
+    if (newPos >= 0 && newPos < activeIndices.length) {
+      loadRecordByIndex(activeIndices[newPos]);
     }
   }
 
@@ -1518,21 +1638,32 @@
     function addNewRecord() {
       saveCurrentFormToMemory();
       const newId = `TICKET_${String(fullCsvData.length + 1).padStart(4, '0')}`;
+      const selectedTour = document.getElementById('tourFilterSelect')?.value || '';
       const newRecord = { ID_MEMORABILIA: newId, KATEGORIE: 'tickets' };
+      if (selectedTour) {
+        newRecord.TOUR_NAME = selectedTour;
+        newRecord.TOUR_ID = 'tour-' + selectedTour.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      }
       fullCsvData.push(newRecord);
-      populateJumpDropdown();
+      if (!activeIndices.includes(fullCsvData.length - 1)) {
+        activeIndices.push(fullCsvData.length - 1);
+      }
+      populateRecordSelect();
       loadRecordByIndex(fullCsvData.length - 1);
       showStatus(`➕ New record ${newId} created. Fill in details and save.`, 'green');
     }
 
     function duplicateCurrentRecord() {
-      if (currentRecordIndex < 0) return;
+      if (currentRecordIndex < 0 || !fullCsvData[currentRecordIndex]) return;
       saveCurrentFormToMemory();
       const current = fullCsvData[currentRecordIndex];
       const newId = `TICKET_${String(fullCsvData.length + 1).padStart(4, '0')}`;
       const clone = { ...current, ID_MEMORABILIA: newId, SOUBOR_SKEN: '' };
       fullCsvData.push(clone);
-      populateJumpDropdown();
+      if (!activeIndices.includes(fullCsvData.length - 1)) {
+        activeIndices.push(fullCsvData.length - 1);
+      }
+      populateRecordSelect();
       loadRecordByIndex(fullCsvData.length - 1);
       showStatus(`📋 Duplicated record as ${newId}.`, 'green');
     }
