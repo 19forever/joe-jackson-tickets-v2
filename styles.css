@@ -944,6 +944,19 @@ header {
   justify-content: center;
 }
 
+.jj-modal-concert-header {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.jj-modal-concert-header h4 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: 0.3px;
+}
+
 .jj-video-frame-wrapper {
   position: relative;
   width: 100%;

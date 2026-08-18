@@ -647,11 +647,40 @@ function openVideoModal(ticketIndex) {
   }
 
   const modal = document.getElementById('videoModal');
+  const videoCenter = document.querySelector('.jj-video-center');
   const frameWrapper = document.querySelector('.jj-video-frame-wrapper');
   const lineupCol = document.getElementById('videoLineupCol');
   const setlistCol = document.getElementById('videoSetlistCol');
 
   if (!modal || !frameWrapper || !lineupCol || !setlistCol) return;
+
+  // Format concert header (Date — City, Country - Venue) without TOUR_NAME
+  const formattedDate = (t && isValidValue(t.DATUM)) ? formatDisplayDate(t.DATUM) : '';
+  let locationParts = [];
+  if (t && isValidValue(t.MESTO)) locationParts.push(t.MESTO);
+  if (t && isValidValue(t.STAT)) locationParts.push(t.STAT);
+  let locStr = locationParts.join(', ');
+  const venue = (t && isValidValue(t.VENUE)) ? t.VENUE : ((t && isValidValue(t.MISTO_KONANI)) ? t.MISTO_KONANI : '');
+  if (venue) {
+    locStr += locStr ? ` - ${venue}` : venue;
+  }
+
+  let headerContent = '';
+  if (formattedDate && locStr) {
+    headerContent = `${formattedDate} — ${locStr}`;
+  } else {
+    headerContent = formattedDate || locStr || 'Live Performance';
+  }
+
+  if (videoCenter) {
+    let headerElem = videoCenter.querySelector('.jj-modal-concert-header');
+    if (!headerElem) {
+      headerElem = document.createElement('div');
+      headerElem.className = 'jj-modal-concert-header';
+      videoCenter.insertBefore(headerElem, frameWrapper);
+    }
+    headerElem.innerHTML = `<h4>${headerContent}</h4>`;
+  }
 
   // Determine scan image from ticket
   const rawSken = (t && t.SOUBOR_SKEN && isValidValue(t.SOUBOR_SKEN)) ? t.SOUBOR_SKEN : '';
@@ -717,9 +746,13 @@ function openVideoModal(ticketIndex) {
 function closeVideoModal() {
   const modal = document.getElementById('videoModal');
   const frameWrapper = document.querySelector('.jj-video-frame-wrapper');
+  const headerElem = document.querySelector('.jj-modal-concert-header');
   if (modal) modal.classList.remove('active');
   if (frameWrapper) {
     frameWrapper.innerHTML = '<iframe id="videoIframe" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>';
+  }
+  if (headerElem) {
+    headerElem.innerHTML = '';
   }
 }
 
