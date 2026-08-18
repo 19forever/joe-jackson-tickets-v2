@@ -576,12 +576,12 @@
         <h3>Primary Metadata</h3>
         <div class="grid-3">
           <div class="form-group">
-            <label for="ID_MEMORABILIA">Record ID</label>
-            <input type="text" id="ID_MEMORABILIA" readonly style="opacity: 0.6; cursor: not-allowed;">
+            <label for="edit_ID_MEMORABILIA">Record ID</label>
+            <input type="text" id="edit_ID_MEMORABILIA" name="ID_MEMORABILIA" readonly style="opacity: 0.6; cursor: not-allowed;">
           </div>
           <div class="form-group">
-            <label for="KATEGORIE">Category (KATEGORIE)</label>
-            <select id="KATEGORIE" onchange="checkDataQuality()">
+            <label for="edit_KATEGORIE">Category (KATEGORIE)</label>
+            <select id="edit_KATEGORIE" name="KATEGORIE" onchange="checkDataQuality()">
               <option value="tickets">Tickets</option>
               <option value="passes">Passes</option>
               <option value="programs">Programs</option>
@@ -592,46 +592,49 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="LINEUP">Lineup / Band</label>
-            <input type="text" id="LINEUP" placeholder="e.g. Joe Jackson (vocals, piano)...">
+            <label for="edit_LINEUP">Lineup / Band</label>
+            <input type="text" id="edit_LINEUP" name="LINEUP" placeholder="e.g. Joe Jackson (vocals, piano)...">
           </div>
         </div>
 
         <div class="grid-2">
           <div class="form-group">
-            <label for="TOUR_NAME">Tour Name (TOUR_NAME)</label>
+            <label for="edit_TOUR_NAME">Tour Name (TOUR_NAME)</label>
             <div style="display: flex; gap: 8px; align-items: center;">
-              <input type="text" id="TOUR_NAME" list="toursList" placeholder="Select or type tour name..." style="flex: 1;">
+              <input type="text" id="edit_TOUR_NAME" name="TOUR_NAME" list="toursList" placeholder="Select or type tour name..." style="flex: 1;">
               <datalist id="toursList"></datalist>
               <datalist id="tourNamesList"></datalist>
               <button type="button" class="btn-token" onclick="addNewTourPrompt()" style="padding: 10px 12px; font-size: 0.8rem; white-space: nowrap;" title="Enter a new tour name">➕ New Tour</button>
             </div>
           </div>
           <div class="form-group">
-            <label for="TOUR_ID">Tour ID (TOUR_ID - Auto-generated)</label>
-            <input type="text" id="TOUR_ID" placeholder="tour-night-and-day-tour" readonly style="opacity: 0.7; cursor: not-allowed; background-color: rgba(255,255,255,0.04);">
+            <label for="edit_TOUR_ID">Tour ID (TOUR_ID - Auto-generated)</label>
+            <input type="text" id="edit_TOUR_ID" name="TOUR_ID" placeholder="tour-night-and-day-tour" readonly style="opacity: 0.7; cursor: not-allowed; background-color: rgba(255,255,255,0.04);">
           </div>
         </div>
 
         <div class="grid-2">
           <div class="form-group">
-            <label for="DATUM">Concert Date (DATUM - YYYY-MM-DD)</label>
-            <input type="text" id="DATUM" placeholder="YYYY-MM-DD" oninput="checkDataQuality()">
+            <label for="edit_DATUM">Concert Date (DATUM - YYYY-MM-DD)</label>
+            <input type="text" id="edit_DATUM" name="DATUM" placeholder="YYYY-MM-DD" oninput="checkDataQuality()">
           </div>
           <div class="form-group">
-            <label for="MESTO">City (MESTO)</label>
-            <input type="text" id="MESTO" placeholder="e.g. Groningen" oninput="checkDataQuality()">
+            <label for="edit_MESTO">City (MESTO)</label>
+            <input type="text" id="edit_MESTO" name="MESTO" list="citiesList" placeholder="e.g. Groningen" oninput="checkDataQuality()">
+            <datalist id="citiesList"></datalist>
           </div>
         </div>
 
         <div class="grid-2">
           <div class="form-group">
-            <label for="STAT">Country (STAT)</label>
-            <input type="text" id="STAT" placeholder="e.g. Netherlands">
+            <label for="edit_STAT">Country (STAT)</label>
+            <input type="text" id="edit_STAT" name="STAT" list="countriesList" placeholder="e.g. Netherlands">
+            <datalist id="countriesList"></datalist>
           </div>
           <div class="form-group">
-            <label for="VENUE">Venue (VENUE)</label>
-            <input type="text" id="VENUE" placeholder="e.g. De Oosterpoort">
+            <label for="edit_VENUE">Venue (VENUE)</label>
+            <input type="text" id="edit_VENUE" name="VENUE" list="venuesList" placeholder="e.g. De Oosterpoort">
+            <datalist id="venuesList"></datalist>
           </div>
         </div>
         <div id="duplicateWarning" class="validation-hint warning"></div>
@@ -642,12 +645,12 @@
         <h3>Files & Contributor</h3>
         <div class="grid-2">
           <div class="form-group">
-            <label for="SOUBOR_SKEN">Scan Image Filename(s) (SOUBOR_SKEN)</label>
-            <input type="text" id="SOUBOR_SKEN" placeholder="file1.jpg, file2.jpg" oninput="updateImageFromInput()">
+            <label for="edit_SOUBOR_SKEN">Scan Image Filename(s) (SOUBOR_SKEN)</label>
+            <input type="text" id="edit_SOUBOR_SKEN" name="SOUBOR_SKEN" placeholder="file1.jpg, file2.jpg" oninput="updateImageFromInput()">
           </div>
           <div class="form-group">
-            <label for="CONTRIBUTOR">Donor / Contributor (CONTRIBUTOR)</label>
-            <input type="text" id="CONTRIBUTOR" placeholder="e.g. Bert Bos, Netherlands">
+            <label for="edit_CONTRIBUTOR">Donor / Contributor (CONTRIBUTOR)</label>
+            <input type="text" id="edit_CONTRIBUTOR" name="CONTRIBUTOR" placeholder="e.g. Bert Bos, Netherlands">
           </div>
         </div>
       </div>
@@ -657,33 +660,33 @@
         <h3>Links & Setlist Integration</h3>
         <div class="grid-2">
           <div class="form-group">
-            <label for="YOUTUBE_URL">YouTube Video URL</label>
-            <input type="text" id="YOUTUBE_URL" placeholder="https://www.youtube.com/watch?v=..." oninput="updateYtPreview()">
+            <label for="edit_YOUTUBE_URL">YouTube Video URL</label>
+            <input type="text" id="edit_YOUTUBE_URL" name="YOUTUBE_URL" placeholder="https://www.youtube.com/watch?v=..." oninput="updateYtPreview()">
             <div id="ytPreview" class="yt-preview"></div>
           </div>
           <div class="form-group">
-            <label for="REVIEW_URL">Review URL</label>
-            <input type="text" id="REVIEW_URL" placeholder="https://...">
+            <label for="edit_REVIEW_URL">Review URL</label>
+            <input type="text" id="edit_REVIEW_URL" name="REVIEW_URL" placeholder="https://...">
           </div>
         </div>
 
         <div class="grid-2" style="margin-top: 10px;">
           <div class="form-group">
-            <label for="SETLIST_URL">Setlist.fm URL</label>
+            <label for="edit_SETLIST_URL">Setlist.fm URL</label>
             <div class="input-with-btn">
-              <input type="text" id="SETLIST_URL" placeholder="https://www.setlist.fm/setlist/joe-jackson/...">
+              <input type="text" id="edit_SETLIST_URL" name="SETLIST_URL" placeholder="https://www.setlist.fm/setlist/joe-jackson/...">
               <button class="btn-fetch-setlist" type="button" onclick="fetchSetlistFromUrl()">⚡ Fetch Songs</button>
             </div>
           </div>
           <div class="form-group">
-            <label for="POCET_SKLADEB">Song Count (POCET_SKLADEB)</label>
-            <input type="number" id="POCET_SKLADEB" readonly style="opacity: 0.7; cursor: not-allowed;">
+            <label for="edit_POCET_SKLADEB">Song Count (POCET_SKLADEB)</label>
+            <input type="number" id="edit_POCET_SKLADEB" name="POCET_SKLADEB" readonly style="opacity: 0.7; cursor: not-allowed;">
           </div>
         </div>
 
         <div class="form-group full-width" style="margin-top: 10px;">
-          <label for="SETLIST">Setlist Songs (Comma separated)</label>
-          <textarea id="SETLIST" placeholder="Song 1, Song 2, Song 3..." oninput="recalculateSongCount()"></textarea>
+          <label for="edit_SETLIST">Setlist Songs (Comma separated)</label>
+          <textarea id="edit_SETLIST" name="SETLIST" placeholder="Song 1, Song 2, Song 3..." oninput="recalculateSongCount()"></textarea>
         </div>
       </div>
 
@@ -722,6 +725,16 @@
       'KATEGORIE', 'SOUBOR_SKEN', 'CONTRIBUTOR', 'LINEUP', 'SETLIST',
       'POCET_SKLADEB', 'SETLIST_URL', 'YOUTUBE_URL', 'REVIEW_URL', 'SETLIST_FM_URL'
     ];
+
+    function getField(name) {
+      if (!name) return null;
+      return document.getElementById('edit_' + name) ||
+             document.getElementById(name) ||
+             document.getElementById(name.toLowerCase()) ||
+             document.getElementById('edit_' + name.toLowerCase()) ||
+             document.querySelector(`[name="${name}"]`) ||
+             document.querySelector(`[name="${name.replace(/^edit_/, '')}"]`);
+    }
 
     function checkAdminAuth() {
       const cfg = typeof StorageService !== 'undefined' ? StorageService.getGitHubConfig() : { token: safeGetStorage('gh_token') || safeGetStorage('jj_github_pat') };
@@ -870,12 +883,31 @@
       }
 
     function getCustomTours() {
+      const list = [];
       try {
-        const stored = sessionStorage.getItem('custom_tours_list');
-        return stored ? JSON.parse(stored) : [];
-      } catch (e) {
-        return [];
-      }
+        if (typeof StorageService !== 'undefined') {
+          const stored = StorageService.get('custom_tours_list', []);
+          if (Array.isArray(stored)) {
+            stored.forEach(t => {
+              if (t && typeof t === 'string' && !list.includes(t.trim())) list.push(t.trim());
+            });
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const storedSession = sessionStorage.getItem('custom_tours_list');
+        if (storedSession) {
+          const parsed = JSON.parse(storedSession);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(t => {
+              if (t && typeof t === 'string' && !list.includes(t.trim())) list.push(t.trim());
+            });
+          }
+        }
+      } catch (e) {}
+
+      return list;
     }
 
     function saveCustomTour(tourName) {
@@ -883,16 +915,22 @@
       const trimmed = tourName.trim();
       if (!trimmed) return;
 
-      // 1. Update sessionStorage
+      const list = getCustomTours();
+      if (!list.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
+        list.push(trimmed);
+      }
+
       try {
-        const list = getCustomTours();
-        if (!list.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
-          list.push(trimmed);
-          sessionStorage.setItem('custom_tours_list', JSON.stringify(list));
+        if (typeof StorageService !== 'undefined') {
+          StorageService.set('custom_tours_list', list);
         }
       } catch (e) {}
 
-      // 2. Append to datalist(s)
+      try {
+        sessionStorage.setItem('custom_tours_list', JSON.stringify(list));
+      } catch (e) {}
+
+      // Append to datalist(s)
       ['toursList', 'tourNamesList'].forEach(id => {
         const datalist = document.getElementById(id);
         if (datalist) {
@@ -907,9 +945,9 @@
     }
 
     // Auto-compute TOUR_ID from TOUR_NAME
-    const tourNameInput = document.getElementById('TOUR_NAME');
-    const tourIdInput = document.getElementById('TOUR_ID');
     function syncTourId() {
+      const tourNameInput = getField('TOUR_NAME');
+      const tourIdInput = getField('TOUR_ID');
       if (!tourNameInput || !tourIdInput) return;
       const tourName = tourNameInput.value;
       if (tourName && tourName.trim()) {
@@ -921,7 +959,8 @@
         tourIdInput.value = '';
       }
     }
-    if (tourNameInput && tourIdInput) {
+    const tourNameInput = getField('TOUR_NAME');
+    if (tourNameInput) {
       tourNameInput.addEventListener('input', syncTourId);
       tourNameInput.addEventListener('change', syncTourId);
     }
@@ -934,7 +973,7 @@
       complete: function(results) {
         fullCsvData = results.data;
         populateJumpDropdown();
-        populateTourList();
+        populateDatalists(fullCsvData);
 
         const urlParams = new URLSearchParams(window.location.search);
         const targetId = urlParams.get('id');
@@ -956,17 +995,36 @@
     });
   });
 
-  function populateTourList() {
+  function populateDatalists(dataset) {
+    const data = Array.isArray(dataset) ? dataset : (Array.isArray(fullCsvData) ? fullCsvData : []);
     const tours = new Set();
-    if (Array.isArray(fullCsvData)) {
-      fullCsvData.forEach(row => {
-        if (row && row.TOUR_NAME && row.TOUR_NAME.trim()) {
-          tours.add(row.TOUR_NAME.trim());
+    const countries = new Set();
+    const cities = new Set();
+    const venues = new Set();
+
+    if (Array.isArray(data)) {
+      data.forEach(row => {
+        if (!row) return;
+        const tour = row.TOUR_NAME || row.tour_name || row.Tour;
+        if (tour && typeof tour === 'string' && tour.trim()) {
+          tours.add(tour.trim());
+        }
+        const stat = row.STAT || row.stat || row.ZEME || row.zeme || row.Country || row.country;
+        if (stat && typeof stat === 'string' && stat.trim()) {
+          countries.add(stat.trim());
+        }
+        const city = row.MESTO || row.mesto || row.City || row.city;
+        if (city && typeof city === 'string' && city.trim()) {
+          cities.add(city.trim());
+        }
+        const venue = row.VENUE || row.venue || row.Venue;
+        if (venue && typeof venue === 'string' && venue.trim()) {
+          venues.add(venue.trim());
         }
       });
     }
 
-    // Merge custom tours stored in sessionStorage
+    // Merge custom tours stored in StorageService / sessionStorage
     const customTours = getCustomTours();
     customTours.forEach(t => {
       if (t && typeof t === 'string' && t.trim()) {
@@ -975,7 +1033,11 @@
     });
 
     const sortedTours = Array.from(tours).sort((a, b) => a.localeCompare(b));
+    const sortedCountries = Array.from(countries).sort((a, b) => a.localeCompare(b));
+    const sortedCities = Array.from(cities).sort((a, b) => a.localeCompare(b));
+    const sortedVenues = Array.from(venues).sort((a, b) => a.localeCompare(b));
 
+    // Clear and populate tours
     ['toursList', 'tourNamesList'].forEach(id => {
       const datalist = document.getElementById(id);
       if (datalist) {
@@ -987,10 +1049,48 @@
         });
       }
     });
+
+    // Clear and populate countries
+    const countriesDatalist = document.getElementById('countriesList');
+    if (countriesDatalist) {
+      countriesDatalist.innerHTML = '';
+      sortedCountries.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        countriesDatalist.appendChild(opt);
+      });
+    }
+
+    // Clear and populate cities
+    const citiesDatalist = document.getElementById('citiesList');
+    if (citiesDatalist) {
+      citiesDatalist.innerHTML = '';
+      sortedCities.forEach(city => {
+        const opt = document.createElement('option');
+        opt.value = city;
+        citiesDatalist.appendChild(opt);
+      });
+    }
+
+    // Clear and populate venues
+    const venuesDatalist = document.getElementById('venuesList');
+    if (venuesDatalist) {
+      venuesDatalist.innerHTML = '';
+      sortedVenues.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        venuesDatalist.appendChild(opt);
+      });
+    }
+  }
+
+  // Alias for backward compatibility
+  function populateTourList(dataset) {
+    populateDatalists(dataset || fullCsvData);
   }
 
   function addNewTourPrompt() {
-    const input = document.getElementById('TOUR_NAME');
+    const input = getField('TOUR_NAME');
     const newName = prompt('Enter New Concert Tour Name:');
     if (newName && newName.trim()) {
       const trimmed = newName.trim();
@@ -1024,18 +1124,49 @@
       currentRecordIndex = index;
       const r = fullCsvData[index];
 
-      document.getElementById('recordIdTitle').textContent = r.ID_MEMORABILIA || `Record #${index + 1}`;
-      document.getElementById('recordCounter').textContent = `Record ${index + 1} of ${fullCsvData.length}`;
+      const recordIdTitleEl = document.getElementById('recordIdTitle');
+      if (recordIdTitleEl) recordIdTitleEl.textContent = r.ID_MEMORABILIA || `Record #${index + 1}`;
+      const recordCounterEl = document.getElementById('recordCounter');
+      if (recordCounterEl) recordCounterEl.textContent = `Record ${index + 1} of ${fullCsvData.length}`;
       
       const jumpSelect = document.getElementById('jumpSelect');
       if (jumpSelect) jumpSelect.value = index;
 
-      document.getElementById('prevBtn').disabled = (index === 0);
-      document.getElementById('nextBtn').disabled = (index === fullCsvData.length - 1);
+      const prevBtn = document.getElementById('prevBtn');
+      if (prevBtn) prevBtn.disabled = (index === 0);
+      const nextBtn = document.getElementById('nextBtn');
+      if (nextBtn) nextBtn.disabled = (index === fullCsvData.length - 1);
 
       fields.forEach(f => {
-        const el = document.getElementById(f);
-        if (el) el.value = r[f] || '';
+        const el = getField(f);
+        if (el) {
+          const val = r[f] !== undefined && r[f] !== null ? String(r[f]).trim() : '';
+          if (el.tagName === 'SELECT') {
+            el.value = val;
+            if (el.selectedIndex === -1 || el.value !== val) {
+              const lowerVal = val.toLowerCase();
+              let matched = false;
+              for (let i = 0; i < el.options.length; i++) {
+                const opt = el.options[i];
+                if (opt.value.toLowerCase() === lowerVal || opt.text.toLowerCase() === lowerVal) {
+                  el.selectedIndex = i;
+                  matched = true;
+                  break;
+                }
+              }
+              if (!matched && val) {
+                const newOpt = document.createElement('option');
+                newOpt.value = val;
+                newOpt.textContent = val;
+                el.appendChild(newOpt);
+                el.value = val;
+              }
+            }
+            el.dispatchEvent(new Event('change'));
+          } else {
+            el.value = val;
+          }
+        }
       });
 
       updateImageFromInput();
@@ -1060,13 +1191,13 @@
     function saveCurrentFormToMemory() {
       if (currentRecordIndex < 0 || currentRecordIndex >= fullCsvData.length) return;
       fields.forEach(f => {
-        const el = document.getElementById(f);
+        const el = getField(f);
         if (el) fullCsvData[currentRecordIndex][f] = el.value.trim();
       });
     }
 
     function updateImageFromInput() {
-      const skenVal = document.getElementById('SOUBOR_SKEN')?.value || '';
+      const skenVal = getField('SOUBOR_SKEN')?.value || '';
       const previewImg = document.getElementById('previewImg');
       const thumbList = document.getElementById('thumbList');
       if (!previewImg || !thumbList) return;
@@ -1100,7 +1231,7 @@
     }
 
     function updateYtPreview() {
-      const url = document.getElementById('YOUTUBE_URL')?.value.trim();
+      const url = getField('YOUTUBE_URL')?.value.trim();
       const prevEl = document.getElementById('ytPreview');
       if (!prevEl) return;
       if (url) prevEl.innerHTML = `<a href="${url}" target="_blank" rel="noopener">▶️ Test YouTube Video Link</a>`;
@@ -1108,16 +1239,16 @@
     }
 
     function recalculateSongCount() {
-      const val = document.getElementById('SETLIST')?.value || '';
+      const val = getField('SETLIST')?.value || '';
       const songs = val.split(',').map(s => s.trim()).filter(s => s && !s.startsWith('[Encore') && !s.startsWith('[Set'));
-      const countEl = document.getElementById('POCET_SKLADEB');
+      const countEl = getField('POCET_SKLADEB');
       if (countEl) countEl.value = songs.length;
     }
 
     function checkDataQuality() {
-      const dateVal = document.getElementById('DATUM')?.value.trim();
-      const cityVal = document.getElementById('MESTO')?.value.trim();
-      const catVal = document.getElementById('KATEGORIE')?.value.trim();
+      const dateVal = getField('DATUM')?.value.trim();
+      const cityVal = getField('MESTO')?.value.trim();
+      const catVal = getField('KATEGORIE')?.value.trim();
       const warnEl = document.getElementById('duplicateWarning');
 
       if (!warnEl) return;
@@ -1137,7 +1268,7 @@
     }
 
     function fetchSetlistFromUrl() {
-      const urlInput = document.getElementById('SETLIST_URL');
+      const urlInput = getField('SETLIST_URL');
       const url = urlInput ? urlInput.value.trim() : '';
       if (!url) {
         alert('Please enter a valid Setlist.fm URL first.');
@@ -1156,7 +1287,8 @@
             if (title) songTitles.push(title);
           });
           if (songTitles.length > 0) {
-            document.getElementById('SETLIST').value = songTitles.join(', ');
+            const setlistEl = getField('SETLIST');
+            if (setlistEl) setlistEl.value = songTitles.join(', ');
             recalculateSongCount();
             showStatus(`✅ Successfully imported ${songTitles.length} songs from Setlist.fm!`, 'green');
           } else {

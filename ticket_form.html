@@ -35,6 +35,7 @@
   <link rel="stylesheet" href="styles.css">
   <!-- PapaParse for CSV parsing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="storage-service.js"></script>
   <script src="watermark.js"></script>
 
   <style>
@@ -220,7 +221,8 @@
 
       <div class="form-group">
         <label for="country">Country</label>
-        <input type="text" id="country" name="Country" placeholder="e.g. UK, USA, Germany">
+        <input type="text" id="country" name="Country" list="countriesList" placeholder="e.g. UK, USA, Germany">
+        <datalist id="countriesList"></datalist>
       </div>
 
       <div class="form-group full-width">
@@ -274,15 +276,34 @@
   </div>
 
   <script>
-    const CSV_FILENAME = 'jj_tickets_data.csv';
+    const CSV_FILENAME = 'joe_jackson_tickets_cleaned.csv';
 
     function getCustomTours() {
+      const list = [];
       try {
-        const stored = sessionStorage.getItem('custom_tours_list');
-        return stored ? JSON.parse(stored) : [];
-      } catch (e) {
-        return [];
-      }
+        if (typeof StorageService !== 'undefined') {
+          const stored = StorageService.get('custom_tours_list', []);
+          if (Array.isArray(stored)) {
+            stored.forEach(t => {
+              if (t && typeof t === 'string' && !list.includes(t.trim())) list.push(t.trim());
+            });
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const storedSession = sessionStorage.getItem('custom_tours_list');
+        if (storedSession) {
+          const parsed = JSON.parse(storedSession);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(t => {
+              if (t && typeof t === 'string' && !list.includes(t.trim())) list.push(t.trim());
+            });
+          }
+        }
+      } catch (e) {}
+
+      return list;
     }
 
     function saveCustomTour(tourName) {
@@ -290,16 +311,22 @@
       const trimmed = tourName.trim();
       if (!trimmed) return;
 
-      // 1. Update sessionStorage
+      const list = getCustomTours();
+      if (!list.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
+        list.push(trimmed);
+      }
+
       try {
-        const list = getCustomTours();
-        if (!list.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
-          list.push(trimmed);
-          sessionStorage.setItem('custom_tours_list', JSON.stringify(list));
+        if (typeof StorageService !== 'undefined') {
+          StorageService.set('custom_tours_list', list);
         }
       } catch (e) {}
 
-      // 2. Append to datalist(s)
+      try {
+        sessionStorage.setItem('custom_tours_list', JSON.stringify(list));
+      } catch (e) {}
+
+      // Append to datalist(s)
       ['toursList', 'tourNamesList'].forEach(id => {
         const datalist = document.getElementById(id);
         if (datalist) {
@@ -330,6 +357,8 @@
 
     function populateTourList(data) {
       const tours = new Set();
+      const countries = new Set();
+
       if (Array.isArray(data)) {
         data.forEach(row => {
           if (!row) return;
@@ -337,10 +366,14 @@
           if (name && typeof name === 'string' && name.trim()) {
             tours.add(name.trim());
           }
+          const country = row.STAT || row.stat || row.Country || row.country;
+          if (country && typeof country === 'string' && country.trim()) {
+            countries.add(country.trim());
+          }
         });
       }
 
-      // Merge custom tours stored in sessionStorage
+      // Merge custom tours stored in StorageService and sessionStorage
       const customTours = getCustomTours();
       customTours.forEach(t => {
         if (t && typeof t === 'string' && t.trim()) {
@@ -361,6 +394,16 @@
           });
         }
       });
+
+      const countriesDatalist = document.getElementById('countriesList');
+      if (countriesDatalist) {
+        countriesDatalist.innerHTML = '';
+        Array.from(countries).sort((a, b) => a.localeCompare(b)).forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c;
+          countriesDatalist.appendChild(opt);
+        });
+      }
     }
 
     function addNewTourPrompt() {
@@ -388,7 +431,14 @@
         tourNameInput.addEventListener('change', syncTourId);
       }
 
-      // Load CSV to populate dynamic tour names list
+      const catSelect = document.getElementById('category');
+      if (catSelect) {
+        catSelect.addEventListener('change', () => {
+          // Keep active selection in sync if needed
+        });
+      }
+
+      // Load CSV to populate dynamic tour names and countries list
       Papa.parse(CSV_FILENAME, {
         download: true,
         header: true,
@@ -431,13 +481,18 @@
       if (catParam) {
         const select = document.getElementById('category');
         const c = catParam.toLowerCase().trim();
+        let matched = false;
         Array.from(select.options).forEach(opt => {
           const val = opt.value.toLowerCase();
           const txt = opt.text.toLowerCase();
-          if (val === c || txt.includes(c) || (c.startsWith('ticket') && val === 'tickets') || (c.startsWith('pass') && val === 'passes') || (c.startsWith('poster') && val === 'posters') || (c.startsWith('program') && val === 'programs')) {
+          if (val === c || txt.includes(c) || (c.startsWith('ticket') && val === 'tickets') || (c.startsWith('pass') && val === 'passes') || (c.startsWith('poster') && val === 'posters') || (c.startsWith('program') && val === 'programs') || (c.startsWith('t-shirt') && val === 't-shirts')) {
             select.value = opt.value;
+            matched = true;
           }
         });
+        if (select) {
+          select.dispatchEvent(new Event('change'));
+        }
         isPrefilled = true;
       }
 
