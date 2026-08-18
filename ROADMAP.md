@@ -1,13 +1,69 @@
 # 🗺️ Joe Jackson Ticket Museum — Roadmap & Project Plan
 
-**Last Updated:** August 18th, 2026
+**Poslední aktualizace / Last Updated:** 18. srpna 2026
 
 ## Overview
 An interactive digital museum and archive dedicated to Joe Jackson's live concert tour history (1978–2026), ticket stubs, venue metadata, setlists, and memorabilia.
 
 ---
 
-## Completed Features
+## 💡 Active Feature Backlog & New Ideas (Up Next)
+
+### 1. Rescheduled & COVID-19 Cancelled Show Handling
+- [ ] **Rescheduled Show Metadata (`ORIGINAL_DATE` / `RESCHEDULED_NOTE`)**:
+  - Keep `DATUM` strictly mapped to the actual performed show date (maintaining timeline and map accuracy).
+  - Add optional `ORIGINAL_DATE` or `RESCHEDULED_NOTE` attribute to preserve historical ticket print dates (e.g. ticket printed for Oct 20, 2020, but concert took place May 14, 2022).
+  - Display a visual badge on concert cards: `🔄 Rescheduled (Ticket printed for Oct 20, 2020)`.
+- [ ] **Cancelled Show Tracking (`CANCELLED`)**:
+  - Support cancelled shows (e.g., COVID-19 cancellations) with dedicated status badges: `❌ Cancelled Show`.
+
+### 2. Multi-Scan Count Badge on Concert Cards
+- [ ] **Multi-Scan Indicator**:
+  - Automatically evaluate `SOUBOR_SKEN` string length. If multiple scans exist (`comma-separated > 1`), display a subtle thumbnail badge (e.g. `📷 2` or `🖼️ 3`) to inform visitors that front/back sides or additional program pages are available inside the detail viewer.
+
+### 3. Setlist.fm Cross-Reference & Date Verification Badges
+- [ ] **Verification Badges in Museum View (`index.html`)**:
+  - 🟢 **Setlist Confirmed**: Record has `SETLIST_URL` and `POCET_SKLADEB > 0`.
+  - 🟡 **Date Confirmed**: Record has a valid `SETLIST_URL` but `POCET_SKLADEB = 0` (serves as an external cross-reference confirming the show date/venue).
+  - ⚪ **Unverified Date**: Record lacks a `SETLIST_URL` link.
+- [ ] **Passive Community Nudge**:
+  - Display a subtle link on item detail cards with 0 songs: *"Know this setlist? Add it on Setlist.fm or contribute a program scan."*
+- [ ] **Verification Filter**:
+  - Add quick filter checkboxes in Museum View and Admin Editor to easily isolate unverified shows or shows with missing setlist songs.
+
+---
+
+## ⏳ Pending Client Approval & Pre-Launch Tasks
+- [ ] **Client Final Review & Sign-Off**
+  - Local environment testing and final client demonstration
+- [ ] **Custom Domain Deployment (`joejackson.band`)**
+  - Configure A records and CNAME in DNS for GitHub Pages after client approval
+- [ ] **SEO & Metadata Finalization**
+  - Deploy Open Graph tags, `sitemap.xml`, and `robots.txt`
+
+---
+
+## 🔮 Post-Launch Enhancements & Future Upgrades
+- [ ] **Codebase Refactoring & Architecture Cleanup**
+  - **Unified `localStorage` Manager:** Centralize all application state (GitHub token, repository settings, active layout views, sorting orders, and category filters) into a single key-value wrapper to eliminate legacy key fallbacks (`jj_github_pat` vs. `gh_token`).
+  - **Isolated GitHub API Service (`github-service.js`):** Extract GitHub REST API operations (SHA retrieval, UTF-8 Base64 encoding, commits, and error handling for 401/403/404 HTTP codes) out of `edit_ticket_new.html` into a dedicated, reusable module.
+  - **Shared Tour Slug & Form Helpers:** Consolidate tour selector datalists, auto-slug generation (`TOUR_ID`), and date parsing logic shared between `app.js`, `edit_ticket_new.html`, and `ticket_form.html`.
+- [ ] **Context-Aware Admin Editor Form Fields (`edit_ticket_new.html`)**
+  - Dynamically show/hide non-relevant input fields based on selected `KATEGORIE` (e.g., hide concert setlist, date, and venue inputs when editing tour-wide items like Passes or Tour Books).
+- [ ] **Community & Fan Interactivity Engine (Supabase / Cloudflare D1 Backend)**
+  - **Setlist.fm Import:** Sync user attendance via Setlist.fm public API (`/user/{userId}/attended`) to automatically display attendance badges.
+  - **Personal Concert Statuses:** User interactive badges per show (*"I Was There"*, *"I Own Ticket"*, *"Ticket Lost/Traded"*, *"I Have Audio Recording"*).
+  - **Concert Memories & Stories:** Micro-forum section allowing registered fans to share personal concert anecdotes per date.
+  - **Data Correction & Bootleg Submissions:** Quick-action reporting tool for missing setlists or rare audio recording details.
+  - **Personal Concert Passport:** Generatable summary card displaying personal attendance stats across tours, countries, and venues.
+- [ ] **Fan Submission Portal with Cloud Storage**
+  - Direct image upload pipeline using S3 / Cloudflare R2
+- [-] **Streaming Platform Integration**
+  - Direct Spotify / Apple Music setlist playback links (tested, but failed to generate custom playlists)
+
+---
+
+## ✅ Completed Features Archive
 
 ### Core Web Application & UI (`index.html`, `styles.css`, `app.js`)
 - [x] **Interactive Museum Interface**
@@ -53,6 +109,8 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - "➕ New Tour" quick action for seamless addition of new tour titles
   - Real-time auto-generated read-only `TOUR_ID` slug creation (`tour-name-year`)
   - "🧹 Reset Custom Tours" utility clearing unpersisted temporary inputs and rebuilding lists exclusively from valid CSV records
+- [x] **Dynamic Lineup Autocomplete & Pre-fill**
+  - Automated `<datalist>` suggestions offering unique historical lineups associated with the selected `TOUR_NAME`.
 - [x] **Compact & Context-Aware Navigation Bar**
   - Streamlined `[ ◄ ] Record X of Y [ ► ]` navigation layout without redundant "Previous/Next" button text
   - Full URL state persistence preserving active Category tabs (`category`), Tour filters (`tour`), Search queries (`search`), and Sorting order (`sort`) from `index.html`
@@ -97,47 +155,3 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
 - [x] **Refactored Codebase & Storage Safety**
   - Isolated `localStorage`/`sessionStorage` wrappers with try-catch fallbacks for private browsing compatibility
   - Cleaned up obsolete CSS selectors, dead code, and duplicated utility functions
-
----
-
-## 🆕 New Features & Ideas (In Backlog)
-
-### Setlist.fm Cross-Reference & Date Verification Badges
-- [ ] **Verification Badges in Museum View (`index.html`)**:
-  - 🟢 **Setlist Confirmed**: Record has `SETLIST_URL` and `POCET_SKLADEB > 0`.
-  - 🟡 **Date Confirmed**: Record has a valid `SETLIST_URL` but `POCET_SKLADEB = 0` (serves as an external cross-reference confirming the show date/venue).
-  - ⚪ **Unverified Date**: Record lacks a `SETLIST_URL` link.
-- [ ] **Passive Community Nudge**:
-  - Display a subtle link on item detail cards with 0 songs: *"Know this setlist? Add it on Setlist.fm or contribute a program scan."*
-- [ ] **Verification Filter**:
-  - Add quick filter checkboxes in Museum View and Admin Editor to easily isolate unverified shows or shows with missing setlist songs.
-
----
-
-## Pending Client Approval & Pre-Launch Tasks
-- [ ] **Client Final Review & Sign-Off**
-  - Local environment testing and final client demonstration
-- [ ] **Custom Domain Deployment (`joejackson.band`)**
-  - Configure A records and CNAME in DNS for GitHub Pages after client approval
-- [ ] **SEO & Metadata Finalization**
-  - Deploy Open Graph tags, `sitemap.xml`, and `robots.txt`
-
----
-
-## Post-Launch Enhancements & Future Upgrades
-- [ ] **Codebase Refactoring & Architecture Cleanup**
-  - **Unified `localStorage` Manager:** Centralize all application state (GitHub token, repository settings, active layout views, sorting orders, and category filters) into a single key-value wrapper to eliminate legacy key fallbacks (`jj_github_pat` vs. `gh_token`).
-  - **Isolated GitHub API Service (`github-service.js`):** Extract GitHub REST API operations (SHA retrieval, UTF-8 Base64 encoding, commits, and error handling for 401/403/404 HTTP codes) out of `edit_ticket_new.html` into a dedicated, reusable module.
-  - **Shared Tour Slug & Form Helpers:** Consolidate tour selector datalists, auto-slug generation (`TOUR_ID`), and date parsing logic shared between `app.js`, `edit_ticket_new.html`, and `ticket_form.html`.
-- [ ] **Context-Aware Admin Editor Form Fields (`edit_ticket_new.html`)**
-  - Dynamically show/hide non-relevant input fields based on selected `KATEGORIE` (e.g., hide concert setlist, date, and venue inputs when editing tour-wide items like Passes or Tour Books).
-- [ ] **Community & Fan Interactivity Engine (Supabase / Cloudflare D1 Backend)**
-  - **Setlist.fm Import:** Sync user attendance via Setlist.fm public API (`/user/{userId}/attended`) to automatically display attendance badges.
-  - **Personal Concert Statuses:** User interactive badges per show (*"I Was There"*, *"I Own Ticket"*, *"Ticket Lost/Traded"*, *"I Have Audio Recording"*).
-  - **Concert Memories & Stories:** Micro-forum section allowing registered fans to share personal concert anecdotes per date.
-  - **Data Correction & Bootleg Submissions:** Quick-action reporting tool for missing setlists or rare audio recording details.
-  - **Personal Concert Passport:** Generatable summary card displaying personal attendance stats across tours, countries, and venues.
-- [ ] **Fan Submission Portal with Cloud Storage**
-  - Direct image upload pipeline using S3 / Cloudflare R2
-- [-] **Streaming Platform Integration**
-  - Direct Spotify / Apple Music setlist playback links (tested, but failed to generate custom playlists)
