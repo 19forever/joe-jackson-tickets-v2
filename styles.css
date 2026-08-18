@@ -12,7 +12,32 @@
   --accent-orange: #f59e0b;
   --border-color: #2a2a2a;
   --border-color-light: #333333;
-  --font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  --font-family: var(--font-primary);
+  --font-weight-title: 600;
+  --font-weight-heading: 700;
+}
+
+/* Typography Themes for Live Preview */
+body.font-default, html.font-default {
+  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  --font-family: var(--font-primary);
+  --font-weight-title: 600;
+  --font-weight-heading: 700;
+}
+
+body.font-condensed, html.font-condensed {
+  --font-primary: 'Barlow Condensed', sans-serif;
+  --font-family: var(--font-primary);
+  --font-weight-title: 600;
+  --font-weight-heading: 700;
+}
+
+body.font-light, html.font-light {
+  --font-primary: 'Inter', sans-serif;
+  --font-family: var(--font-primary);
+  --font-weight-title: 300;
+  --font-weight-heading: 400;
 }
 
 * {
@@ -22,11 +47,36 @@
 }
 
 body {
-  font-family: var(--font-family);
+  font-family: var(--font-primary);
   background-color: var(--bg-main);
   color: var(--text-main);
   padding: 0 40px 40px 40px;
   min-height: 100vh;
+}
+
+button, input, select, textarea {
+  font-family: var(--font-primary);
+}
+
+.font-switcher-select {
+  background-color: #1a1a1a;
+  border: 1px solid var(--border-color-light);
+  color: var(--text-main);
+  padding: 6px 10px;
+  height: 35px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font-primary);
+}
+
+.font-switcher-select:hover,
+.font-switcher-select:focus {
+  border-color: var(--accent-yellow);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
 }
 
 .viewer-container {
@@ -90,8 +140,9 @@ header {
 }
 
 .title-area h1 {
+  font-family: var(--font-primary);
   font-size: 1.35rem;
-  font-weight: 700;
+  font-weight: var(--font-weight-heading);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -485,13 +536,14 @@ header {
 }
 
 .tickets-container.list-view .card-date {
+  font-family: var(--font-primary);
   font-size: 0.8rem;
   line-height: 1.2;
   margin-bottom: 0;
   white-space: nowrap;
   flex-shrink: 0;
   color: #ffffff;
-  font-weight: 600;
+  font-weight: var(--font-weight-title);
 }
 
 .tickets-container.list-view .category-badge {
@@ -636,8 +688,9 @@ header {
 }
 
 .card-date {
+  font-family: var(--font-primary);
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: var(--font-weight-title);
   color: #ffffff;
   margin-bottom: 4px;
   word-wrap: break-word;

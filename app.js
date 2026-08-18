@@ -264,8 +264,40 @@ function initializeStateFromUrlAndStorage() {
   updateUrlParams();
 }
 
+function applyFontTheme(theme) {
+  const allowed = ['font-default', 'font-condensed', 'font-light'];
+  const validTheme = allowed.includes(theme) ? theme : 'font-default';
+
+  document.documentElement.classList.remove('font-default', 'font-condensed', 'font-light');
+  document.body.classList.remove('font-default', 'font-condensed', 'font-light');
+
+  document.documentElement.classList.add(validTheme);
+  document.body.classList.add(validTheme);
+
+  safeSetStorage('jj_selected_font', validTheme);
+
+  const switcher = document.getElementById('fontSwitcher');
+  if (switcher && switcher.value !== validTheme) {
+    switcher.value = validTheme;
+  }
+}
+
+function initFontSwitcher() {
+  const savedFont = safeGetStorage('jj_selected_font', 'font-default');
+  applyFontTheme(savedFont);
+
+  const switcher = document.getElementById('fontSwitcher');
+  if (switcher) {
+    switcher.value = savedFont || 'font-default';
+    switcher.addEventListener('change', (e) => {
+      applyFontTheme(e.target.value);
+    });
+  }
+}
+
 // Initialization
 window.addEventListener('DOMContentLoaded', () => {
+  initFontSwitcher();
   setupEventListeners();
 
   // Show/Hide Admin links in Header

@@ -33,8 +33,22 @@
   <link rel="alternate icon" type="image/x-icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="favicon.svg">
 
+  <!-- Google Fonts for Live Typography Switcher -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
   <!-- External Stylesheet -->
   <link rel="stylesheet" href="styles.css">
+
+  <script>
+    (function() {
+      try {
+        var f = localStorage.getItem('jj_selected_font') || 'font-default';
+        if (f) document.documentElement.classList.add(f);
+      } catch(e) {}
+    })();
+  </script>
 
   <!-- External Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -54,6 +68,11 @@
       </div>
 
       <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <select id="fontSwitcher" class="font-switcher-select" title="Preview Typography Theme">
+          <option value="font-default">🔤 Font: Default (Inter)</option>
+          <option value="font-condensed">🔤 Font: Tall &amp; Condensed (Barlow)</option>
+          <option value="font-light">🔤 Font: Light &amp; Elegant (Slim)</option>
+        </select>
         <a href="stats.html" class="btn-contribute" title="View tour map & museum analytics">
           📊 Stats & Map
         </a>
