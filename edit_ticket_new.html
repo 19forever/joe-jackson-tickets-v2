@@ -1732,48 +1732,19 @@
         return;
       }
 
-      showStatus('⚡ Fetching songs via Cloudflare Worker proxy...', 'yellow');
+      showStatus('⚡ Fetching songs via Cloudflare Worker...', 'yellow');
 
-      let data = null;
-      let lastError = null;
-
-      // Attempt 1: Correct Cloudflare Worker path format /setlist/{id}
       try {
-        const workerUrl1 = `https://jj-setlist-proxy.marek-kraus.workers.dev/setlist/${setlistId}`;
-        const res = await fetch(workerUrl1, { headers: { 'Accept': 'application/json' } });
-        if (res.ok) {
-          data = await res.json();
-        } else {
+        const workerUrl = `https://jj-setlist-proxy.marek-kraus.workers.dev/setlist/${setlistId}`;
+        const res = await fetch(workerUrl, { headers: { 'Accept': 'application/json' } });
+        
+        if (!res.ok) {
           throw new Error(`Worker HTTP ${res.status}`);
         }
-      } catch (err1) {
-        console.warn('Worker attempt 1 (/setlist/id) failed:', err1);
-        lastError = err1;
-      }
 
-      // Attempt 2: Cloudflare Worker query format ?setlistId={id} or ?url={id}
-      if (!data) {
-        try {
-          const workerUrl2 = `https://jj-setlist-proxy.marek-kraus.workers.dev/?setlistId=${setlistId}`;
-          const res = await fetch(workerUrl2, { headers: { 'Accept': 'application/json' } });
-          if (res.ok) {
-            data = await res.json();
-          } else {
-            throw new Error(`Worker HTTP ${res.status}`);
-          }
-        } catch (err2) {
-          console.warn('Worker attempt 2 (?setlistId=) failed:', err2);
-          lastError = err2;
-        }
-      }
-
-      if (!data) {
-        showStatus('❌ Worker fetch failed: ' + (lastError ? lastError.message : 'Unknown error'), 'red');
-        return;
-      }
-
-      try {
+        const data = await res.json();
         const songs = [];
+
         if (data.sets && data.sets.set) {
           const sets = Array.isArray(data.sets.set) ? data.sets.set : [data.sets.set];
           sets.forEach(s => {
@@ -1781,9 +1752,9 @@
             const songList = Array.isArray(s.song) ? s.song : (s.song ? [s.song] : []);
             songList.forEach(songItem => {
               if (songItem && songItem.name && typeof songItem.name === 'string') {
-                const name = songItem.name.trim();
-                if (name && !name.toLowerCase().startsWith('[intro') && !name.toLowerCase().startsWith('[tape')) {
-                  songs.push(name);
+                // Ignore intro/outro audio tapes if desired, or keep all actual played songs
+                if (!songItem.tape) {
+                  songs.push(songItem.name.trim());
                 }
               }
             });
@@ -1793,15 +1764,19 @@
         if (songs.length > 0) {
           const setlistEl = getField('SETLIST');
           if (setlistEl) setlistEl.value = songs.join(', ');
+          
           const countEl = getField('POCET_SKLADEB');
           if (countEl) countEl.value = songs.length;
+          
           recalculateSongCount();
-          showStatus(`✅ Successfully fetched ${songs.length} songs via Cloudflare Worker`, 'green');
+          showStatus(`✅ Successfully fetched ${songs.length} songs via Setlist.fm API!`, 'green');
         } else {
           showStatus('⚠️ No songs found in this setlist on Setlist.fm.', 'yellow');
         }
-      } catch (parseErr) {
-        showStatus('❌ Error processing Setlist.fm JSON: ' + parseErr.message, 'red');
+
+      } catch (err) {
+        console.error('Fetch Setlist Error:', err);
+        showStatus('❌ Failed to fetch setlist: ' + err.message, 'red');
       }
     }
     const fetchSetlistFromUrl = fetchSetlistSongs;
