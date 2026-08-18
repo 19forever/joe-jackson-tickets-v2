@@ -673,7 +673,8 @@
           </div>
           <div class="form-group">
             <label for="edit_LINEUP">Lineup / Band</label>
-            <input type="text" id="edit_LINEUP" name="LINEUP" placeholder="e.g. Joe Jackson (vocals, piano)...">
+            <input type="text" id="edit_LINEUP" name="LINEUP" list="lineupsList" placeholder="e.g. Joe Jackson (vocals, piano)...">
+            <datalist id="lineupsList"></datalist>
           </div>
         </div>
 
@@ -1012,6 +1013,38 @@
       }
     }
 
+    function updateLineupSuggestions() {
+      const tourInput = getField('TOUR_NAME');
+      const lineupInput = getField('LINEUP');
+      const datalist = document.getElementById('lineupsList');
+      if (!datalist) return;
+
+      datalist.innerHTML = '';
+      const tourVal = tourInput ? tourInput.value.trim().toLowerCase() : '';
+      if (!tourVal || !Array.isArray(fullCsvData)) return;
+
+      const uniqueLineups = new Set();
+      fullCsvData.forEach(row => {
+        if (!row) return;
+        const rowTour = (row.TOUR_NAME || row.tour_name || row.Tour || '').trim().toLowerCase();
+        const rowLineup = (row.LINEUP || row.lineup || row.Lineup || '').trim();
+        if (rowTour && rowTour === tourVal && rowLineup) {
+          uniqueLineups.add(rowLineup);
+        }
+      });
+
+      const lineupsArray = Array.from(uniqueLineups);
+      lineupsArray.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l;
+        datalist.appendChild(opt);
+      });
+
+      if (lineupsArray.length === 1 && lineupInput && !lineupInput.value.trim()) {
+        lineupInput.value = lineupsArray[0];
+      }
+    }
+
     function clearCustomToursList() {
       if (!confirm('Are you sure you want to clear all custom added tours and rebuild the list strictly from CSV records?')) {
         return;
@@ -1065,9 +1098,13 @@
 
       const tourNameInput = getField('TOUR_NAME');
       if (tourNameInput) {
-        tourNameInput.addEventListener('input', syncTourId);
+        tourNameInput.addEventListener('input', () => {
+          syncTourId();
+          updateLineupSuggestions();
+        });
         tourNameInput.addEventListener('change', function() {
           syncTourId();
+          updateLineupSuggestions();
           const val = this.value ? this.value.trim() : '';
           if (val.length >= 3) {
             saveCustomTour(val);
@@ -1076,6 +1113,7 @@
         tourNameInput.addEventListener('keydown', function(e) {
           if (e.key === 'Enter') {
             syncTourId();
+            updateLineupSuggestions();
             const val = this.value ? this.value.trim() : '';
             if (val.length >= 3) {
               saveCustomTour(val);
@@ -1479,6 +1517,7 @@
       if (input) {
         input.value = trimmed;
         syncTourId();
+        updateLineupSuggestions();
         input.dispatchEvent(new Event('input'));
         input.dispatchEvent(new Event('change'));
       }
@@ -1600,6 +1639,7 @@
     updateImageFromInput();
     updateYtPreview();
     checkDataQuality();
+    updateLineupSuggestions();
     updateBackToMuseumLinks();
   }
 
