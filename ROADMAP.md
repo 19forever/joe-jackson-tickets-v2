@@ -27,6 +27,9 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Perfectly aligned action buttons with the Edit icon (✏️) locked to the far-right end
 - [x] **Global Image Protection**
   - Disabled right-click context menu and image drag events across all dynamic scans
+- [x] **Public vs. Admin Security Toggling**
+  - Restricted administrative sorting options (`Missing Scans First`, `Incomplete Metadata`) and `Tour Filter` to authenticated admin sessions (`.admin-only-control`)
+  - Automatic fallback to standard date sorting for non-authenticated visitors
 
 ### Analytics & Mapping (`stats.html`)
 - [x] **Interactive World Tour Map**
@@ -39,12 +42,22 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Live `<datalist>` selector populated with unique existing tours from dataset
   - "➕ New Tour" quick action for seamless addition of new tour titles
   - Real-time auto-generated read-only `TOUR_ID` slug creation (`tour-name-year`)
+  - "🧹 Reset Custom Tours" utility clearing unpersisted temporary inputs and rebuilding lists exclusively from valid CSV records
 - [x] **Admin Authentication Gate**
   - Secured session access via GitHub Personal Access Token (PAT)
 - [x] **Direct GitHub v2 Publishing**
   - 1-click live commit/publishing targeting `19forever/joe-jackson-tickets-v2` via GitHub REST API
   - Safe UTF-8 Base64 encoding pipeline preventing character corruption on setlist saves
   - Embedded console debug logging and target repository status toasts
+- [x] **Multi-Tier Robust Data Engine**
+  - Multi-tier fallback strategy (PapaParse direct download -> local fetch -> GitHub Raw URL fallback -> mock placeholder) guaranteeing dataset availability across all sandbox and deployment environments
+- [x] **Unassigned Scans Inbox Tool**
+  - Direct integration with GitHub REST API (`/scans/` contents endpoint)
+  - Differential analysis detecting uploaded image files (`.jpg`, `.png`, `.webp`) unlinked to any CSV record
+  - Interactive cards featuring hover-zoom thumbnail popovers, full filename displays (`word-break: break-word`), and 1-click "➕ Create Record" pre-filling
+- [x] **Context-Aware Navigation Pipeline**
+  - Filter and sort state preservation across URL query strings (`search`, `category`, `tour`, `sort`)
+  - Editor sub-indexing allowing Next/Previous button navigation strictly bounded to active filtered subsets
 - [x] **Strict Multi-Criteria Duplicate Detection**
   - Real-time duplicate prevention validating combination of Date (`DATUM`), City (`MESTO`), AND Category (`KATEGORIE`)
   - Dynamic re-evaluation on category selection change
@@ -90,20 +103,6 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - **Unified `localStorage` Manager:** Centralize all application state (GitHub token, repository settings, active layout views, sorting orders, and category filters) into a single key-value wrapper to eliminate legacy key fallbacks (`jj_github_pat` vs. `gh_token`).
   - **Isolated GitHub API Service (`github-service.js`):** Extract GitHub REST API operations (SHA retrieval, UTF-8 Base64 encoding, commits, and error handling for 401/403/404 HTTP codes) out of `edit_ticket_new.html` into a dedicated, reusable module.
   - **Shared Tour Slug & Form Helpers:** Consolidate tour selector datalists, auto-slug generation (`TOUR_ID`), and date parsing logic shared between `app.js`, `edit_ticket_new.html`, and `ticket_form.html`.
-- [ ] **Context-Aware Admin Editor Form Fields (`edit_ticket_new.html`)**
-  - Dynamically show/hide non-relevant input fields based on selected `KATEGORIE` (e.g., hide concert setlist, date, and venue inputs when editing tour-wide items like Passes or Tour Books).
-- [ ] **Community & Fan Interactivity Engine (Supabase / Cloudflare D1 Backend)**
-  - **Setlist.fm Import:** Sync user attendance via Setlist.fm public API (`/user/{userId}/attended`) to automatically display attendance badges.
-  - **Personal Concert Statuses:** User interactive badges per show (*"I Was There"*, *"I Own Ticket"*, *"Ticket Lost/Traded"*, *"I Have Audio Recording"*).
-  - **Concert Memories & Stories:** Micro-forum section allowing registered fans to share personal concert anecdotes per date.
-  - **Data Correction & Bootleg Submissions:** Quick-action reporting tool for missing setlists or rare audio recording details.
-  - **Personal Concert Passport:** Generatable summary card displaying personal attendance stats across tours, countries, and venues.
-- [ ] **Fan Submission Portal with Cloud Storage**
-  - Direct image upload pipeline using S3 / Cloudflare R2
-- [-] **Streaming Platform Integration**
-  - Direct Spotify / Apple Music setlist playback links
-      - tested, but failed to generate custom playlists
-## Post-Launch Enhancements & Future Upgrades
 - [ ] **Context-Aware Admin Editor Form Fields (`edit_ticket_new.html`)**
   - Dynamically show/hide non-relevant input fields based on selected `KATEGORIE` (e.g., hide concert setlist, date, and venue inputs when editing tour-wide items like Passes or Tour Books).
 - [ ] **Community & Fan Interactivity Engine (Supabase / Cloudflare D1 Backend)**
