@@ -1732,51 +1732,43 @@
         return;
       }
 
-      showStatus('⚡ Fetching songs via official Setlist.fm API...', 'yellow');
+      showStatus('⚡ Fetching songs via Cloudflare Worker proxy...', 'yellow');
 
-      const apiKey = '3pc6VtmOHzQbQVh9xedw_LLpNRCCfDhEvop7';
-      const targetApiUrl = `https://api.setlist.fm/rest/1.0/setlist/${setlistId}`;
       let data = null;
       let lastError = null;
 
-      // Attempt 1: corsproxy.org with official API key header
+      // Attempt 1: Correct Cloudflare Worker path format /setlist/{id}
       try {
-        const proxyUrl = `https://corsproxy.org/?${encodeURIComponent(targetApiUrl)}`;
-        const res = await fetch(proxyUrl, {
-          headers: {
-            'x-api-key': apiKey,
-            'Accept': 'application/json'
-          }
-        });
+        const workerUrl1 = `https://jj-setlist-proxy.marek-kraus.workers.dev/setlist/${setlistId}`;
+        const res = await fetch(workerUrl1, { headers: { 'Accept': 'application/json' } });
         if (res.ok) {
           data = await res.json();
         } else {
-          throw new Error(`Corsproxy HTTP ${res.status}`);
+          throw new Error(`Worker HTTP ${res.status}`);
         }
       } catch (err1) {
-        console.warn('Attempt 1 (corsproxy.org) failed:', err1);
+        console.warn('Worker attempt 1 (/setlist/id) failed:', err1);
         lastError = err1;
       }
 
-      // Attempt 2: allorigins.win JSON wrapper fallback
+      // Attempt 2: Cloudflare Worker query format ?setlistId={id} or ?url={id}
       if (!data) {
         try {
-          const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetApiUrl + '?x-api-key=' + apiKey)}`;
-          const res = await fetch(allOriginsUrl);
+          const workerUrl2 = `https://jj-setlist-proxy.marek-kraus.workers.dev/?setlistId=${setlistId}`;
+          const res = await fetch(workerUrl2, { headers: { 'Accept': 'application/json' } });
           if (res.ok) {
-            const wrapper = await res.json();
-            if (wrapper && wrapper.contents) {
-              data = typeof wrapper.contents === 'string' ? JSON.parse(wrapper.contents) : wrapper.contents;
-            }
+            data = await res.json();
+          } else {
+            throw new Error(`Worker HTTP ${res.status}`);
           }
         } catch (err2) {
-          console.warn('Attempt 2 (allorigins wrapper) failed:', err2);
+          console.warn('Worker attempt 2 (?setlistId=) failed:', err2);
           lastError = err2;
         }
       }
 
       if (!data) {
-        showStatus('❌ Failed to fetch Setlist.fm API. Please check console or try again later.', 'red');
+        showStatus('❌ Worker fetch failed: ' + (lastError ? lastError.message : 'Unknown error'), 'red');
         return;
       }
 
@@ -1804,7 +1796,7 @@
           const countEl = getField('POCET_SKLADEB');
           if (countEl) countEl.value = songs.length;
           recalculateSongCount();
-          showStatus(`✅ Successfully fetched ${songs.length} songs via official Setlist.fm API`, 'green');
+          showStatus(`✅ Successfully fetched ${songs.length} songs via Cloudflare Worker`, 'green');
         } else {
           showStatus('⚠️ No songs found in this setlist on Setlist.fm.', 'yellow');
         }
