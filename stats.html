@@ -504,7 +504,7 @@
         if (isValid(item.SETLIST)) {
           const songs = item.SETLIST.split(',').map(s => s.trim()).filter(Boolean);
           songs.forEach(song => {
-            if (song.length > 2 && song.length < 50) {
+            if (song.length >= 2 && song.length < 60 && !song.startsWith('[')) {
               songsMap[song] = (songsMap[song] || 0) + 1;
             }
           });
