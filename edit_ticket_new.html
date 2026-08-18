@@ -566,6 +566,19 @@
           </a>
         </div>
       </div>
+
+      <!-- Unassigned Scans Inbox -->
+      <div style="margin-top: 20px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px;">
+        <h4 style="margin: 0 0 8px 0; font-size: 0.85rem; color: var(--accent-yellow); display: flex; align-items: center; justify-content: space-between;">
+          <span>📂 Unassigned Scans Inbox</span>
+          <span id="unassignedCountBadge" style="font-size: 0.75rem; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px; color: var(--text-muted); display: none;">0</span>
+        </h4>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; line-height: 1.4;">
+          Find images uploaded to <code>/scans/</code> that haven't been linked to any record yet.
+        </p>
+        <button type="button" class="btn-token" id="btnScanFolder" onclick="scanUnassignedImages()" style="width: 100%; margin-top: 6px;">🔍 Scan /scans/ Folder</button>
+        <div id="unassignedScansList" style="margin-top: 10px; max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
+      </div>
     </div>
 
     <!-- Right Column: Compact Form -->
@@ -1439,6 +1452,139 @@
       populateJumpDropdown();
       loadRecordByIndex(fullCsvData.length - 1);
       showStatus(`📋 Duplicated record as ${newId}.`, 'green');
+    }
+
+    async function scanUnassignedImages() {
+      const container = document.getElementById('unassignedScansList');
+      const scanBtn = document.getElementById('btnScanFolder');
+      if (!container) return;
+
+      if (scanBtn) scanBtn.disabled = true;
+      container.innerHTML = '<div style="font-size: 0.8rem; color: var(--accent-yellow); text-align: center; padding: 10px;">🔍 Scanning /scans/ directory...</div>';
+
+      try {
+        const cfg = typeof StorageService !== 'undefined' && typeof StorageService.getGitHubConfig === 'function'
+          ? StorageService.getGitHubConfig()
+          : { token: safeGetStorage('gh_token') || safeGetStorage('jj_github_pat') || '' };
+        const token = cfg.token || safeGetStorage('gh_token') || safeGetStorage('jj_github_pat') || '';
+
+        const headers = { 'Accept': 'application/vnd.github.v3+json' };
+        if (token) {
+          headers['Authorization'] = `token ${token}`;
+        }
+
+        const res = await fetch('https://api.github.com/repos/19forever/joe-jackson-tickets-v2/contents/scans', { headers });
+        if (!res.ok) {
+          if (res.status === 403) {
+            throw new Error('GitHub API rate limit reached. Please set a GitHub PAT via "🔑 PAT Settings" above.');
+          }
+          throw new Error(`GitHub API returned status ${res.status}: ${res.statusText}`);
+        }
+
+        const files = await res.json();
+        if (!Array.isArray(files)) {
+          throw new Error('Unexpected response format from GitHub API.');
+        }
+
+        // Collect all assigned image filenames from fullCsvData
+        const assignedSet = new Set();
+        if (Array.isArray(fullCsvData)) {
+          fullCsvData.forEach(row => {
+            if (!row) return;
+            const sken = row.SOUBOR_SKEN || row.soubor_sken || '';
+            if (typeof sken === 'string' && sken.trim()) {
+              sken.split(',').forEach(part => {
+                const trimmed = part.trim();
+                if (trimmed) {
+                  assignedSet.add(trimmed.toLowerCase());
+                  const base = trimmed.split('/').pop().toLowerCase();
+                  assignedSet.add(base);
+                }
+              });
+            }
+          });
+        }
+
+        const imageExtRegex = /\.(jpe?g|png|webp|gif|bmp)$/i;
+        const unassigned = files.filter(f => {
+          if (f.type !== 'file') return false;
+          if (!imageExtRegex.test(f.name)) return false;
+          return !assignedSet.has(f.name.toLowerCase());
+        });
+
+        container.innerHTML = '';
+        const countBadge = document.getElementById('unassignedCountBadge');
+        if (countBadge) {
+          countBadge.textContent = unassigned.length;
+          countBadge.style.display = 'inline-block';
+        }
+
+        if (unassigned.length === 0) {
+          container.innerHTML = '<div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px;">🎉 All scan images in /scans/ are assigned to records!</div>';
+          showStatus('✅ No unassigned images found in /scans/.', 'green');
+          return;
+        }
+
+        showStatus(`📂 Found ${unassigned.length} unassigned scan image(s).`, 'yellow');
+
+        unassigned.forEach(item => {
+          const card = document.createElement('div');
+          card.style.cssText = 'display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px;';
+
+          const leftDiv = document.createElement('div');
+          leftDiv.style.cssText = 'display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;';
+
+          const img = document.createElement('img');
+          img.src = item.download_url || `./scans/${encodeURIComponent(item.name)}`;
+          img.alt = item.name;
+          img.style.cssText = 'width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color); background: #000; flex-shrink: 0;';
+          img.onerror = function() {
+            this.src = `./scans/${encodeURIComponent(item.name)}`;
+          };
+
+          const nameSpan = document.createElement('span');
+          nameSpan.textContent = item.name;
+          nameSpan.title = item.name;
+          nameSpan.style.cssText = 'font-size: 0.75rem; color: var(--text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; flex: 1;';
+
+          leftDiv.appendChild(img);
+          leftDiv.appendChild(nameSpan);
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn-add-new';
+          btn.style.cssText = 'padding: 4px 8px; font-size: 0.75rem; white-space: nowrap; flex-shrink: 0;';
+          btn.textContent = '➕ Create Record';
+          btn.onclick = function() {
+            createRecordFromScan(item.name);
+          };
+
+          card.appendChild(leftDiv);
+          card.appendChild(btn);
+          container.appendChild(card);
+        });
+
+      } catch (err) {
+        console.error("Scan folder error:", err);
+        container.innerHTML = `<div style="font-size: 0.75rem; color: #f87171; padding: 8px; background: rgba(220,38,38,0.1); border-radius: 4px; line-height: 1.4;">❌ ${err.message}</div>`;
+        showStatus('❌ Failed to scan /scans/ folder: ' + err.message, 'red');
+      } finally {
+        if (scanBtn) scanBtn.disabled = false;
+      }
+    }
+
+    function createRecordFromScan(filename) {
+      if (!filename) return;
+      addNewRecord();
+      const skenInput = getField('SOUBOR_SKEN');
+      if (skenInput) {
+        skenInput.value = filename;
+        skenInput.dispatchEvent(new Event('input'));
+        skenInput.dispatchEvent(new Event('change'));
+      }
+      updateImageFromInput();
+      scanUnassignedImages();
+      showStatus(`✅ Created new record prefilled with scan: ${filename}`, 'green');
     }
 
     function utf8_to_b64(str) {
