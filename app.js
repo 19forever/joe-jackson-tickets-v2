@@ -695,9 +695,16 @@ function openVideoModal(ticketIndex) {
 
   if (mediaInfo.type === 'audio') {
     frameWrapper.innerHTML = `
-      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; padding: 20px; box-sizing: border-box;">
-        <img src="${imgSrc}" alt="Ticket Scan" onerror="this.onerror=null; this.src='${MISSING_TICKET_SVG}';" style="max-height: 320px; object-fit: contain; margin: 0 auto 15px auto; display: block; border-radius: 8px;">
-        <audio controls autoplay src="${mediaInfo.src}" style="width: 100%; max-width: 500px; display: block; margin: 0 auto;"></audio>
+      <div class="jj-audio-player-wrapper">
+        <img src="${imgSrc}" class="jj-audio-ticket-preview" alt="Ticket scan" onerror="this.onerror=null; this.src='${MISSING_TICKET_SVG}';">
+        <audio controls autoplay src="${mediaInfo.src}" style="width: 100%; max-width: 500px; display: block;"></audio>
+      </div>
+    `;
+  } else if (mediaInfo.type === 'archive') {
+    frameWrapper.innerHTML = `
+      <div class="jj-audio-player-wrapper">
+        <img src="${imgSrc}" class="jj-audio-ticket-preview" alt="Ticket scan" onerror="this.onerror=null; this.src='${MISSING_TICKET_SVG}';">
+        <iframe id="videoIframe" src="${mediaInfo.src}" style="width: 100%; max-width: 500px; height: 60px; border: none; border-radius: 4px;" allow="autoplay"></iframe>
       </div>
     `;
   } else {
