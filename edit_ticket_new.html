@@ -1734,58 +1734,56 @@
 
       showStatus('⚡ Fetching songs via official Setlist.fm API...', 'yellow');
 
+      const apiKey = '3pc6VtmOHzQbQVh9xedw_LLpNRCCfDhEvop7';
+      const targetApiUrl = `https://api.setlist.fm/rest/1.0/setlist/${setlistId}`;
       let data = null;
       let lastError = null;
 
-      // 1. Attempt primary fetch via custom Cloudflare Worker proxy
+      // Attempt 1: corsproxy.org with official API key header
       try {
-        const workerUrl = `https://jj-setlist-proxy.19forever.workers.dev/setlist/${setlistId}`;
-        const res = await fetch(workerUrl, {
+        const proxyUrl = `https://corsproxy.org/?${encodeURIComponent(targetApiUrl)}`;
+        const res = await fetch(proxyUrl, {
           headers: {
+            'x-api-key': apiKey,
             'Accept': 'application/json'
           }
         });
         if (res.ok) {
           data = await res.json();
         } else {
-          throw new Error(`Worker HTTP ${res.status}`);
+          throw new Error(`Corsproxy HTTP ${res.status}`);
         }
-      } catch (workerErr) {
-        console.warn('Cloudflare worker proxy attempt failed, falling back to direct API via corsproxy:', workerErr);
-        lastError = workerErr;
+      } catch (err1) {
+        console.warn('Attempt 1 (corsproxy.org) failed:', err1);
+        lastError = err1;
       }
 
-      // 2. Secondary fallback via corsproxy with official API key and endpoint
+      // Attempt 2: allorigins.win JSON wrapper fallback
       if (!data) {
         try {
-          const directApiUrl = `https://api.setlist.fm/rest/1.0/setlist/${setlistId}`;
-          const proxyApiUrl = `https://corsproxy.io/?${encodeURIComponent(directApiUrl)}`;
-          const res = await fetch(proxyApiUrl, {
-            headers: {
-              'x-api-key': SETLIST_FM_API_KEY,
-              'Accept': 'application/json'
-            }
-          });
+          const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetApiUrl + '?x-api-key=' + apiKey)}`;
+          const res = await fetch(allOriginsUrl);
           if (res.ok) {
-            data = await res.json();
-          } else {
-            throw new Error(`Direct API HTTP ${res.status}`);
+            const wrapper = await res.json();
+            if (wrapper && wrapper.contents) {
+              data = typeof wrapper.contents === 'string' ? JSON.parse(wrapper.contents) : wrapper.contents;
+            }
           }
-        } catch (directErr) {
-          console.error('Direct Setlist.fm API fetch failed:', directErr);
-          lastError = directErr;
+        } catch (err2) {
+          console.warn('Attempt 2 (allorigins wrapper) failed:', err2);
+          lastError = err2;
         }
       }
 
       if (!data) {
-        showStatus('❌ Failed to fetch Setlist.fm API: ' + (lastError ? lastError.message : 'Unknown error'), 'red');
+        showStatus('❌ Failed to fetch Setlist.fm API. Please check console or try again later.', 'red');
         return;
       }
 
       try {
         const songs = [];
-        if (data.sets) {
-          const sets = Array.isArray(data.sets.set) ? data.sets.set : (data.sets.set ? [data.sets.set] : []);
+        if (data.sets && data.sets.set) {
+          const sets = Array.isArray(data.sets.set) ? data.sets.set : [data.sets.set];
           sets.forEach(s => {
             if (!s) return;
             const songList = Array.isArray(s.song) ? s.song : (s.song ? [s.song] : []);
@@ -1802,13 +1800,9 @@
 
         if (songs.length > 0) {
           const setlistEl = getField('SETLIST');
-          if (setlistEl) {
-            setlistEl.value = songs.join(', ');
-          }
+          if (setlistEl) setlistEl.value = songs.join(', ');
           const countEl = getField('POCET_SKLADEB');
-          if (countEl) {
-            countEl.value = songs.length;
-          }
+          if (countEl) countEl.value = songs.length;
           recalculateSongCount();
           showStatus(`✅ Successfully fetched ${songs.length} songs via official Setlist.fm API`, 'green');
         } else {
