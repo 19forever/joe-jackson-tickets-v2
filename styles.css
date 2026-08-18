@@ -763,7 +763,7 @@ header {
   color: var(--text-main);
   padding: 5px 8px;
   border-radius: 6px;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
@@ -786,10 +786,72 @@ header {
   background: rgba(245, 158, 11, 0.15);
 }
 
-.icon-btn.badge-setlist {
-  background: rgba(245, 158, 11, 0.15);
-  border-color: rgba(245, 158, 11, 0.35);
-  color: var(--accent-yellow);
+/* Video / Audio Button */
+.btn-action-video {
+  background: rgba(220, 38, 38, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.6);
+  color: #fca5a5;
+}
+
+.btn-action-video:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+}
+
+/* Setlist Badge / Button */
+.badge-setlist,
+.btn-action-setlist {
+  background: rgba(245, 158, 11, 0.25);
+  border: 1px solid #f59e0b;
+  color: #fbbf24;
+}
+
+.badge-setlist:hover,
+.btn-action-setlist:hover {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #000000;
+  font-weight: bold;
+}
+
+/* Lineup Button */
+.btn-action-lineup {
+  background: rgba(14, 165, 233, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  color: #7dd3fc;
+}
+
+.btn-action-lineup:hover {
+  background: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+}
+
+/* Related Items Button */
+.btn-action-related {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(52, 211, 153, 0.5);
+  color: #6ee7b7;
+}
+
+.btn-action-related:hover {
+  background: #059669;
+  border-color: #059669;
+  color: #ffffff;
+}
+
+/* Admin Edit Button */
+.btn-action-edit {
+  background: rgba(30, 30, 30, 0.6);
+  border: 1px solid #4b5563;
+  color: var(--text-main);
+}
+
+.btn-action-edit:hover {
+  background: #374151;
+  border-color: #9ca3af;
+  color: #ffffff;
 }
 
 .collapsible-content {
