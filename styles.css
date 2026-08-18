@@ -33,6 +33,48 @@ body.font-condensed, html.font-condensed {
   --font-weight-heading: 700;
 }
 
+body.font-condensed {
+  font-size: 1.08rem;
+  line-height: 1.35;
+}
+
+body.font-condensed h1,
+body.font-condensed .title-area h1 {
+  font-size: 1.48rem;
+  letter-spacing: 0.5px;
+}
+
+body.font-condensed h2 {
+  font-size: 1.3rem;
+  letter-spacing: 0.5px;
+}
+
+body.font-condensed h3,
+body.font-condensed .ticket-card h3 {
+  font-size: 1.15rem;
+  letter-spacing: 0.5px;
+}
+
+body.font-condensed h4,
+body.font-condensed h5,
+body.font-condensed h6 {
+  letter-spacing: 0.5px;
+}
+
+body.font-condensed button,
+body.font-condensed input,
+body.font-condensed select,
+body.font-condensed textarea,
+body.font-condensed .btn-contribute,
+body.font-condensed .font-switcher-select,
+body.font-condensed .btn-secondary,
+body.font-condensed .btn-filter,
+body.font-condensed .icon-btn,
+body.font-condensed .btn-action-related,
+body.font-condensed .otd-btn {
+  font-size: 0.88rem;
+}
+
 body.font-light, html.font-light {
   --font-primary: 'Inter', sans-serif;
   --font-family: var(--font-primary);
