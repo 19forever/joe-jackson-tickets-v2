@@ -249,34 +249,36 @@ header {
 /* Search Controls Bar */
 .controls {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   background-color: var(--bg-panel);
-  padding: 12px 15px;
+  padding: 10px 14px;
   border-radius: 8px;
   border: 1px solid var(--border-color);
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .search-input-wrapper {
   position: relative;
   display: flex;
   align-items: center;
-  flex: 1;
-  min-width: 200px;
+  flex: 1 1 180px;
+  min-width: 140px;
 }
 
 .search-input-wrapper input {
   background-color: #0d0d0d;
   border: 1px solid var(--border-color-light) !important;
   color: var(--text-main);
-  padding: 8px 36px 8px 12px;
+  padding: 8px 32px 8px 12px;
+  height: 36px;
   border-radius: 6px;
   font-size: 0.85rem;
   width: 100%;
   outline: none;
   box-shadow: none;
   transition: box-shadow 0.2s, border-color 0.2s;
+  box-sizing: border-box;
 }
 
 .search-input-wrapper input:focus,
@@ -287,11 +289,11 @@ header {
 
 .search-clear-btn {
   position: absolute;
-  right: 10px;
+  right: 8px;
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   cursor: pointer;
   display: none;
   padding: 2px 4px;
@@ -308,18 +310,20 @@ header {
   background-color: #1a1a1a;
   border: 1px solid var(--border-color-light);
   color: var(--accent-yellow);
-  padding: 8px 14px;
+  padding: 8px 12px;
+  height: 36px;
+  min-width: 36px;
   border-radius: 6px;
-  font-size: 0.8rem;
+  font-size: 1rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .surprise-btn:hover {
@@ -327,30 +331,41 @@ header {
   color: #000;
   border-color: var(--accent-yellow);
   box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+  transform: translateY(-1px);
 }
 
 .controls select {
   background-color: #0d0d0d;
   border: 1px solid var(--border-color);
   color: var(--text-main);
-  padding: 8px 12px;
+  padding: 0 10px;
+  height: 36px;
   border-radius: 6px;
   font-size: 0.85rem;
   outline: none;
+  box-sizing: border-box;
 }
 
-#yearFilter {
-  width: 105px !important;
+#tourFilter {
+  flex: 1 1 160px;
+  min-width: 120px;
+  max-width: 220px;
+  flex-shrink: 0;
+}
+
+#cityFilter {
+  width: 110px !important;
   flex-shrink: 0;
 }
 
 #sortFilter {
-  min-width: 185px !important;
+  min-width: 155px !important;
+  max-width: 175px;
   flex-shrink: 0;
 }
 
-#cityFilter,
 #pageSizeFilter {
+  width: 88px !important;
   flex-shrink: 0;
 }
 
@@ -360,7 +375,8 @@ header {
 
 .layout-toggles {
   display: flex;
-  gap: 5px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .toggle-btn {
@@ -368,13 +384,16 @@ header {
   border: 1px solid var(--border-color);
   color: var(--text-muted);
   width: 36px;
-  height: 35px;
+  height: 36px;
   border-radius: 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.1rem;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
 }
 
 .toggle-btn.active {
@@ -875,6 +894,13 @@ header {
   }
 }
 
+@media (max-width: 1024px) {
+  .controls {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
 @media (max-width: 768px) {
   body {
     padding: 0 12px 20px 12px;
@@ -941,18 +967,22 @@ header {
   .controls select {
     font-size: 16px !important;
     width: 100% !important;
+    height: 40px !important;
   }
 
-  #yearFilter,
-  #sortFilter {
+  #cityFilter,
+  #sortFilter,
+  #pageSizeFilter,
+  #tourFilter {
     width: 100% !important;
     min-width: unset !important;
+    max-width: unset !important;
   }
 
   .surprise-btn {
     width: 100%;
+    height: 40px;
     justify-content: center;
-    padding: 10px;
   }
 
   .layout-toggles {
@@ -962,7 +992,7 @@ header {
 
   .toggle-btn {
     flex-grow: 1;
-    height: 38px;
+    height: 40px;
   }
 
   .tickets-container.grid-view {

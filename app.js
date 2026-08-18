@@ -318,9 +318,8 @@ function setupEventListeners() {
   }
 
   document.getElementById('searchClearBtn')?.addEventListener('click', clearSearchInput);
-  document.getElementById('reshuffleBtn')?.addEventListener('click', reshuffleAndRender);
-  document.getElementById('surpriseBtn')?.addEventListener('click', openSurpriseTicket);
-  document.getElementById('yearFilter')?.addEventListener('change', filterData);
+  (document.getElementById('reshuffleBtn') || document.getElementById('btnReshuffle'))?.addEventListener('click', reshuffleAndRender);
+  (document.getElementById('surpriseBtn') || document.getElementById('btnSurprise'))?.addEventListener('click', openSurpriseTicket);
   document.getElementById('cityFilter')?.addEventListener('change', filterData);
   
   const sortSelect = document.getElementById('sortFilter');
@@ -764,8 +763,8 @@ function checkOnThisDayAnniversary() {
         openDirectImagePreview(targetIndex);
       } else {
         clearSearchInput();
-        document.getElementById('yearFilter').value = '';
-        document.getElementById('cityFilter').value = '';
+        const cityFilter = document.getElementById('cityFilter');
+        if (cityFilter) cityFilter.value = '';
         currentCategory = 'ALL';
         filterData();
         setTimeout(() => {
@@ -977,22 +976,6 @@ function updateYearBadge() {
 }
 
 function populateFilters() {
-  const yearSelect = document.getElementById('yearFilter');
-  if (yearSelect) {
-    const yearsSet = new Set();
-    allTickets.forEach(t => {
-      if (t.DATUM && t.DATUM.length >= 4) {
-        const y = parseInt(t.DATUM.substring(0, 4), 10);
-        if (y > 1900) yearsSet.add(y);
-      }
-    });
-    [...yearsSet].sort((a, b) => b - a).forEach(year => {
-      const opt = document.createElement('option');
-      opt.value = year; opt.textContent = year;
-      yearSelect.appendChild(opt);
-    });
-  }
-
   const citySelect = document.getElementById('cityFilter');
   if (citySelect) {
     const citySet = new Set();
@@ -1075,7 +1058,6 @@ function changePageSize() {
 function filterData() {
   const rawQuery = document.getElementById('searchInput')?.value || '';
   const query = rawQuery.toLowerCase().trim();
-  const selectedYear = document.getElementById('yearFilter')?.value || '';
   const selectedCity = document.getElementById('cityFilter')?.value || '';
   const sort = document.getElementById('sortFilter')?.value || 'random';
 
@@ -1083,7 +1065,6 @@ function filterData() {
 
   const matchesBase = allTickets.filter(t => {
     const locationText = formatLocationText(t).toLowerCase();
-    const itemYear = (t.DATUM && t.DATUM.length >= 4) ? t.DATUM.substring(0, 4) : '';
     const rawDate = (t.DATUM || '').toLowerCase();
     const formattedDate = formatDisplayDate(t.DATUM).toLowerCase();
     const venue = (t.VENUE || t.MISTO_KONANI || '').toLowerCase();
@@ -1115,10 +1096,8 @@ function filterData() {
       tourId.includes(query);
 
     const qMatch = !query || dateMatch || textMatch;
-      
-    const yMatch = !selectedYear || String(itemYear) === String(selectedYear);
     const cMatch = !selectedCity || city === selectedCity.toLowerCase();
-    return qMatch && yMatch && cMatch;
+    return qMatch && cMatch;
   });
 
   renderCategoryTabs(matchesBase);

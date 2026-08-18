@@ -57,9 +57,6 @@
         <a href="stats.html" class="btn-contribute" title="View tour map & museum analytics">
           📊 Stats & Map
         </a>
-        <a href="edit_ticket_new.html" id="adminEditorLink" class="btn-contribute" style="display: none;" title="Open CSV Record Editor">
-          ✏️ Editor
-        </a>
         <button id="adminLockBtn" class="btn-contribute" style="display: none; background: #dc2626; color: #ffffff; border: none; cursor: pointer; font-family: inherit;" onclick="lockAdminSession()" title="Lock Admin Session and return to Public Mode">
           🔒 Lock Admin
         </button>
@@ -96,10 +93,6 @@
         <option value="">All Tours</option>
       </select>
 
-      <button class="surprise-btn" id="reshuffleBtn" title="Reshuffle all records">🎲 Reshuffle</button>
-      <button class="surprise-btn" id="surpriseBtn" title="Open a random memorabilia record">✨ Surprise Me!</button>
-
-      <select id="yearFilter"><option value="">All Years</option></select>
       <select id="cityFilter"><option value="">All Cities</option></select>
       <select id="sortFilter" title="Sort tickets">
         <option value="random">🎲 Random / Shuffled</option>
@@ -111,6 +104,10 @@
         <option value="missing_setlists" class="admin-only-option">📝 Missing Setlists First</option>
         <option value="incomplete_metadata" class="admin-only-option">⚠️ Incomplete Metadata First</option>
       </select>
+
+      <button class="surprise-btn" id="reshuffleBtn" title="Reshuffle current results">🎲</button>
+      <button class="surprise-btn" id="surpriseBtn" title="Surprise me! (Random item)">✨</button>
+
       <select id="pageSizeFilter">
         <option value="25">25 / page</option>
         <option value="50" selected>50 / page</option>
