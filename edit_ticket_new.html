@@ -756,7 +756,7 @@
             <label for="edit_SETLIST_URL">Setlist.fm URL</label>
             <div class="input-with-btn">
               <input type="text" id="edit_SETLIST_URL" name="SETLIST_URL" placeholder="https://www.setlist.fm/setlist/joe-jackson/...">
-              <button class="btn-fetch-setlist" type="button" onclick="fetchSetlistFromUrl()">⚡ Fetch Songs</button>
+              <button class="btn-fetch-setlist" type="button" onclick="fetchSetlistSongs()">⚡ Fetch Songs</button>
             </div>
           </div>
           <div class="form-group">
@@ -1706,7 +1706,7 @@
       }
     }
 
-    function fetchSetlistFromUrl() {
+    async function fetchSetlistSongs() {
       const urlInput = getField('SETLIST_URL');
       const url = urlInput ? urlInput.value.trim() : '';
       if (!url) {
@@ -1714,30 +1714,95 @@
         return;
       }
       showStatus('⚡ Fetching songs from Setlist.fm...', 'yellow');
-      fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`)
-        .then(res => res.text())
-        .then(html => {
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-          const songNodes = doc.querySelectorAll('.songPart .songLabel, .setlistList .songLabel');
-          const songTitles = [];
-          songNodes.forEach(node => {
-            const title = node.textContent.trim();
-            if (title) songTitles.push(title);
+
+      const encodedUrl = encodeURIComponent(url);
+      const proxies = [
+        `https://jj-setlist-proxy.19forever.workers.dev/?url=${encodedUrl}`,
+        `https://corsproxy.io/?${encodedUrl}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`
+      ];
+
+      let html = null;
+      let lastError = null;
+
+      for (const proxyUrl of proxies) {
+        try {
+          const res = await fetch(proxyUrl, {
+            headers: {
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+            }
           });
-          if (songTitles.length > 0) {
-            const setlistEl = getField('SETLIST');
-            if (setlistEl) setlistEl.value = songTitles.join(', ');
-            recalculateSongCount();
-            showStatus(`✅ Successfully imported ${songTitles.length} songs from Setlist.fm!`, 'green');
-          } else {
-            showStatus('⚠️ Could not extract song labels from page. Please enter songs manually.', 'yellow');
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
           }
-        })
-        .catch(err => {
-          showStatus('❌ Error scraping Setlist.fm: ' + err.message, 'red');
+          const text = await res.text();
+          if (text && (text.includes('songName') || text.includes('songLabel') || text.includes('setlistList') || text.includes('/song/'))) {
+            html = text;
+            break;
+          } else if (text && text.length > 500) {
+            html = text;
+            break;
+          }
+        } catch (err) {
+          lastError = err;
+          console.warn(`Proxy ${proxyUrl} failed:`, err);
+        }
+      }
+
+      if (!html) {
+        showStatus('❌ Failed to fetch Setlist.fm data via proxies. Please check the URL or try again.', 'red');
+        return;
+      }
+
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        const songSelectors = [
+          '.songPart .songLabel',
+          '.setlistList .songLabel',
+          '.song .songName',
+          '.songName',
+          'li.setlistSong a.songLabel',
+          'li.setlistSong a[href*="/song/"]',
+          'a[href*="/song/"]'
+        ];
+
+        let songNodes = [];
+        for (const selector of songSelectors) {
+          const nodes = doc.querySelectorAll(selector);
+          if (nodes && nodes.length > 0) {
+            songNodes = Array.from(nodes);
+            break;
+          }
+        }
+
+        const songTitles = [];
+        songNodes.forEach(node => {
+          let title = node.textContent.trim();
+          title = title.replace(/\s+/g, ' ');
+          if (title && !title.toLowerCase().startsWith('[intro') && !title.toLowerCase().startsWith('[tape') && !songTitles.includes(title)) {
+            songTitles.push(title);
+          }
         });
+
+        if (songTitles.length > 0) {
+          const setlistEl = getField('SETLIST');
+          if (setlistEl) {
+            setlistEl.value = songTitles.join(', ');
+          }
+          recalculateSongCount();
+          showStatus(`✅ Successfully imported ${songTitles.length} songs from Setlist.fm!`, 'green');
+        } else {
+          showStatus('⚠️ Could not extract song labels from page. Please enter songs manually.', 'yellow');
+        }
+      } catch (parseErr) {
+        showStatus('❌ Error parsing Setlist.fm data: ' + parseErr.message, 'red');
+      }
     }
+    const fetchSetlistFromUrl = fetchSetlistSongs;
+    window.fetchSetlistSongs = fetchSetlistSongs;
+    window.fetchSetlistFromUrl = fetchSetlistFromUrl;
 
     function addNewRecord() {
       saveCurrentFormToMemory();
