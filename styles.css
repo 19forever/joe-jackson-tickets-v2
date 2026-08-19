@@ -812,7 +812,8 @@ header {
 .btn-action-setlist {
   background: rgba(245, 158, 11, 0.25);
   border: 1px solid #f59e0b;
-  color: #fbbf24;
+  color: #fbbf24 !important;
+  font-weight: 400 !important;
   min-width: 3.2rem;
   padding: 0 6px;
   box-sizing: border-box;
