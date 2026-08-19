@@ -1,6 +1,17 @@
 # 🗺️ Joe Jackson Ticket Museum — Roadmap & Project Plan
 
-**Poslední aktualizace / Last Updated:** 18. srpna 2026
+### 🚀 Completed Changes (August 19, 2026)
+
+* **Record Editor (`edit_ticket_new.html`):**
+  * **Tour Name Field Update:** Converted `edit_TOUR_NAME` from a datalist-based input to a full `<select>` element to display all available tours continuously without requiring text truncation or clearing.
+  * **Contributor / Donor Field:** Linked `edit_CONTRIBUTOR` to a dynamic `<datalist>` (`contributorsList`) populated from existing CSV records to allow auto-suggestions while supporting multi-name text entries.
+  * **Record Deletion:** Restored the `Delete` button (`btn-del`) in the navigation bar with confirmation popups and instant memory/state cleanup.
+
+* **Main Public Museum (`index.html` / `app.js` / `styles.css`):**
+  * **Category Badge Logic & Singular Form Fix:** Resolved singular label formatting for `Passes` (`Pass` instead of `Passe`) in `app.js`.
+  * **UI & Layout:** Adjustments in `styles.css` for `.category-badge` (`white-space: nowrap`, `overflow: visible`) to prevent badge text overflow and truncation.
+
+---
 
 ## Overview
 An interactive digital museum and archive dedicated to Joe Jackson's live concert tour history (1978–2026), ticket stubs, venue metadata, setlists, and memorabilia.
