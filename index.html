@@ -79,9 +79,12 @@
         <button id="adminLockBtn" class="btn-contribute" style="display: none; background: #dc2626; color: #ffffff; border: none; cursor: pointer; font-family: inherit;" onclick="lockAdminSession()" title="Lock Admin Session and return to Public Mode">
           🔒 Lock Admin
         </button>
-<button type="button" id="adminLoginLink" class="btn-contribute" style="background: transparent; border: 1px solid var(--border-color-light, #333); cursor: pointer; font-family: inherit;" onclick="handleAdminButtonClick()" title="Admin Login Gate">
-  🔒 Admin
-</button>
+        <a href="edit_ticket_new.html" id="adminEditorLink" class="btn-contribute" style="display: none;" title="Open Ticket Editor">
+          ✏️ Editor
+        </a>
+        <button type="button" id="adminLoginLink" class="btn-contribute" style="background: transparent; border: 1px solid var(--border-color-light, #333); cursor: pointer; font-family: inherit;" onclick="handleAdminLogin()" title="Admin Login Gate">
+          🔒 Admin
+        </button>
         <a href="ticket_form.html" class="btn-contribute" title="Share your concert ticket, pass, or poster with us">
           ➕ Contribute your item
         </a>
@@ -168,33 +171,64 @@
   <script src="storage-service.js"></script>
   <script src="app.js"></script>
 
-<!-- Tour Filter Integration Script -->
+  <!-- Tour Filter & Admin Integration Script -->
   <script>
     (function() {
-      // 1. Globální funkce pro uzamčení admin relace přímo z index.html
+      // 1. Přihlášení do Admin režimu přes prompt
+      function handleAdminLogin() {
+        if (isAdminModeActive()) {
+          const editQuery = typeof getEditUrlParams === 'function' ? getEditUrlParams() : '';
+          window.location.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
+          return;
+        }
+
+        const token = prompt('Zadejte váš GitHub Personal Access Token (PAT) pro přihlášení do Admin módu:');
+        if (token && token.trim().length > 0) {
+          const cleanToken = token.trim();
+          if (typeof StorageService !== 'undefined') {
+            StorageService.setGitHubConfig({ token: cleanToken });
+            StorageService.set('jj_admin_mode', 'true');
+          }
+          try {
+            localStorage.setItem('gh_token', cleanToken);
+            localStorage.setItem('jj_github_pat', cleanToken);
+            localStorage.setItem('jj_admin_mode', 'true');
+          } catch(e) {}
+
+          alert('✅ Admin režim aktivován!');
+          updateAdminSortAndControls();
+          if (typeof filterData === 'function') filterData();
+        } else if (token !== null) {
+          window.location.href = 'edit_ticket_new.html';
+        }
+      }
+      window.handleAdminLogin = handleAdminLogin;
+
+      // 2. Globální funkce pro uzamčení admin relace
       function lockAdminSession() {
         if (typeof StorageService !== 'undefined') {
           StorageService.setGitHubConfig({ token: '' });
           StorageService.remove('jj_admin_mode');
-        } else {
-          try {
-            localStorage.removeItem('gh_token');
-            localStorage.removeItem('jj_github_pat');
-            localStorage.removeItem('jj_admin_mode');
-            sessionStorage.removeItem('jj_admin_mode');
-          } catch(e) {}
+        }
+        try {
+          localStorage.removeItem('gh_token');
+          localStorage.removeItem('jj_github_pat');
+          localStorage.removeItem('jj_admin_mode');
+          sessionStorage.removeItem('jj_admin_mode');
+        } catch(e) {}
+
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('admin')) {
+          url.searchParams.delete('admin');
+          window.history.replaceState(null, '', url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : ''));
         }
 
-        if (window.location.search) {
-          window.location.href = window.location.pathname;
-        } else {
-          if (typeof updateAdminSortAndControls === 'function') updateAdminSortAndControls();
-          if (typeof filterData === 'function') filterData();
-        }
+        updateAdminSortAndControls();
+        if (typeof filterData === 'function') filterData();
       }
       window.lockAdminSession = lockAdminSession;
 
-      // 2. Helper pro kontrolu aktivního Admin módu
+      // 3. Helper pro kontrolu aktivního Admin módu
       function isAdminModeActive() {
         let adminFlag = false;
         let hasPat = false;
@@ -215,13 +249,29 @@
       }
       window.isAdminModeActive = isAdminModeActive;
 
-      // 3. Správa viditelnosti prvků a filtrů
+      // 4. Správa viditelnosti prvků a filtrů
       let sortOptionsCatalog = null;
 
       function updateAdminSortAndControls() {
         const sortSelect = document.getElementById('sortFilter') || document.getElementById('sortSelect');
         const isAdmin = isAdminModeActive();
 
+        // Tlačítka v hlavičce
+        const adminEditorLink = document.getElementById('adminEditorLink');
+        const adminLoginLink = document.getElementById('adminLoginLink');
+        const adminLockBtn = document.getElementById('adminLockBtn');
+
+        if (adminLockBtn) adminLockBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+        if (adminEditorLink) {
+          adminEditorLink.style.display = isAdmin ? 'inline-flex' : 'none';
+          if (typeof getEditUrlParams === 'function') {
+            const editQuery = getEditUrlParams();
+            adminEditorLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
+          }
+        }
+        if (adminLoginLink) adminLoginLink.style.display = isAdmin ? 'none' : 'inline-flex';
+
+        // Možnosti řazení
         if (sortSelect) {
           if (!sortOptionsCatalog) {
             sortOptionsCatalog = Array.from(sortSelect.options).map(opt => ({
@@ -274,6 +324,7 @@
           }
         }
 
+        // Ovládací prvky pouze pro admina
         document.querySelectorAll('.admin-only-control, .admin-only').forEach(el => {
           el.style.display = isAdmin ? 'inline-block' : 'none';
         });
@@ -284,29 +335,7 @@
             tourFilter.style.display = 'inline-block';
           } else {
             tourFilter.style.display = 'none';
-            if (tourFilter.value) {
-              tourFilter.value = '';
-            }
-          }
-        }
-
-        // Synchronizace tlačítek v hlavičce
-        const adminLoginLink = document.getElementById('adminLoginLink') || document.getElementById('adminEditorLink');
-        const adminLockBtn = document.getElementById('adminLockBtn');
-
-        if (adminLockBtn) {
-          adminLockBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-        }
-
-        if (adminLoginLink) {
-          adminLoginLink.style.display = 'inline-flex';
-          adminLoginLink.textContent = isAdmin ? '✏️ Editor' : '🔒 Admin';
-          
-          if (typeof getEditUrlParams === 'function') {
-            const editQuery = getEditUrlParams();
-            adminLoginLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
-          } else {
-            adminLoginLink.href = 'edit_ticket_new.html';
+            if (tourFilter.value) tourFilter.value = '';
           }
         }
       }
@@ -388,10 +417,10 @@
         const newUrl = newQuery ? `${window.location.pathname}?${newQuery}` : window.location.pathname;
         window.history.replaceState(null, '', newUrl);
 
-        const adminLoginLink = document.getElementById('adminLoginLink') || document.getElementById('adminEditorLink');
-        if (adminLoginLink && typeof getEditUrlParams === 'function') {
+        const adminEditorLink = document.getElementById('adminEditorLink');
+        if (adminEditorLink && typeof getEditUrlParams === 'function') {
           const editQuery = getEditUrlParams();
-          adminLoginLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
+          adminEditorLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
         }
       };
 
@@ -526,14 +555,13 @@
         currentPage = 1;
         if (typeof renderPaginated === 'function') renderPaginated();
 
-        const adminLoginLink = document.getElementById('adminLoginLink') || document.getElementById('adminEditorLink');
-        if (adminLoginLink && typeof getEditUrlParams === 'function') {
+        const adminEditorLink = document.getElementById('adminEditorLink');
+        if (adminEditorLink && typeof getEditUrlParams === 'function') {
           const editQuery = getEditUrlParams();
-          adminLoginLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
+          adminEditorLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
         }
       };
 
-      // Spustí se až po kompletním načtení DOM stromu
       document.addEventListener('DOMContentLoaded', () => {
         updateAdminSortAndControls();
 
@@ -586,35 +614,5 @@
     </div>
   </div>
 
-<script>
-function handleAdminButtonClick() {
-  const isAdmin = isAdminModeActive();
-  
-  if (isAdmin) {
-    // Pokud je již admin přihlášen, přejde do editoru
-    const editQuery = typeof getEditUrlParams === 'function' ? getEditUrlParams() : '';
-    window.location.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
-  } else {
-    // Pokud přihlášen není, ihned otevře přihlašovací dialog
-    const token = prompt('Zadejte váš GitHub Personal Access Token (PAT) pro přihlášení do Admin módu:');
-    if (token && token.trim().length > 0) {
-      if (typeof StorageService !== 'undefined') {
-        StorageService.setGitHubConfig({ token: token.trim() });
-        StorageService.set('jj_admin_mode', 'true');
-      } else {
-        localStorage.setItem('gh_token', token.trim());
-        localStorage.setItem('jj_github_pat', token.trim());
-        localStorage.setItem('jj_admin_mode', 'true');
-      }
-      alert('✅ Admin režim aktivován!');
-      updateAdminSortAndControls();
-      if (typeof filterData === 'function') filterData();
-    }
-  }
-}
-window.handleAdminButtonClick = handleAdminButtonClick;
-</script>
-
 </body>
 </html>
-
