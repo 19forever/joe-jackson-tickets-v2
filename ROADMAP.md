@@ -2,6 +2,12 @@
 
 ### 🚀 Completed Changes (August 19, 2026)
 
+* **Admin Authentication & Session Stability (`index.html` / `app.js` / `github-service.js`):**
+  * **Direct Prompt Login & Header Controls:** Restored direct prompt-based GitHub PAT login flow in `index.html` (`handleAdminLogin`). Added dedicated `#adminEditorLink` (`✏️ Editor`) alongside `#adminLoginLink` (`🔒 Admin`) and `#adminLockBtn` (`🔒 Lock Admin`) for clear UI state toggling.
+  * **Session Lock & Cleanup:** Enhanced `lockAdminSession()` to purge local credentials (`gh_token`, `jj_github_pat`, `jj_admin_mode`) and cleanly reset URL query parameters without triggering full browser reloads.
+  * **Infinite Loop Mitigation:** Removed destructive `location.reload()` calls from error handling scripts and `lockAdminSession` to eliminate page lockup loops on authentication failure.
+  * **Graceful GitHub API 401 Handling (`github-service.js`):** Implemented automatic PAT purging on HTTP `401 Unauthorized` responses to prevent stale credentials from breaking public browsing sessions.
+
 * **Record Editor (`edit_ticket_new.html`):**
   * **Tour Name Field Update:** Converted `edit_TOUR_NAME` from a datalist-based input to a full `<select>` element to display all available tours continuously without requiring text truncation or clearing.
   * **Contributor / Donor Field:** Linked `edit_CONTRIBUTOR` to a dynamic `<datalist>` (`contributorsList`) populated from existing CSV records to allow auto-suggestions while supporting multi-name text entries.
@@ -22,7 +28,7 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
 ## 💡 Active Feature Backlog & New Ideas (Up Next)
 
 ### 1. Legal Disclaimer & Copyright Notice Footer
-- [ ] **Copyright & Fair Use Notice (`index.html` / `stats.html`)**:
+- [x] **Copyright & Fair Use Notice (`index.html` / `stats.html`)**:
   - Add a subtle, professional footer disclaimer to all public pages stating:
     - *Non-commercial, educational & fan-archival nature of the museum.*
     - *All trademarks, logos, and artist names belong to Joe Jackson and their respective copyright holders.*
@@ -30,11 +36,11 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
     - *Direct DMCA / Takedown contact email for copyright owners.*
 
 ### 2. Rescheduled & COVID-19 Cancelled Show Handling
-- [ ] **Rescheduled Show Metadata (`ORIGINAL_DATE` / `RESCHEDULED_NOTE`)**:
+- [x] **Rescheduled Show Metadata (`ORIGINAL_DATE` / `RESCHEDULED_NOTE`)**:
   - Keep `DATUM` strictly mapped to the actual performed show date (maintaining timeline and map accuracy).
   - Add optional `ORIGINAL_DATE` or `RESCHEDULED_NOTE` attribute to preserve historical ticket print dates (e.g. ticket printed for Oct 20, 2020, but concert took place May 14, 2022).
   - Display a visual badge on concert cards: `🔄 Rescheduled (Ticket printed for Oct 20, 2020)`.
-- [ ] **Cancelled Show Tracking (`CANCELLED`)**:
+- [x] **Cancelled Show Tracking (`CANCELLED`)**:
   - Support cancelled shows (e.g., COVID-19 cancellations) with dedicated status badges: `❌ Cancelled Show`.
 
 ### 3. Multi-Scan Count Badge on Concert Cards
@@ -50,19 +56,20 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Display a subtle link on item detail cards with 0 songs: *"Know this setlist? Add it on Setlist.fm or contribute a program scan."*
 - [ ] **Verification Filter**:
   - Add quick filter checkboxes in Museum View and Admin Editor to easily isolate unverified shows or shows with missing setlist songs.
-  - 
+
 ### 5. Theme Switcher (Light / Dark / Auto Mode)
 - [ ] **Světlý a tmavý režim (`index.html` / `styles.css`)**:
   - Přidání přepínače motivu vedle přepínače fontů v hlavičce.
   - Vytvoření světlé varianty CSS proměnných (`:root` / `.theme-light`) pro čtení na přímém slunci.
   - Detekce systémového nastavení uživatele (`prefers-color-scheme: dark`).
   - Ukládání preferovaného režimu do `localStorage` (`jj_selected_theme`).
+
 ---
 
 ## ⏳ Pending Client Approval & Pre-Launch Tasks
 
 ### Launch & SEO Essentials
-- [ ] **Legal & Copyright Footer Integration**
+- [x] **Legal & Copyright Footer Integration**
   - Implement non-commercial archival disclaimer and DMCA takedown contact in website footer.
 - [ ] **Search Engine Indexing & Bot Directives**
   - Create `robots.txt` (blocking `/edit_ticket_new.html` from search crawlers).
@@ -187,6 +194,9 @@ An interactive digital museum and archive dedicated to Joe Jackson's live concer
   - Aspect-ratio-preserving canvas watermarker with semi-transparent overlay ("JJ Memorabilia Museum")
 
 ### Codebase Health & Dataset Integrity
+- [x] **Automated GitHub Actions CSV Validation Pipeline (`.github/workflows/validate-csv.yml`)**
+  - CI/CD workflow executing automated CSV structure, column count, and data integrity checks on every repository push or commit.
+  - Converts validated CSV dataset into an optimized, pre-parsed JSON file to enhance frontend load times and bypass client-side parsing bottlenecks.
 - [x] **Full CSV Dataset Audit (`joe_jackson_tickets_cleaned.csv`)**
   - Cleaned and validated 664+ concert and memorabilia records.
   - Standardized date formatting across all entries (resolved non-standard dates like `1998-3-30` -> `1998-03-30`).
