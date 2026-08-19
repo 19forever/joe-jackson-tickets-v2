@@ -3,566 +3,2128 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Joe Jackson Memorabilia Museum - Concert Tickets, Tour Archive &amp; Setlists (1978–2026)</title>
+  <title>Record Editor - Joe Jackson Memorabilia Museum</title>
   
-  <meta name="description" content="Explore the comprehensive digital archive and museum dedicated to Joe Jackson's live concert history from 1978 to 2026. Discover vintage ticket stubs, tour dates, venues, setlists, and memorabilia.">
-  <meta name="keywords" content="Joe Jackson, Joe Jackson concert tickets, Joe Jackson tour history, Joe Jackson setlists, live music archive, memorabilia museum, Look Sharp, Night and Day, live concerts, tour dates">
+  <meta name="description" content="Curator and database management tool for cataloging Joe Jackson concert tickets, tour dates, setlists, and memorabilia records.">
+  <meta name="robots" content="noindex, nofollow">
   <meta name="author" content="Joe Jackson Memorabilia Museum">
   <meta name="theme-color" content="#f59e0b">
 
   <!-- Canonical URL -->
-  <link rel="canonical" href="https://joejackson.band/">
-
-  <!-- Open Graph / Facebook / WhatsApp -->
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Joe Jackson Memorabilia Museum">
-  <meta property="og:url" content="https://joejackson.band/">
-  <meta property="og:title" content="Joe Jackson Memorabilia Museum - Concert Tickets, Tour Archive &amp; Setlists">
-  <meta property="og:description" content="Comprehensive digital archive and museum dedicated to Joe Jackson's live concert history from 1978 to 2026. Discover ticket stubs, setlists, and memorabilia.">
-  <meta property="og:image" content="https://joejackson.band/favicon.svg">
-
-  <!-- Twitter Cards -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:url" content="https://joejackson.band/">
-  <meta name="twitter:title" content="Joe Jackson Memorabilia Museum - Concert Tickets, Tour Archive &amp; Setlists">
-  <meta name="twitter:description" content="Comprehensive digital archive and museum dedicated to Joe Jackson's live concert history from 1978 to 2026. Discover ticket stubs, setlists, and memorabilia.">
-  <meta name="twitter:image" content="https://joejackson.band/favicon.svg">
+  <link rel="canonical" href="https://joejackson.band/edit_ticket_new.html">
 
   <!-- Favicon (JJ Icon) -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="alternate icon" type="image/x-icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="favicon.svg">
-
-  <!-- Google Fonts for Live Typography Switcher -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-  <!-- External Stylesheet -->
-  <link rel="stylesheet" href="styles.css">
-
-  <script>
-    (function() {
-      try {
-        var f = localStorage.getItem('jj_selected_font') || 'font-default';
-        if (f) document.documentElement.classList.add(f);
-      } catch(e) {}
-    })();
-  </script>
-
-  <!-- External Libraries -->
+  
+  <!-- PapaParse for CSV parsing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <!-- Viewer.js (Image Inspection & Zoom) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
+  <script src="watermark.js"></script>
+  <script src="storage-service.js"></script>
+  <script src="github-service.js"></script>
+
+  <style>
+    :root {
+      --bg-main: #0f0f0f;
+      --bg-panel: #141414;
+      --bg-card: #161616;
+      --bg-hover: #1a1a1a;
+      --text-main: #e0e0e0;
+      --text-muted: #9ca3af;
+      --accent-yellow: #f59e0b;
+      --accent-yellow-bright: #fbbf24;
+      --accent-yellow-glow: rgba(245, 158, 11, 0.15);
+      --accent-blue: #0284c7;
+      --border-color: #2a2a2a;
+      --border-color-light: #333333;
+      --font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      padding: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      background-color: var(--accent-yellow);
+      color: #000;
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.3rem;
+      letter-spacing: -1px;
+    }
+
+    h1 {
+      font-size: 1.35rem;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn-token {
+      background-color: #1a1a1a;
+      border: 1px solid var(--border-color-light);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      line-height: 1.2;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      transition: all 0.2s;
+    }
+
+    .btn-token:hover {
+      border-color: var(--accent-yellow);
+      color: var(--accent-yellow);
+    }
+
+    .btn-back {
+      background-color: #1a1a1a;
+      border: 1px solid var(--border-color-light);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.8rem;
+      line-height: 1.2;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      transition: all 0.2s;
+    }
+
+    .btn-back:hover {
+      border-color: var(--accent-yellow);
+      color: var(--accent-yellow);
+      background-color: #222;
+    }
+
+    .btn-lock {
+      background-color: #ef4444;
+      color: #fff;
+      border: 1px solid #ef4444;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      line-height: 1.2;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+
+    .btn-lock:hover {
+      background-color: #dc2626;
+      border-color: #dc2626;
+    }
+
+    /* Navigation Bar */
+    .record-nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin-bottom: 20px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .nav-btn {
+      background-color: #1a1a1a;
+      border: 1px solid var(--border-color-light);
+      color: var(--text-main);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      border-color: var(--accent-yellow);
+      color: var(--accent-yellow);
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .record-counter {
+      font-size: 0.85rem;
+      color: var(--accent-yellow);
+      font-weight: 700;
+      font-mono: true;
+    }
+
+    .select-jump {
+      background-color: #0d0d0d;
+      border: 1px solid var(--border-color-light);
+      color: var(--text-main);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      outline: none;
+      max-width: 250px;
+    }
+
+    .btn-add-new {
+      background-color: #16a34a;
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-add-new:hover { background-color: #15803d; }
+
+    .btn-dup {
+      background-color: var(--accent-yellow);
+      color: #000;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-dup:hover { background-color: var(--accent-yellow-bright); }
+
+    /* Main 2-Column Layout */
+    .main-editor-layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 380px) 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* Left Column: Image Preview Sticky Box */
+    .scan-preview-sticky {
+      position: sticky;
+      top: 20px;
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+      z-index: 10;
+    }
+
+    @media (max-width: 768px) {
+      .main-editor-layout {
+        grid-template-columns: 1fr;
+      }
+      .scan-preview-sticky {
+        position: relative;
+        top: 0;
+        z-index: 1;
+      }
+    }
+
+    .scan-preview-sticky h3 {
+      font-size: 0.75rem;
+      color: var(--accent-yellow);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+    }
+
+    .img-box {
+      background-color: #0d0d0d;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 250px;
+      max-height: 520px;
+      overflow: hidden;
+    }
+
+    .img-box img {
+      max-width: 100%;
+      max-height: 480px;
+      object-fit: contain;
+      cursor: zoom-in;
+    }
+
+    .thumb-list {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .thumb-item {
+      width: 52px;
+      height: 40px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid var(--border-color-light);
+      cursor: pointer;
+      opacity: 0.6;
+      transition: all 0.2s;
+    }
+
+    .thumb-item:hover, .thumb-item.active { opacity: 1; border-color: var(--accent-yellow); }
+
+    /* Inbox Scan Hover Zoom Popover */
+    .inbox-scan-hover-popover {
+      position: fixed;
+      display: none;
+      z-index: 9999;
+      pointer-events: none;
+      background: #111111;
+      border: 1px solid var(--accent-yellow);
+      border-radius: 8px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.85), 0 0 16px rgba(255, 193, 7, 0.25);
+      padding: 6px;
+      width: 260px;
+      max-width: 280px;
+      max-height: 340px;
+      box-sizing: border-box;
+      transition: opacity 0.15s ease-out;
+      opacity: 0;
+    }
+
+    .inbox-scan-hover-popover.active {
+      display: block;
+      opacity: 1;
+    }
+
+    .inbox-scan-hover-popover img {
+      display: block;
+      width: 100%;
+      max-height: 290px;
+      object-fit: contain;
+      border-radius: 4px;
+      background: #000000;
+    }
+
+    .inbox-scan-hover-popover .popover-caption {
+      margin-top: 5px;
+      font-size: 0.7rem;
+      color: var(--accent-yellow);
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: monospace;
+    }
+
+    /* Right Column: Form Panels */
+    .form-panel {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .form-panel h3 {
+      font-size: 0.8rem;
+      color: var(--accent-yellow);
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+    @media (max-width: 768px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-group.full-width { grid-column: 1 / -1; }
+
+    label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    input, select, textarea {
+      background-color: #0d0d0d;
+      border: 1px solid var(--border-color-light);
+      color: var(--text-main);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent-yellow);
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
+    }
+
+    textarea { resize: vertical; min-height: 60px; }
+
+    .input-with-btn {
+      display: flex;
+      gap: 6px;
+    }
+
+    .input-with-btn input { flex-grow: 1; }
+
+    .btn-fetch-setlist {
+      background-color: #0284c7;
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background-color 0.2s;
+    }
+
+    .btn-fetch-setlist:hover { background-color: #0369a1; }
+
+    /* Status & Validation Badges */
+    .validation-hint {
+      font-size: 0.75rem;
+      margin-top: 4px;
+      font-weight: 600;
+    }
+    .validation-hint.error { color: #f87171; }
+    .validation-hint.warning { color: #f59e0b; }
+    .validation-hint.success { color: #10b981; }
+
+    .action-bar {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    .btn-submit {
+      background-color: #1a1a1a;
+      border: 1px solid var(--border-color-light);
+      color: var(--text-main);
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: all 0.2s;
+    }
+
+    .btn-submit:hover {
+      border-color: var(--accent-yellow);
+      color: var(--accent-yellow);
+    }
+
+    .btn-github {
+      background-color: #16a34a;
+      color: #fff;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 6px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: all 0.2s;
+    }
+
+    .btn-github:hover { background-color: #15803d; }
+
+    #statusMessage {
+      margin-top: 15px;
+      padding: 12px 16px;
+      border-radius: 6px;
+      display: none;
+      font-size: 0.85rem;
+      word-break: break-word;
+      font-weight: 500;
+    }
+
+    .yt-preview { margin-top: 4px; font-size: 0.8rem; }
+    .yt-preview a { color: var(--accent-yellow); text-decoration: none; font-weight: 600; }
+
+    /* Password / PAT Gate Overlay */
+    .gate-modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(10, 10, 10, 0.95);
+      backdrop-filter: blur(8px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .gate-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color-light);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 440px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      text-align: center;
+    }
+    .gate-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .gate-card h2 { font-size: 1.25rem; color: #fff; margin-bottom: 8px; font-weight: 700; }
+    .gate-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.4; }
+  </style>
 </head>
 <body>
 
-  <div class="top-header-container">
-    <header>
-      <div class="header-left">
-        <div class="logo">JJ</div>
-        <div class="title-area">
-          <h1>Joe Jackson´s Memorabilia Museum <span class="year-badge" id="yearBadge">...</span></h1>
-          <p>Historical archive of Joe Jackson´s concert tickets, venues & memorabilia</p>
-        </div>
-      </div>
-
-      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-        <select id="fontSwitcher" class="font-switcher-select" title="Preview Typography Theme">
-          <option value="font-default">🔤 Font: Default (Inter)</option>
-          <option value="font-condensed">🔤 Font: Tall &amp; Condensed (Barlow)</option>
-          <option value="font-light">🔤 Font: Light &amp; Elegant (Slim)</option>
-        </select>
-        <a href="stats.html" class="btn-contribute" title="View tour map & museum analytics">
-          📊 Stats & Map
-        </a>
-        <button id="adminLockBtn" class="btn-contribute" style="display: none; background: #dc2626; color: #ffffff; border: none; cursor: pointer; font-family: inherit;" onclick="lockAdminSession()" title="Lock Admin Session and return to Public Mode">
-          🔒 Lock Admin
-        </button>
-        <a href="edit_ticket_new.html" id="adminLoginLink" class="btn-contribute" style="background: transparent; border: 1px solid var(--border-color-light, #333);" title="Admin Login Gate">
-          🔒 Admin
-        </a>
-        <a href="ticket_form.html" class="btn-contribute" title="Share your concert ticket, pass, or poster with us">
-          ➕ Contribute your item
-        </a>
-      </div>
-    </header>
-
-    <!-- On This Day Banner -->
-    <div class="on-this-day-banner" id="otdBanner">
-      <div class="otd-left">
-        <div class="otd-icon">📅</div>
-        <div class="otd-text">
-          <h4>On This Day In History</h4>
-          <p id="otdTitle">...</p>
-        </div>
-      </div>
-      <button class="otd-btn" id="otdBtn">🎫 View Anniversary Show</button>
-    </div>
-
-    <div class="category-tabs" id="categoryTabs"></div>
-
-    <div class="controls">
-      <div class="search-input-wrapper">
-        <input type="text" id="searchInput" placeholder="🔍 Search by city, venue, date...">
-        <button class="search-clear-btn" id="searchClearBtn" title="Clear search">✕</button>
-      </div>
-
-      <select id="tourFilter" class="admin-only-control" title="Filter by Concert Tour">
-        <option value="">All Tours</option>
-      </select>
-
-      <select id="cityFilter"><option value="">All Cities</option></select>
-      <select id="sortFilter" title="Sort and filter tickets">
-        <option value="random">🎲 Random / Shuffled</option>
-        <option value="oldest">Date (Oldest First)</option>
-        <option value="newest">Date (Newest First)</option>
-        <option value="missing_first" class="admin-only-option">📷 Missing Scans First</option>
-        <option value="missing_only">🔍 Missing Scans Only</option>
-        <option value="missing_setlists_only">📝 Missing Setlists Only</option>
-        <option value="scans_only" class="admin-only-option">🖼️ With Scans Only</option>
-        <option value="missing_setlists" class="admin-only-option">📝 Missing Setlists First</option>
-        <option value="incomplete_metadata" class="admin-only-option">⚠️ Incomplete Metadata First</option>
-      </select>
-
-      <button class="surprise-btn" id="reshuffleBtn" title="Reshuffle current results">🎲</button>
-      <button class="surprise-btn" id="surpriseBtn" title="Surprise me! (Random item)">✨</button>
-
-      <select id="pageSizeFilter">
-        <option value="25">25 / page</option>
-        <option value="50" selected>50 / page</option>
-        <option value="100">100 / page</option>
-        <option value="ALL">ALL</option>
-      </select>
-      <div class="layout-toggles">
-        <button class="toggle-btn active" id="btnGrid">⊞</button>
-        <button class="toggle-btn" id="btnList">≡</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="ticketsContainer" class="tickets-container grid-view"></div>
-  <div id="paginationContainer" class="pagination-container"></div>
-
-  <!-- Video Modal Layout -->
-  <div id="videoModal">
-    <div class="video-modal-container">
-      <button class="jj-close-btn" id="videoModalCloseBtn">✕</button>
+  <!-- Admin Authentication Gate Modal -->
+  <div id="gateModal" class="gate-modal-overlay">
+    <div class="gate-card">
+      <div class="gate-icon">🔒</div>
+      <h2>Admin Password Gate</h2>
+      <p class="gate-desc">Enter your GitHub Personal Access Token (PAT) or Admin Access Key to open the Record Editor.</p>
       
-      <!-- Left: Lineup -->
-      <div class="jj-video-side-col" id="videoLineupCol"></div>
-
-      <!-- Center: Video Frame -->
-      <div class="jj-video-center">
-        <div class="jj-video-frame-wrapper">
-          <iframe id="videoIframe" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+      <form id="gateForm" onsubmit="event.preventDefault(); submitAdminGate();">
+        <div class="form-group" style="margin-bottom: 15px; text-align: left;">
+          <label for="patInput" style="display: block; margin-bottom: 6px;">GitHub PAT / Admin Key</label>
+          <input type="password" id="patInput" placeholder="github_pat_..." style="width: 100%; font-size: 0.9rem; padding: 10px;" required>
         </div>
+        <div id="gateError" class="validation-hint error" style="display: none; margin-bottom: 12px; text-align: center;"></div>
+        <button type="submit" class="btn-github" style="width: 100%; padding: 12px; font-size: 0.85rem;">🔓 Authenticate & Unlock</button>
+      </form>
+      
+      <div style="margin-top: 20px; font-size: 0.75rem; color: var(--text-muted); text-align: center; line-height: 1.5;">
+        Your key will be securely saved in your browser's localStorage for publishing updates directly to GitHub.
+        <br><br>
+        <a href="index.html" style="color: var(--accent-yellow); text-decoration: none; font-weight: 600;">◄ Return to Public Museum</a>
       </div>
-
-      <!-- Right: Setlist -->
-      <div class="jj-video-side-col" id="videoSetlistCol"></div>
     </div>
   </div>
 
-  <!-- Main Application Script -->
-  <script src="storage-service.js"></script>
-  <script src="app.js"></script>
+  <header>
+    <div class="header-left">
+      <div class="logo">JJ</div>
+      <h1>✏️ Record Editor: <span id="recordIdTitle" style="color: var(--accent-yellow);">...</span></h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn-token" onclick="manageToken()">🔑 PAT Settings</button>
+      <button class="btn-lock" id="lockAdminBtn" style="display: none;" onclick="lockAdminSession()" title="Lock Admin Session">🔒 Lock Admin</button>
+      <a href="index.html" class="btn-back" id="backToMuseumBtn">◄ Back to Museum</a>
+    </div>
+  </header>
 
-  <!-- Tour Filter Integration Script -->
+  <!-- Navigation & Action Bar -->
+  <div class="record-nav-bar">
+    <div style="display: flex; align-items: center;">
+      <button class="nav-btn" id="prevBtn" onclick="navigateRecord(-1)" title="Previous Record">◄</button>
+      <div class="record-counter" id="recordCounter" style="margin: 0 8px;">Record 1 of 19</div>
+      <button class="nav-btn" id="nextBtn" onclick="navigateRecord(1)" title="Next Record">►</button>
+    </div>
+    
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <select id="tourFilterSelect" class="select-jump" onchange="filterRecordsByTour()" style="max-width: 200px;">
+        <option value="">All Tours (Show All)</option>
+      </select>
+      <select id="recordSelect" class="select-jump" onchange="jumpToSelectedRecord()"></select>
+    </div>
+
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button class="btn-add-new" onclick="addNewRecord()" title="Add empty new record">➕ Add New</button>
+      <button class="btn-dup" onclick="duplicateCurrentRecord()" title="Duplicate current record with prefilled details">📋 Duplicate</button>
+    </div>
+  </div>
+
+  <div class="main-editor-layout">
+    
+    <!-- Left Sticky Column: Image Inspection -->
+    <div class="scan-preview-sticky">
+      <h3>🔍 Scan Inspection (Click to Zoom)</h3>
+      <div class="img-box">
+        <img id="previewImg" src="" alt="Joe Jackson Concert Scan Inspection Preview" title="Click to open full zoom viewer">
+      </div>
+      <div class="thumb-list" id="thumbList"></div>
+
+      <!-- Admin Watermark Tool -->
+      <div style="margin-top: 20px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px;">
+        <h4 style="margin: 0 0 8px 0; font-size: 0.85rem; color: var(--accent-yellow); display: flex; align-items: center; gap: 6px;">
+          <span>🏷️ Watermark Tool (JJ Memorabilia Museum)</span>
+        </h4>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4;">
+          Upload a raw scan photo to apply the official <strong>"JJ Memorabilia Museum"</strong> watermark badge before adding it to <code>/scans/</code>.
+        </p>
+        <input type="file" id="adminWatermarkInput" accept="image/*" style="font-size: 0.8rem; width: 100%; margin-bottom: 8px;">
+        <div id="adminWatermarkBox" style="display: none; text-align: center; margin-top: 8px;">
+          <a id="adminWatermarkDownload" class="nav-btn" style="display: inline-block; background: var(--accent-yellow); color: #000; text-decoration: none; font-weight: 700; font-size: 0.8rem; padding: 6px 12px; border-radius: 4px;" download>
+            💾 Download Watermarked Scan
+          </a>
+        </div>
+      </div>
+
+      <!-- Unassigned Scans Inbox -->
+      <div style="margin-top: 20px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px;">
+        <h4 style="margin: 0 0 8px 0; font-size: 0.85rem; color: var(--accent-yellow); display: flex; align-items: center; justify-content: space-between;">
+          <span>📂 Unassigned Scans Inbox</span>
+          <span id="unassignedCountBadge" style="font-size: 0.75rem; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px; color: var(--text-muted); display: none;">0</span>
+        </h4>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; line-height: 1.4;">
+          Find images uploaded to <code>/scans/</code> that haven't been linked to any record yet.
+        </p>
+        <button type="button" class="btn-token" id="btnScanFolder" onclick="scanUnassignedImages()" style="width: 100%; margin-top: 6px;">🔍 Scan /scans/ Folder</button>
+        <div id="unassignedScansList" style="margin-top: 10px; max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
+      </div>
+    </div>
+
+    <!-- Right Column: Compact Form -->
+    <form id="editForm" onsubmit="event.preventDefault();">
+      
+      <!-- Primary Classification -->
+      <div class="form-panel">
+        <h3>Primary Metadata</h3>
+        <div class="grid-3">
+          <div class="form-group">
+            <label for="edit_ID_MEMORABILIA">Record ID</label>
+            <input type="text" id="edit_ID_MEMORABILIA" name="ID_MEMORABILIA" readonly style="opacity: 0.6; cursor: not-allowed;">
+          </div>
+          <div class="form-group">
+            <label for="edit_KATEGORIE">Category (KATEGORIE)</label>
+            <select id="edit_KATEGORIE" name="KATEGORIE" onchange="checkDataQuality()">
+              <option value="tickets">Tickets</option>
+              <option value="passes">Passes</option>
+              <option value="programs">Programs</option>
+              <option value="posters">Posters</option>
+              <option value="t-shirts">T-shirts</option>
+              <option value="tour_items">Tour Items</option>
+              <option value="memorabilia">Memorabilia</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edit_LINEUP">Lineup / Band</label>
+            <input type="text" id="edit_LINEUP" name="LINEUP" list="lineupsList" placeholder="e.g. Joe Jackson (vocals, piano)...">
+            <datalist id="lineupsList"></datalist>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="edit_TOUR_NAME">Tour Name (TOUR_NAME)</label>
+            <div style="display: flex; gap: 6px; align-items: center; width: 100%;">
+              <input type="text" id="edit_TOUR_NAME" name="TOUR_NAME" list="toursList" placeholder="Select or type tour name..." style="flex: 1; min-width: 0;">
+              <datalist id="toursList"></datalist>
+              <datalist id="tourNamesList"></datalist>
+              <button type="button" class="btn-token btn-new-tour" onclick="addNewTourPrompt()" style="padding: 8px 10px; font-size: 0.75rem; white-space: nowrap; flex-shrink: 0;" title="Enter a new tour name">➕ New Tour</button>
+              <button type="button" class="btn-token btn-reset-tours" onclick="clearCustomToursList()" style="padding: 8px 10px; font-size: 0.75rem; white-space: nowrap; flex-shrink: 0;" title="Reset saved custom tours list">🧹 Reset Custom Tours</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="edit_TOUR_ID">Tour ID (TOUR_ID - Auto-generated)</label>
+            <input type="text" id="edit_TOUR_ID" name="TOUR_ID" placeholder="tour-night-and-day-tour" readonly style="opacity: 0.7; cursor: not-allowed; background-color: rgba(255,255,255,0.04);">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="edit_DATUM">Concert Date (DATUM - YYYY-MM-DD)</label>
+            <input type="text" id="edit_DATUM" name="DATUM" placeholder="YYYY-MM-DD" oninput="checkDataQuality()">
+          </div>
+          <div class="form-group">
+            <label for="edit_MESTO">City (MESTO)</label>
+            <input type="text" id="edit_MESTO" name="MESTO" list="citiesList" placeholder="e.g. Groningen" oninput="checkDataQuality()">
+            <datalist id="citiesList"></datalist>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="edit_STAT">Country (STAT)</label>
+            <input type="text" id="edit_STAT" name="STAT" list="countriesList" placeholder="e.g. Netherlands">
+            <datalist id="countriesList"></datalist>
+          </div>
+          <div class="form-group">
+            <label for="edit_VENUE">Venue (VENUE)</label>
+            <input type="text" id="edit_VENUE" name="VENUE" list="venuesList" placeholder="e.g. De Oosterpoort">
+            <datalist id="venuesList"></datalist>
+          </div>
+        </div>
+
+        <!-- NOVÉ POLE: STATUS A ORIGINAL_DATE -->
+        <div class="grid-2" style="margin-top: 10px;">
+          <div class="form-group">
+            <label for="edit_STATUS">Concert Status (STATUS)</label>
+            <select id="edit_STATUS" name="STATUS">
+              <option value="">Normal (Performed)</option>
+              <option value="CANCELLED">❌ Cancelled</option>
+              <option value="RESCHEDULED">🔄 Rescheduled</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edit_ORIGINAL_DATE">Original Date (if Rescheduled)</label>
+            <input type="text" id="edit_ORIGINAL_DATE" name="ORIGINAL_DATE" placeholder="YYYY-MM-DD">
+          </div>
+        </div>
+
+        <!-- NOVÉ POLE: NOTE / TRIVIA -->
+        <div class="form-group full-width" style="margin-top: 10px;">
+          <label for="edit_NOTE">Concert Trivia / Notes (NOTE)</label>
+          <textarea id="edit_NOTE" name="NOTE" placeholder="e.g. Covid cancellation, BBC Radio broadcast, special lineup notes..."></textarea>
+        </div>
+
+        <div id="duplicateWarning" class="validation-hint warning"></div>
+      </div>
+
+      <!-- Scans & Contributor -->
+      <div class="form-panel">
+        <h3>Files & Contributor</h3>
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="edit_SOUBOR_SKEN">Scan Image Filename(s) (SOUBOR_SKEN)</label>
+            <input type="text" id="edit_SOUBOR_SKEN" name="SOUBOR_SKEN" placeholder="file1.jpg, file2.jpg" oninput="updateImageFromInput()">
+          </div>
+          <div class="form-group">
+            <label for="edit_CONTRIBUTOR">Donor / Contributor (CONTRIBUTOR)</label>
+            <input type="text" id="edit_CONTRIBUTOR" name="CONTRIBUTOR" placeholder="e.g. Bert Bos, Netherlands">
+          </div>
+        </div>
+      </div>
+
+      <!-- Links & Setlist API -->
+      <div class="form-panel">
+        <h3>Links & Setlist Integration</h3>
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="edit_YOUTUBE_URL">YouTube Video URL</label>
+            <input type="text" id="edit_YOUTUBE_URL" name="YOUTUBE_URL" placeholder="https://www.youtube.com/watch?v=..." oninput="updateYtPreview()">
+            <div id="ytPreview" class="yt-preview"></div>
+          </div>
+          <div class="form-group">
+            <label for="edit_REVIEW_URL">Review URL</label>
+            <input type="text" id="edit_REVIEW_URL" name="REVIEW_URL" placeholder="https://...">
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 10px;">
+          <div class="form-group">
+            <label for="edit_SETLIST_URL">Setlist.fm URL</label>
+            <div class="input-with-btn">
+              <input type="text" id="edit_SETLIST_URL" name="SETLIST_URL" placeholder="https://www.setlist.fm/setlist/joe-jackson/...">
+              <button class="btn-fetch-setlist" type="button" onclick="fetchSetlistSongs()">⚡ Fetch Songs</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="edit_POCET_SKLADEB">Song Count (POCET_SKLADEB)</label>
+            <input type="number" id="edit_POCET_SKLADEB" name="POCET_SKLADEB" readonly style="opacity: 0.7; cursor: not-allowed;">
+          </div>
+        </div>
+
+        <div class="form-group full-width" style="margin-top: 10px;">
+          <label for="edit_SETLIST">Setlist Songs (Comma separated)</label>
+          <textarea id="edit_SETLIST" name="SETLIST" placeholder="Song 1, Song 2, Song 3..." oninput="recalculateSongCount()"></textarea>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn-submit" type="button" onclick="downloadUpdatedCSV()">💾 Download Updated CSV</button>
+        <button class="btn-github" type="button" onclick="commitToGitHub()">🚀 Save Directly to GitHub</button>
+      </div>
+
+      <div id="statusMessage"></div>
+    </form>
+
+  </div>
+
   <script>
-    (function() {
-      // 1. Helper to check if Admin Mode is active
-      function isAdminModeActive() {
-        let adminFlag = false;
-        let hasPat = false;
-        if (typeof StorageService !== 'undefined') {
-          adminFlag = StorageService.get('jj_admin_mode') === 'true';
-          const pat = StorageService.get('gh_token') || StorageService.get('jj_github_pat');
-          hasPat = !!(pat && pat.trim().length > 0);
-        } else {
-          try {
-            adminFlag = localStorage.getItem('jj_admin_mode') === 'true' || sessionStorage.getItem('jj_admin_mode') === 'true';
-            const pat = localStorage.getItem('gh_token') || localStorage.getItem('jj_github_pat');
-            hasPat = !!(pat && pat.trim().length > 0);
-          } catch(e) {}
-        }
-        const urlParams = new URLSearchParams(window.location.search);
-        const adminParam = urlParams.get('admin') === '1';
-        return adminFlag || hasPat || adminParam;
+    const CSV_FILENAME = 'joe_jackson_tickets_cleaned.csv';
+    let fullCsvData = [];
+    let activeIndices = [];
+    let currentRecordIndex = -1;
+    let viewerInstance = null;
+
+    function safeGetStorage(key) {
+      return typeof StorageService !== 'undefined' ? StorageService.get(key) : localStorage.getItem(key);
+    }
+
+    function safeSetStorage(key, val) {
+      if (typeof StorageService !== 'undefined') StorageService.set(key, val);
+      else localStorage.setItem(key, val);
+    }
+
+    function safeRemoveStorage(key) {
+      if (typeof StorageService !== 'undefined') StorageService.remove(key);
+      else localStorage.removeItem(key);
+    }
+
+    // REGISTRACE VŠECH POLÍ VČETNĚ STATUS, ORIGINAL_DATE A NOTE
+    const fields = [
+      'ID_MEMORABILIA', 'SHOW_ID', 'TOUR_ID', 'TOUR_NAME', 'DATUM', 'MESTO', 'STAT', 'VENUE',
+      'STATUS', 'ORIGINAL_DATE', 'NOTE',
+      'KATEGORIE', 'SOUBOR_SKEN', 'CONTRIBUTOR', 'LINEUP', 'SETLIST',
+      'POCET_SKLADEB', 'SETLIST_URL', 'YOUTUBE_URL', 'REVIEW_URL', 'SETLIST_FM_URL'
+    ];
+
+    function getField(name) {
+      if (!name) return null;
+      return document.getElementById('edit_' + name) ||
+             document.getElementById(name) ||
+             document.getElementById(name.toLowerCase()) ||
+             document.getElementById('edit_' + name.toLowerCase()) ||
+             document.querySelector(`[name="${name}"]`) ||
+             document.querySelector(`[name="${name.replace(/^edit_/, '')}"]`);
+    }
+
+    function checkAdminAuth() {
+      const cfg = typeof StorageService !== 'undefined' ? StorageService.getGitHubConfig() : { token: safeGetStorage('gh_token') || safeGetStorage('jj_github_pat') };
+      const token = cfg.token;
+      const gateEl = document.getElementById('gateModal');
+      const lockBtn = document.getElementById('lockAdminBtn');
+
+      if (token && token.trim().length > 0) {
+        if (gateEl) gateEl.style.display = 'none';
+        if (lockBtn) lockBtn.style.display = 'inline-block';
+      } else {
+        if (gateEl) gateEl.style.display = 'flex';
+        if (lockBtn) lockBtn.style.display = 'none';
       }
-      window.isAdminModeActive = isAdminModeActive;
+    }
 
-      // 2. Manage administrative sort options and admin controls
-      let sortOptionsCatalog = null;
+    function submitAdminGate() {
+      const patInput = document.getElementById('patInput');
+      const patVal = patInput ? patInput.value.trim() : '';
+      const errEl = document.getElementById('gateError');
 
-      function updateAdminSortAndControls() {
-        const sortSelect = document.getElementById('sortFilter') || document.getElementById('sortSelect');
-        const isAdmin = isAdminModeActive();
-
-        if (sortSelect) {
-          if (!sortOptionsCatalog) {
-            sortOptionsCatalog = Array.from(sortSelect.options).map(opt => ({
-              value: opt.value,
-              text: opt.textContent,
-              isAdminOnly: opt.classList.contains('admin-only-option') || ['missing_first', 'missing_only', 'scans_only', 'missing_setlists', 'incomplete_metadata'].includes(opt.value)
-            }));
-          }
-
-          const currentValue = sortSelect.value;
-          const urlParams = new URLSearchParams(window.location.search);
-          const urlSort = urlParams.get('sort');
-          const isCurrentAdminOnly = sortOptionsCatalog.find(o => o.value === currentValue)?.isAdminOnly;
-          const isUrlAdminOnly = urlSort && sortOptionsCatalog.find(o => o.value === urlSort)?.isAdminOnly;
-
-          sortSelect.innerHTML = '';
-          sortOptionsCatalog.forEach(optData => {
-            if (!optData.isAdminOnly || isAdmin) {
-              const opt = document.createElement('option');
-              opt.value = optData.value;
-              opt.textContent = optData.text;
-              if (optData.isAdminOnly) {
-                opt.classList.add('admin-only-option');
-              }
-              sortSelect.appendChild(opt);
-            }
-          });
-
-          let targetValue = currentValue;
-          if (!isAdmin && (isCurrentAdminOnly || isUrlAdminOnly)) {
-            // Fallback to default date sort (newest / date-desc)
-            targetValue = 'newest';
-          }
-
-          let found = false;
-          for (let i = 0; i < sortSelect.options.length; i++) {
-            if (sortSelect.options[i].value === targetValue) {
-              sortSelect.selectedIndex = i;
-              found = true;
-              break;
-            }
-          }
-          if (!found && sortSelect.options.length > 0) {
-            sortSelect.selectedIndex = 0;
-            targetValue = sortSelect.value;
-          }
-
-          if (targetValue !== currentValue || (!isAdmin && isUrlAdminOnly)) {
-            if (typeof updateUrlParams === 'function') updateUrlParams();
-            if (typeof filterData === 'function') filterData();
-          }
+      if (!patVal) {
+        if (errEl) {
+          errEl.textContent = 'Please enter a valid GitHub PAT or key.';
+          errEl.style.display = 'block';
         }
+        return;
+      }
 
-        // Restrict any admin-only controls
-        document.querySelectorAll('.admin-only-control, .admin-only').forEach(el => {
-          el.style.display = isAdmin ? 'inline-block' : 'none';
-        });
+      if (typeof StorageService !== 'undefined') {
+        StorageService.setGitHubConfig({ token: patVal });
+        StorageService.set('jj_admin_mode', 'true');
+      } else {
+        safeSetStorage('jj_github_pat', patVal);
+        safeSetStorage('gh_token', patVal);
+        safeSetStorage('jj_admin_mode', 'true');
+      }
 
-        // Ensure tourFilter is strictly hidden for non-admin users
-        const tourFilter = document.getElementById('tourFilter');
-        if (tourFilter) {
-          if (isAdmin) {
-            tourFilter.style.display = 'inline-block';
+      if (errEl) errEl.style.display = 'none';
+      checkAdminAuth();
+      showStatus('✅ Admin authenticated successfully. Token stored in browser.', 'green');
+    }
+
+    function lockAdminSession() {
+      if (typeof StorageService !== 'undefined') {
+        StorageService.setGitHubConfig({ token: '' });
+        StorageService.remove('jj_admin_mode');
+      } else {
+        safeRemoveStorage('jj_github_pat');
+        safeRemoveStorage('gh_token');
+        safeRemoveStorage('jj_admin_mode');
+      }
+      try { sessionStorage.removeItem('jj_admin_mode'); } catch (e) {}
+      const urlParams = new URLSearchParams(window.location.search);
+      const backParams = new URLSearchParams();
+      const searchParam = urlParams.get('search') || urlParams.get('q');
+      const catParam = urlParams.get('category') || urlParams.get('cat');
+      const viewParam = urlParams.get('view') || urlParams.get('layout');
+      const sortParam = urlParams.get('sort');
+      if (searchParam) backParams.set('search', searchParam);
+      if (catParam) backParams.set('category', catParam);
+      if (viewParam) backParams.set('view', viewParam);
+      if (sortParam) backParams.set('sort', sortParam);
+      window.location.href = backParams.toString() ? `index.html?${backParams.toString()}` : 'index.html';
+    }
+
+    function updateBackToMuseumLinks() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const backParams = new URLSearchParams();
+      const searchParam = urlParams.get('search') || urlParams.get('q');
+      const catParam = urlParams.get('category') || urlParams.get('cat');
+      const viewParam = urlParams.get('view') || urlParams.get('layout');
+      const sortParam = urlParams.get('sort');
+      const tourParam = document.getElementById('tourFilterSelect')?.value || urlParams.get('tour') || urlParams.get('tour_name');
+      if (searchParam) backParams.set('search', searchParam);
+      if (catParam) backParams.set('category', catParam);
+      if (viewParam) backParams.set('view', viewParam);
+      if (sortParam) backParams.set('sort', sortParam);
+      if (tourParam) backParams.set('tour', tourParam);
+
+      const targetUrl = backParams.toString() ? `index.html?${backParams.toString()}` : 'index.html';
+
+      document.querySelectorAll('.btn-back, #backToMuseumBtn, a[href="index.html"], a[href^="index.html?"]').forEach(link => {
+        link.href = targetUrl;
+      });
+    }
+
+    function manageToken() {
+      const cfg = typeof StorageService !== 'undefined' ? StorageService.getGitHubConfig() : { token: safeGetStorage('gh_token') || safeGetStorage('jj_github_pat') || '' };
+      const current = cfg.token || '';
+      const val = prompt('Enter your GitHub Personal Access Token (PAT):', current);
+      if (val !== null) {
+        if (val.trim()) {
+          if (typeof StorageService !== 'undefined') {
+            StorageService.setGitHubConfig({ token: val.trim() });
+            StorageService.set('jj_admin_mode', 'true');
           } else {
-            tourFilter.style.display = 'none';
-            if (tourFilter.value) {
-              tourFilter.value = '';
-            }
+            safeSetStorage('gh_token', val.trim());
+            safeSetStorage('jj_github_pat', val.trim());
+            safeSetStorage('jj_admin_mode', 'true');
+          }
+          checkAdminAuth();
+          showStatus('✅ GitHub PAT updated.', 'green');
+        } else {
+          if (typeof StorageService !== 'undefined') {
+            StorageService.setGitHubConfig({ token: '' });
+          } else {
+            safeRemoveStorage('gh_token');
+            safeRemoveStorage('jj_github_pat');
+          }
+          checkAdminAuth();
+        }
+      }
+    }
+
+    function getCustomTours() {
+      const list = [];
+      try {
+        if (typeof StorageService !== 'undefined') {
+          const stored = StorageService.get('custom_tours_list', []);
+          if (Array.isArray(stored)) {
+            stored.forEach(t => {
+              if (t && typeof t === 'string' && !list.includes(t.trim())) list.push(t.trim());
+            });
           }
         }
+      } catch (e) {}
 
-        // Synchronize header admin controls
-        const adminEditorLink = document.getElementById('adminEditorLink');
-        const adminLoginLink = document.getElementById('adminLoginLink');
-        const adminLockBtn = document.getElementById('adminLockBtn');
-        if (adminEditorLink) adminEditorLink.style.display = isAdmin ? 'inline-flex' : 'none';
-        if (adminLockBtn) adminLockBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-        if (adminLoginLink) adminLoginLink.style.display = isAdmin ? 'none' : 'inline-flex';
-      }
-      window.updateAdminSortAndControls = updateAdminSortAndControls;
-
-      function populateTourFilter() {
-        const tourSelect = document.getElementById('tourFilter');
-        if (!tourSelect) return;
-
-        const currentSelected = tourSelect.value;
-        const toursSet = new Set();
-
-        if (typeof allTickets !== 'undefined' && Array.isArray(allTickets)) {
-          allTickets.forEach(t => {
-            if (!t) return;
-            const tourName = t.TOUR_NAME || t.tour_name || '';
-            const valid = (typeof isValidValue === 'function') ? isValidValue(tourName) : (tourName && tourName.trim().length > 0);
-            if (valid) {
-              toursSet.add(tourName.trim());
-            }
-          });
+      try {
+        const storedSession = sessionStorage.getItem('custom_tours_list');
+        if (storedSession) {
+          const parsed = JSON.parse(storedSession);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(t => {
+              if (t && typeof t === 'string' && !list.includes(t.trim())) list.push(t.trim());
+            });
+          }
         }
+      } catch (e) {}
 
-        tourSelect.innerHTML = '<option value="">All Tours</option>';
-        const sortedTours = Array.from(toursSet).sort((a, b) => a.localeCompare(b));
+      return list;
+    }
+
+    function saveCustomTour(tourName) {
+      if (!tourName || typeof tourName !== 'string') return;
+      const trimmed = tourName.trim();
+      if (!trimmed) return;
+
+      const list = getCustomTours();
+      if (!list.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
+        list.push(trimmed);
+      }
+
+      try {
+        if (typeof StorageService !== 'undefined') {
+          StorageService.set('custom_tours_list', list);
+        }
+      } catch (e) {}
+
+      try {
+        sessionStorage.setItem('custom_tours_list', JSON.stringify(list));
+      } catch (e) {}
+
+      ['toursList', 'tourNamesList'].forEach(id => {
+        const datalist = document.getElementById(id);
+        if (datalist) {
+          const exists = Array.from(datalist.options).some(opt => opt.value.toLowerCase() === trimmed.toLowerCase());
+          if (!exists) {
+            const opt = document.createElement('option');
+            opt.value = trimmed;
+            datalist.appendChild(opt);
+          }
+        }
+      });
+    }
+
+    function syncTourId() {
+      const tourNameInput = getField('TOUR_NAME');
+      const tourIdInput = getField('TOUR_ID');
+      if (!tourNameInput || !tourIdInput) return;
+      const tourName = tourNameInput.value;
+      if (tourName && tourName.trim()) {
+        const trimmed = tourName.trim();
+        const slug = trimmed.toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+        const tourId = slug ? 'tour-' + slug : '';
+        tourIdInput.value = tourId;
+      } else {
+        tourIdInput.value = '';
+      }
+    }
+
+    function updateLineupSuggestions() {
+      const tourInput = getField('TOUR_NAME');
+      const lineupInput = getField('LINEUP');
+      const datalist = document.getElementById('lineupsList');
+      if (!datalist) return;
+
+      datalist.innerHTML = '';
+      const tourVal = tourInput ? tourInput.value.trim().toLowerCase() : '';
+      if (!tourVal || !Array.isArray(fullCsvData)) return;
+
+      const uniqueLineups = new Set();
+      fullCsvData.forEach(row => {
+        if (!row) return;
+        const rowTour = (row.TOUR_NAME || row.tour_name || row.Tour || '').trim().toLowerCase();
+        const rowLineup = (row.LINEUP || row.lineup || row.Lineup || '').trim();
+        if (rowTour && rowTour === tourVal && rowLineup) {
+          uniqueLineups.add(rowLineup);
+        }
+      });
+
+      const lineupsArray = Array.from(uniqueLineups);
+      lineupsArray.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l;
+        datalist.appendChild(opt);
+      });
+
+      if (lineupsArray.length === 1 && lineupInput && !lineupInput.value.trim()) {
+        lineupInput.value = lineupsArray[0];
+      }
+    }
+
+    function clearCustomToursList() {
+      if (!confirm('Are you sure you want to clear all custom added tours and rebuild the list strictly from CSV records?')) {
+        return;
+      }
+      try {
+        if (typeof StorageService !== 'undefined') {
+          StorageService.set('custom_tours_list', []);
+        }
+      } catch (e) {}
+      try {
+        sessionStorage.removeItem('custom_tours_list');
+      } catch (e) {}
+
+      populateDatalists(fullCsvData);
+      showStatus('✅ Custom tours list cleared and rebuilt from CSV records.', 'green');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      checkAdminAuth();
+      updateBackToMuseumLinks();
+
+      const wmInputEl = document.getElementById('adminWatermarkInput');
+      if (wmInputEl) {
+        wmInputEl.addEventListener('change', async function(e) {
+          const file = e.target.files[0];
+          const box = document.getElementById('adminWatermarkBox');
+          const dlBtn = document.getElementById('adminWatermarkDownload');
+
+          if (!file) {
+            box.style.display = 'none';
+            return;
+          }
+
+          try {
+            showStatus('🎨 Watermarking image with "JJ Memorabilia Museum"...', 'yellow');
+            const result = await JJWatermark.apply(file, {
+              text: 'JJ Memorabilia Museum',
+              subtext: 'Joe Jackson Archive • joejackson.band',
+              position: 'bottom-right'
+            });
+            dlBtn.href = result.url;
+            dlBtn.download = `watermarked_${file.name}`;
+            box.style.display = 'block';
+            showStatus('✅ Watermark applied successfully! Click button to download.', 'green');
+          } catch (err) {
+            console.error(err);
+            showStatus('❌ Watermark processing failed: ' + err.message, 'red');
+          }
+        });
+      }
+
+      const tourNameInput = getField('TOUR_NAME');
+      if (tourNameInput) {
+        tourNameInput.addEventListener('input', () => {
+          syncTourId();
+          updateLineupSuggestions();
+        });
+        tourNameInput.addEventListener('change', function() {
+          syncTourId();
+          updateLineupSuggestions();
+          const val = this.value ? this.value.trim() : '';
+          if (val.length >= 3) {
+            saveCustomTour(val);
+          }
+        });
+        tourNameInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') {
+            syncTourId();
+            updateLineupSuggestions();
+            const val = this.value ? this.value.trim() : '';
+            if (val.length >= 3) {
+              saveCustomTour(val);
+            }
+          }
+        });
+      }
+
+      const recordSelectEl = document.getElementById('recordSelect') || document.getElementById('jumpSelect');
+      if (recordSelectEl) {
+        recordSelectEl.addEventListener('change', jumpToSelectedRecord);
+      }
+
+      loadCsvData();
+    });
+
+  const GITHUB_RAW_FALLBACK_URL = 'https://raw.githubusercontent.com/19forever/joe-jackson-tickets-v2/main/joe_jackson_tickets_cleaned.csv';
+  const DEFAULT_FALLBACK_RECORDS = [
+    {
+      ID_MEMORABILIA: 'TICKET_0001',
+      KATEGORIE: 'tickets',
+      TOUR_NAME: 'Big World Tour 1986',
+      DATUM: '1986-05-10',
+      MESTO: 'London',
+      STAT: 'UK',
+      VENUE: 'Royal Albert Hall',
+      LINEUP: 'Joe Jackson (vocals, piano), Rick Ford (bass), Vinnie Zummo (guitar), Gary Burke (drums)',
+      SOUBOR_SKEN: 'ticket_1986_london.jpg'
+    }
+  ];
+
+  function loadCsvData() {
+    const ghConfig = typeof StorageService !== 'undefined' && typeof StorageService.getGitHubConfig === 'function'
+      ? StorageService.getGitHubConfig()
+      : { file: 'joe_jackson_tickets_cleaned.csv' };
+    const targetFile = ghConfig.file || CSV_FILENAME;
+
+    function handleParsedData(data) {
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        useMockFallback('Parsed data array is empty');
+        return;
+      }
+
+      fullCsvData = data.filter(row => row && Object.keys(row).length > 0 && (row.ID_MEMORABILIA || row.DATUM || row.TOUR_NAME || row.MESTO || row.STAT));
+      if (fullCsvData.length === 0) {
+        fullCsvData = data;
+      }
+
+      populateDatalists(fullCsvData);
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlTour = urlParams.get('tour') || urlParams.get('tour_name');
+      const tourSelect = document.getElementById('tourFilterSelect');
+      if (urlTour && tourSelect) {
+        const lowerUrlTour = urlTour.trim().toLowerCase();
+        for (let i = 0; i < tourSelect.options.length; i++) {
+          if (tourSelect.options[i].value.toLowerCase() === lowerUrlTour) {
+            tourSelect.selectedIndex = i;
+            break;
+          }
+        }
+      }
+
+      applyUrlFiltersAndSort();
+
+      const targetId = urlParams.get('id');
+      const targetIndex = urlParams.get('index');
+
+      let initialIndex = activeIndices.length > 0 ? activeIndices[0] : 0;
+      if (targetId) {
+        const idx = fullCsvData.findIndex(r => (r.ID_MEMORABILIA || '').trim() === targetId.trim());
+        if (idx !== -1) {
+          initialIndex = idx;
+          if (!activeIndices.includes(idx)) {
+            activeIndices.unshift(idx);
+            filteredIndices = activeIndices;
+            populateRecordSelect();
+          }
+        }
+      } else if (targetIndex !== null && !isNaN(parseInt(targetIndex, 10))) {
+        const pIdx = parseInt(targetIndex, 10);
+        if (pIdx >= 0 && pIdx < fullCsvData.length) {
+          initialIndex = pIdx;
+          if (!activeIndices.includes(pIdx)) {
+            activeIndices.unshift(pIdx);
+            filteredIndices = activeIndices;
+            populateRecordSelect();
+          }
+        }
+      }
+
+      loadRecordByIndex(initialIndex);
+    }
+
+    function useMockFallback(reason) {
+      console.warn("Using Fallback 3 (Mock/Default Record):", reason);
+      showStatus('⚠️ Network load failed. Loaded default placeholder record.', 'yellow');
+      handleParsedData(DEFAULT_FALLBACK_RECORDS);
+    }
+
+    function tryGitHubRawFallback() {
+      console.info("Attempting Fallback 2: Fetching raw CSV from GitHub repository...");
+      fetch(GITHUB_RAW_FALLBACK_URL)
+        .then(res => {
+          if (!res.ok) throw new Error(`GitHub raw fetch returned HTTP ${res.status}`);
+          return res.text();
+        })
+        .then(csvText => {
+          const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+          if (parsed.data && parsed.data.length > 0) {
+            handleParsedData(parsed.data);
+          } else {
+            useMockFallback('GitHub raw CSV parsed with 0 rows');
+          }
+        })
+        .catch(err => {
+          console.warn("Fallback 2 (GitHub raw) failed:", err);
+          useMockFallback(err.message);
+        });
+    }
+
+    function tryLocalFetchFallback() {
+      console.info("Attempting Fallback 1: Local fetch()...");
+      fetch(targetFile)
+        .then(res => {
+          if (!res.ok) throw new Error(`Local fetch returned HTTP ${res.status}`);
+          return res.text();
+        })
+        .then(csvText => {
+          const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+          if (parsed.data && parsed.data.length > 0) {
+            handleParsedData(parsed.data);
+          } else {
+            tryGitHubRawFallback();
+          }
+        })
+        .catch(err => {
+          console.warn("Fallback 1 (local fetch) failed:", err);
+          tryGitHubRawFallback();
+        });
+    }
+
+    Papa.parse(targetFile, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        if (results.data && results.data.length > 0) {
+          handleParsedData(results.data);
+        } else {
+          tryLocalFetchFallback();
+        }
+      },
+      error: function(err) {
+        console.warn("Primary Papa.parse download failed:", err);
+        tryLocalFetchFallback();
+      }
+    });
+  }
+
+  function populateDatalists(dataset) {
+    const data = Array.isArray(dataset) ? dataset : (Array.isArray(fullCsvData) ? fullCsvData : []);
+    const tours = new Set();
+    const countries = new Set();
+    const cities = new Set();
+    const venues = new Set();
+
+    if (Array.isArray(data)) {
+      data.forEach(row => {
+        if (!row) return;
+        const tour = row.TOUR_NAME || row.tour_name || row.Tour;
+        if (tour && typeof tour === 'string' && tour.trim()) {
+          tours.add(tour.trim());
+        }
+        const stat = row.STAT || row.stat || row.ZEME || row.zeme || row.Country || row.country;
+        if (stat && typeof stat === 'string' && stat.trim()) {
+          countries.add(stat.trim());
+        }
+        const city = row.MESTO || row.mesto || row.City || row.city;
+        if (city && typeof city === 'string' && city.trim()) {
+          cities.add(city.trim());
+        }
+        const venue = row.VENUE || row.venue || row.Venue;
+        if (venue && typeof venue === 'string' && venue.trim()) {
+          venues.add(venue.trim());
+        }
+      });
+    }
+
+    const customTours = getCustomTours();
+    customTours.forEach(t => {
+      if (t && typeof t === 'string' && t.trim()) {
+        tours.add(t.trim());
+      }
+    });
+
+    const sortedTours = Array.from(tours).sort((a, b) => a.localeCompare(b));
+    const sortedCountries = Array.from(countries).sort((a, b) => a.localeCompare(b));
+    const sortedCities = Array.from(cities).sort((a, b) => a.localeCompare(b));
+    const sortedVenues = Array.from(venues).sort((a, b) => a.localeCompare(b));
+
+    ['toursList', 'tourNamesList'].forEach(id => {
+      const datalist = document.getElementById(id);
+      if (datalist) {
+        datalist.innerHTML = '';
         sortedTours.forEach(tour => {
           const opt = document.createElement('option');
           opt.value = tour;
-          opt.textContent = tour;
-          tourSelect.appendChild(opt);
+          datalist.appendChild(opt);
         });
+      }
+    });
 
-        // Restore selection from URL or Session
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlTour = urlParams.get('tour') || urlParams.get('tour_name') || urlParams.get('tour_id');
-        const savedTour = (typeof safeGetSession === 'function') ? safeGetSession('jj_museum_tour') : sessionStorage.getItem('jj_museum_tour');
-        const targetTour = urlTour || savedTour || currentSelected;
+    const tourFilterSelect = document.getElementById('tourFilterSelect');
+    if (tourFilterSelect) {
+      const curSelected = tourFilterSelect.value;
+      tourFilterSelect.innerHTML = '<option value="">All Tours (Show All)</option>';
+      sortedTours.forEach(tour => {
+        const opt = document.createElement('option');
+        opt.value = tour;
+        opt.textContent = tour;
+        tourFilterSelect.appendChild(opt);
+      });
+      if (curSelected) {
+        tourFilterSelect.value = curSelected;
+      }
+    }
 
-        if (targetTour) {
-          const targetLower = targetTour.trim().toLowerCase();
-          for (let i = 0; i < tourSelect.options.length; i++) {
-            const opt = tourSelect.options[i];
-            if (opt.value.toLowerCase() === targetLower) {
-              tourSelect.selectedIndex = i;
-              break;
-            }
-          }
+    const countriesDatalist = document.getElementById('countriesList');
+    if (countriesDatalist) {
+      countriesDatalist.innerHTML = '';
+      sortedCountries.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        countriesDatalist.appendChild(opt);
+      });
+    }
+
+    const citiesDatalist = document.getElementById('citiesList');
+    if (citiesDatalist) {
+      citiesDatalist.innerHTML = '';
+      sortedCities.forEach(city => {
+        const opt = document.createElement('option');
+        opt.value = city;
+        citiesDatalist.appendChild(opt);
+      });
+    }
+
+    const venuesDatalist = document.getElementById('venuesList');
+    if (venuesDatalist) {
+      venuesDatalist.innerHTML = '';
+      sortedVenues.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        venuesDatalist.appendChild(opt);
+      });
+    }
+  }
+
+  function populateTourList(dataset) {
+    populateDatalists(dataset || fullCsvData);
+  }
+
+  function applyUrlFiltersAndSort() {
+    saveCurrentFormToMemory();
+    const urlParams = new URLSearchParams(window.location.search);
+    const catParam = (urlParams.get('category') || urlParams.get('cat') || '').trim().toLowerCase();
+    
+    const tourSelect = document.getElementById('tourFilterSelect');
+    const selectedTour = tourSelect ? tourSelect.value.trim() : (urlParams.get('tour') || urlParams.get('tour_name') || '').trim();
+    if (tourSelect && selectedTour && tourSelect.value !== selectedTour) {
+      tourSelect.value = selectedTour;
+    }
+
+    const searchParam = (urlParams.get('search') || urlParams.get('q') || '').trim().toLowerCase();
+    const sortParam = (urlParams.get('sort') || '').trim().toLowerCase();
+
+    activeIndices = [];
+    fullCsvData.forEach((row, i) => {
+      if (!row) return;
+
+      if (catParam && catParam !== 'all') {
+        const rowCat = (row.KATEGORIE || row.kategorie || row.Category || row.category || '').trim().toLowerCase();
+        if (catParam === 'videos') {
+          const hasVideo = !!(row.YOUTUBE_URL || row.youtube_url);
+          if (!hasVideo && rowCat !== 'videos') return;
+        } else if (rowCat !== catParam) {
+          return;
         }
       }
 
-      // Hook into populateFilters
-      const origPopulateFilters = window.populateFilters;
-      window.populateFilters = function() {
-        if (typeof origPopulateFilters === 'function') {
-          origPopulateFilters.apply(this, arguments);
+      if (selectedTour) {
+        const lowerTour = selectedTour.toLowerCase();
+        const tourName = (row.TOUR_NAME || row.tour_name || row.Tour || '').trim().toLowerCase();
+        const tourId = (row.TOUR_ID || row.tour_id || '').trim().toLowerCase();
+        if (tourName !== lowerTour && tourId !== lowerTour) {
+          return;
         }
-        populateTourFilter();
-        updateAdminSortAndControls();
-      };
+      }
 
-      // Hook into updateUrlParams
-      const origUpdateUrlParams = window.updateUrlParams;
-      window.updateUrlParams = function() {
-        if (typeof origUpdateUrlParams === 'function') {
-          origUpdateUrlParams.apply(this, arguments);
+      if (searchParam) {
+        const combinedText = [
+          row.ID_MEMORABILIA, row.DATUM, row.MESTO, row.STAT, row.VENUE,
+          row.TOUR_NAME, row.TOUR_ID, row.KATEGORIE, row.CONTRIBUTOR,
+          row.LINEUP, row.SETLIST, row.NOTE, row.STATUS
+        ].filter(Boolean).join(' ').toLowerCase();
+        if (!combinedText.includes(searchParam)) {
+          return;
         }
-        if (typeof window === 'undefined' || !window.history || !window.history.replaceState) return;
-        const params = new URLSearchParams(window.location.search);
-        const tourVal = document.getElementById('tourFilter')?.value?.trim();
-        if (tourVal) {
-          params.set('tour', tourVal);
-          if (typeof safeSetSession === 'function') safeSetSession('jj_museum_tour', tourVal);
-          else sessionStorage.setItem('jj_museum_tour', tourVal);
-        } else {
-          params.delete('tour');
-          params.delete('tour_name');
-          params.delete('tour_id');
-          if (typeof safeRemoveSession === 'function') safeRemoveSession('jj_museum_tour');
-          else sessionStorage.removeItem('jj_museum_tour');
-        }
-        const newQuery = params.toString();
-        const newUrl = newQuery ? `${window.location.pathname}?${newQuery}` : window.location.pathname;
-        window.history.replaceState(null, '', newUrl);
+      }
 
-        const adminEditorLink = document.getElementById('adminEditorLink');
-        if (adminEditorLink && typeof getEditUrlParams === 'function') {
-          const editQuery = getEditUrlParams();
-          adminEditorLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
-        }
-      };
+      activeIndices.push(i);
+    });
 
-      // Hook into getEditUrlParams
-      const origGetEditUrlParams = window.getEditUrlParams;
-      window.getEditUrlParams = function(itemId) {
-        let queryStr = (typeof origGetEditUrlParams === 'function') 
-          ? origGetEditUrlParams.apply(this, arguments) 
-          : '';
-        const params = new URLSearchParams(queryStr);
-
-        // Include active category in editor query string
-        if (typeof currentCategory !== 'undefined' && currentCategory && currentCategory !== 'ALL') {
-          params.set('category', currentCategory.toLowerCase());
-        }
-
-        // Include active tour filter in editor query string
-        const curTour = document.getElementById('tourFilter')?.value?.trim();
-        if (curTour) {
-          params.set('tour', curTour);
-        }
-
-        // Include search query in editor query string
-        const curSearch = document.getElementById('searchInput')?.value?.trim();
-        if (curSearch) {
-          params.set('search', curSearch);
-        }
-
-        // Include sort in editor query string
-        const curSort = document.getElementById('sortFilter')?.value?.trim();
-        if (curSort) {
-          params.set('sort', curSort);
-        }
-
-        // Include specific item ID if editing a card
-        if (itemId) {
-          params.set('id', itemId);
-        }
-
-        return params.toString();
-      };
-
-      // Replace / Hook filterData
-      window.filterData = function() {
-        const rawQuery = document.getElementById('searchInput')?.value || '';
-        const query = rawQuery.toLowerCase().trim();
-        const selectedYear = document.getElementById('yearFilter')?.value || '';
-        const selectedCity = document.getElementById('cityFilter')?.value || '';
-        const selectedTour = document.getElementById('tourFilter')?.value || '';
-        const sort = document.getElementById('sortFilter')?.value || 'random';
-
-        const dateCandidates = (typeof parseDateCandidates === 'function') ? parseDateCandidates(rawQuery) : [];
-
-        const matchesBase = allTickets.filter(t => {
-          const locationText = (typeof formatLocationText === 'function') ? formatLocationText(t).toLowerCase() : '';
-          const itemYear = (t.DATUM && t.DATUM.length >= 4) ? t.DATUM.substring(0, 4) : '';
-          const rawDate = (t.DATUM || '').toLowerCase();
-          const formattedDate = (typeof formatDisplayDate === 'function') ? formatDisplayDate(t.DATUM).toLowerCase() : '';
-          const venue = (t.VENUE || t.MISTO_KONANI || '').toLowerCase();
-          const city = (t.MESTO || '').toLowerCase();
-          const country = (t.STAT || '').toLowerCase();
-          const contributor = (t.PRISPEVATEL || t.CONTRIBUTOR || '').toLowerCase();
-          const category = (t.KATEGORIE || '').toLowerCase();
-          const supportingAct = (t.SUPPORTING_ACT || '').toLowerCase();
-          const lineup = (t.LINEUP || '').toLowerCase();
-          const setlist = (t.SETLIST || '').toLowerCase();
-          const tourName = (t.TOUR_NAME || '').toLowerCase();
-          const tourId = (t.TOUR_ID || '').toLowerCase();
-
-          const dateMatch = dateCandidates.length > 0 && (typeof matchDateAgainstCandidates === 'function') && matchDateAgainstCandidates(t.DATUM, dateCandidates);
-
-          const textMatch = !query ||
-            locationText.includes(query) ||
-            venue.includes(query) ||
-            city.includes(query) ||
-            country.includes(query) ||
-            contributor.includes(query) ||
-            category.includes(query) ||
-            rawDate.includes(query) ||
-            formattedDate.includes(query) ||
-            supportingAct.includes(query) ||
-            lineup.includes(query) ||
-            setlist.includes(query) ||
-            tourName.includes(query) ||
-            tourId.includes(query);
-
-          const qMatch = !query || dateMatch || textMatch;
-          const yMatch = !selectedYear || String(itemYear) === String(selectedYear);
-          const cMatch = !selectedCity || city === selectedCity.toLowerCase();
-          const tMatch = !selectedTour || tourName === selectedTour.toLowerCase() || tourId === selectedTour.toLowerCase();
-
-          return qMatch && yMatch && cMatch && tMatch;
-        });
-
-        if (typeof renderCategoryTabs === 'function') renderCategoryTabs(matchesBase);
-
-        filteredTickets = matchesBase.filter(t => {
-          if (currentCategory === 'ALL') return true;
-          if (currentCategory === 'Videos') return (typeof isValidValue === 'function') ? isValidValue(t.YOUTUBE_URL) : !!t.YOUTUBE_URL;
-          return getTicketCategory(t).toLowerCase() === currentCategory.toLowerCase();
-        });
-
-        if (sort === 'oldest') {
-          filteredTickets.sort((a, b) => (a.DATUM || '').localeCompare(b.DATUM || ''));
-        } else if (sort === 'newest') {
-          filteredTickets.sort((a, b) => (b.DATUM || '').localeCompare(a.DATUM || ''));
-        } else if (sort === 'missing_first') {
-          filteredTickets.sort((a, b) => {
-            const aHas = (typeof isValidValue === 'function') ? (isValidValue(a.SOUBOR_SKEN) ? 1 : 0) : (a.SOUBOR_SKEN ? 1 : 0);
-            const bHas = (typeof isValidValue === 'function') ? (isValidValue(b.SOUBOR_SKEN) ? 1 : 0) : (b.SOUBOR_SKEN ? 1 : 0);
-            return aHas - bHas;
-          });
-        } else if (sort === 'missing_only') {
-          filteredTickets = filteredTickets.filter(t => (typeof isValidValue === 'function') ? !isValidValue(t.SOUBOR_SKEN) : !t.SOUBOR_SKEN);
-        } else if (sort === 'scans_only') {
-          filteredTickets = filteredTickets.filter(t => (typeof isValidValue === 'function') ? isValidValue(t.SOUBOR_SKEN) : !!t.SOUBOR_SKEN);
-        } else if (sort === 'missing_setlists') {
-          filteredTickets.sort((a, b) => {
-            const aHas = (typeof isValidValue === 'function') ? (isValidValue(a.SETLIST) ? 1 : 0) : (a.SETLIST ? 1 : 0);
-            const bHas = (typeof isValidValue === 'function') ? (isValidValue(b.SETLIST) ? 1 : 0) : (b.SETLIST ? 1 : 0);
-            return aHas - bHas;
-          });
-        } else if (sort === 'incomplete_metadata') {
-          filteredTickets.sort((a, b) => {
-            const getMissingScore = (item) => {
-              let score = 0;
-              if (!item.VENUE && !item.MISTO_KONANI) score++;
-              if (!item.MESTO) score++;
-              if (!item.STAT) score++;
-              if (!item.SOUBOR_SKEN) score++;
-              if (!item.SETLIST) score++;
-              if (!item.TOUR_NAME) score++;
-              return score;
-            };
-            return getMissingScore(b) - getMissingScore(a);
-          });
-        }
-
-        currentPage = 1;
-        if (typeof renderPaginated === 'function') renderPaginated();
-
-        const adminEditorLink = document.getElementById('adminEditorLink');
-        if (adminEditorLink && typeof getEditUrlParams === 'function') {
-          const editQuery = getEditUrlParams();
-          adminEditorLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
-        }
-      };
-
-      // Attach event listeners
-      document.addEventListener('DOMContentLoaded', () => {
-        updateAdminSortAndControls();
-
-        const tourFilter = document.getElementById('tourFilter');
-        if (tourFilter) {
-          tourFilter.addEventListener('change', () => {
-            if (typeof updateUrlParams === 'function') updateUrlParams();
-            if (typeof filterData === 'function') filterData();
-          });
-        }
-
-        window.addEventListener('storage', () => {
-          updateAdminSortAndControls();
-        });
+    if (sortParam === 'oldest') {
+      activeIndices.sort((a, b) => (fullCsvData[a]?.DATUM || '').localeCompare(fullCsvData[b]?.DATUM || ''));
+    } else if (sortParam === 'newest') {
+      activeIndices.sort((a, b) => (fullCsvData[b]?.DATUM || '').localeCompare(fullCsvData[a]?.DATUM || ''));
+    } else if (sortParam === 'missing_first') {
+      activeIndices.sort((a, b) => {
+        const aHas = (fullCsvData[a]?.SOUBOR_SKEN && String(fullCsvData[a].SOUBOR_SKEN).trim()) ? 1 : 0;
+        const bHas = (fullCsvData[b]?.SOUBOR_SKEN && String(fullCsvData[b].SOUBOR_SKEN).trim()) ? 1 : 0;
+        return aHas - bHas;
       });
-    })();
+    }
+
+    filteredIndices = activeIndices;
+    populateRecordSelect();
+    return activeIndices;
+  }
+
+  function filterRecordsByTour(targetTour) {
+    if (targetTour !== undefined) {
+      const tourSelect = document.getElementById('tourFilterSelect');
+      if (tourSelect) tourSelect.value = targetTour;
+    }
+    applyUrlFiltersAndSort();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const catParam = (urlParams.get('category') || urlParams.get('cat') || '').trim();
+    const catDisplay = catParam && catParam.toLowerCase() !== 'all' ? (catParam.charAt(0).toUpperCase() + catParam.slice(1)) : '';
+    const tourSelect = document.getElementById('tourFilterSelect');
+    const selectedTour = tourSelect ? tourSelect.value.trim() : '';
+
+    let filterLabel = '';
+    if (catDisplay && selectedTour) {
+      filterLabel = `${catDisplay} • Tour: ${selectedTour}`;
+    } else if (catDisplay) {
+      filterLabel = catDisplay;
+    } else if (selectedTour) {
+      filterLabel = `Tour: ${selectedTour}`;
+    }
+
+    if (activeIndices.length === 0) {
+      const recordCounterEl = document.getElementById('recordCounter');
+      if (recordCounterEl) recordCounterEl.textContent = `0 records (${filterLabel || 'Filtered'})`;
+      const prevBtn = document.getElementById('prevBtn');
+      if (prevBtn) prevBtn.disabled = true;
+      const nextBtn = document.getElementById('nextBtn');
+      if (nextBtn) nextBtn.disabled = true;
+      showStatus(`⚠️ No records found for ${filterLabel || 'active filter'}.`, 'yellow');
+    } else {
+      if (activeIndices.includes(currentRecordIndex)) {
+        loadRecordByIndex(currentRecordIndex);
+      } else {
+        loadRecordByIndex(activeIndices[0]);
+      }
+    }
+
+    updateBackToMuseumLinks();
+  }
+
+  function addNewTourPrompt() {
+    const input = getField('TOUR_NAME');
+    const newName = prompt('Enter New Concert Tour Name (or type CLEAR to reset custom tours):');
+    if (newName === null) return;
+    const trimmed = newName.trim();
+    if (trimmed.toUpperCase() === 'CLEAR') {
+      clearCustomToursList();
+      return;
+    }
+    if (trimmed) {
+      if (input) {
+        input.value = trimmed;
+        syncTourId();
+        updateLineupSuggestions();
+        input.dispatchEvent(new Event('input'));
+        input.dispatchEvent(new Event('change'));
+      }
+      saveCustomTour(trimmed);
+      showStatus(`✅ Tour "${trimmed}" added and saved to options.`, 'green');
+    } else if (input) {
+      input.focus();
+    }
+  }
+
+  function populateRecordSelect() {
+    const select = document.getElementById('recordSelect') || document.getElementById('jumpSelect');
+    if (!select) return;
+    select.innerHTML = '';
+    if (!activeIndices || activeIndices.length === 0) {
+      activeIndices = fullCsvData.map((_, i) => i);
+    }
+    filteredIndices = activeIndices;
+    activeIndices.forEach(idx => {
+      const row = fullCsvData[idx];
+      if (!row) return;
+      const opt = document.createElement('option');
+      opt.value = idx;
+      const dateStr = (row.DATUM && String(row.DATUM).trim()) || 'YYYY-MM-DD';
+      const cityStr = (row.MESTO && String(row.MESTO).trim()) || (row.STAT && String(row.STAT).trim()) || (row.TOUR_NAME && String(row.TOUR_NAME).trim()) || 'Unknown City';
+      const catStr = (row.KATEGORIE && String(row.KATEGORIE).trim()) || 'tickets';
+      opt.textContent = `[${dateStr}] ${cityStr} (${catStr})`;
+      select.appendChild(opt);
+    });
+  }
+
+  function populateJumpDropdown() {
+    populateRecordSelect();
+  }
+
+  function loadRecordByIndex(index) {
+    if (!fullCsvData || fullCsvData.length === 0) {
+      const recordCounterEl = document.getElementById('recordCounter');
+      if (recordCounterEl) recordCounterEl.textContent = 'Record 0 of 0';
+      return;
+    }
+    if (index < 0) index = 0;
+    if (index >= fullCsvData.length) index = fullCsvData.length - 1;
+    currentRecordIndex = index;
+    const r = fullCsvData[index] || {};
+
+    if (!activeIndices || activeIndices.length === 0) {
+      activeIndices = fullCsvData.map((_, i) => i);
+    }
+    filteredIndices = activeIndices;
+
+    let posInActive = activeIndices.indexOf(index);
+    if (posInActive === -1) {
+      posInActive = 0;
+    }
+
+    const recordIdTitleEl = document.getElementById('recordIdTitle');
+    if (recordIdTitleEl) recordIdTitleEl.textContent = r.ID_MEMORABILIA || `Record #${index + 1}`;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const catParam = (urlParams.get('category') || urlParams.get('cat') || '').trim();
+    const catDisplay = catParam && catParam.toLowerCase() !== 'all' ? (catParam.charAt(0).toUpperCase() + catParam.slice(1)) : '';
+    const tourFilterSelect = document.getElementById('tourFilterSelect');
+    const selectedTour = tourFilterSelect ? tourFilterSelect.value.trim() : '';
+    const recordCounterEl = document.getElementById('recordCounter');
+
+    if (recordCounterEl) {
+      if (catDisplay && selectedTour) {
+        recordCounterEl.textContent = `Record ${posInActive + 1} of ${activeIndices.length} (${catDisplay} • Tour: ${selectedTour})`;
+      } else if (catDisplay) {
+        recordCounterEl.textContent = `Record ${posInActive + 1} of ${activeIndices.length} (${catDisplay})`;
+      } else if (selectedTour) {
+        recordCounterEl.textContent = `Record ${posInActive + 1} of ${activeIndices.length} (Tour: ${selectedTour})`;
+      } else {
+        recordCounterEl.textContent = `Record ${index + 1} of ${fullCsvData.length}`;
+      }
+    }
+    
+    const select = document.getElementById('recordSelect') || document.getElementById('jumpSelect');
+    if (select) select.value = index;
+
+    const prevBtn = document.getElementById('prevBtn');
+    if (prevBtn) prevBtn.disabled = (posInActive <= 0);
+    const nextBtn = document.getElementById('nextBtn');
+    if (nextBtn) nextBtn.disabled = (posInActive >= activeIndices.length - 1);
+
+    fields.forEach(f => {
+      const el = getField(f);
+      if (el) {
+        const val = r[f] !== undefined && r[f] !== null ? String(r[f]).trim() : '';
+        if (el.tagName === 'SELECT') {
+          el.value = val;
+          if (el.selectedIndex === -1 || el.value !== val) {
+            const lowerVal = val.toLowerCase();
+            let matched = false;
+            for (let i = 0; i < el.options.length; i++) {
+              const opt = el.options[i];
+              if (opt.value.toLowerCase() === lowerVal || opt.text.toLowerCase() === lowerVal) {
+                el.selectedIndex = i;
+                matched = true;
+                break;
+              }
+            }
+            if (!matched && val) {
+              const newOpt = document.createElement('option');
+              newOpt.value = val;
+              newOpt.textContent = val;
+              el.appendChild(newOpt);
+              el.value = val;
+            }
+          }
+          el.dispatchEvent(new Event('change'));
+        } else {
+          el.value = val;
+        }
+      }
+    });
+
+    updateImageFromInput();
+    updateYtPreview();
+    checkDataQuality();
+    updateLineupSuggestions();
+    updateBackToMuseumLinks();
+  }
+
+  function navigateRecord(delta) {
+    saveCurrentFormToMemory();
+    if (!activeIndices || activeIndices.length === 0) {
+      activeIndices = fullCsvData.map((_, i) => i);
+    }
+    let posInActive = activeIndices.indexOf(currentRecordIndex);
+    if (posInActive === -1) posInActive = 0;
+    const newPos = posInActive + delta;
+    if (newPos >= 0 && newPos < activeIndices.length) {
+      loadRecordByIndex(activeIndices[newPos]);
+    }
+  }
+
+  function jumpToSelectedRecord() {
+    saveCurrentFormToMemory();
+    const select = document.getElementById('recordSelect') || document.getElementById('jumpSelect');
+    if (select && select.value !== '') {
+      const idx = parseInt(select.value, 10);
+      if (!isNaN(idx) && idx >= 0 && idx < fullCsvData.length) {
+        loadRecordByIndex(idx);
+      }
+    }
+  }
+
+    function saveCurrentFormToMemory() {
+      if (currentRecordIndex < 0 || currentRecordIndex >= fullCsvData.length) return;
+      fields.forEach(f => {
+        const el = getField(f);
+        if (el) fullCsvData[currentRecordIndex][f] = el.value.trim();
+      });
+    }
+
+    function updateImageFromInput() {
+      const skenVal = getField('SOUBOR_SKEN')?.value || '';
+      const previewImg = document.getElementById('previewImg');
+      const thumbList = document.getElementById('thumbList');
+      if (!previewImg || !thumbList) return;
+
+      const files = skenVal.split(',').map(s => s.trim()).filter(Boolean);
+      thumbList.innerHTML = '';
+
+      if (files.length === 0) {
+        previewImg.src = './favicon.svg';
+        return;
+      }
+
+      previewImg.src = `./scans/${files[0]}`;
+      previewImg.onerror = function() { this.src = './favicon.svg'; };
+
+      if (viewerInstance) viewerInstance.destroy();
+      viewerInstance = new Viewer(previewImg);
+
+      files.forEach((f, idx) => {
+        const thumb = document.createElement('img');
+        thumb.className = `thumb-item ${idx === 0 ? 'active' : ''}`;
+        thumb.src = `./scans/${f}`;
+        thumb.onerror = function() { this.src = './favicon.svg'; };
+        thumb.onclick = () => {
+          previewImg.src = `./scans/${f}`;
+          document.querySelectorAll('.thumb-item').forEach(el => el.classList.remove('active'));
+          thumb.classList.add('active');
+        };
+        thumbList.appendChild(thumb);
+      });
+    }
+
+    function updateYtPreview() {
+      const url = getField('YOUTUBE_URL')?.value.trim();
+      const prevEl = document.getElementById('ytPreview');
+      if (!prevEl) return;
+      if (url) prevEl.innerHTML = `<a href="${url}" target="_blank" rel="noopener">▶️ Test YouTube Video Link</a>`;
+      else prevEl.innerHTML = '';
+    }
+
+    function recalculateSongCount() {
+      const val = getField('SETLIST')?.value || '';
+      const songs = val.split(',').map(s => s.trim()).filter(s => s && !s.startsWith('[Encore') && !s.startsWith('[Set'));
+      const countEl = getField('POCET_SKLADEB');
+      if (countEl) countEl.value = songs.length;
+    }
+
+    function checkDataQuality() {
+      const dateVal = getField('DATUM')?.value.trim();
+      const cityVal = getField('MESTO')?.value.trim();
+      const catVal = getField('KATEGORIE')?.value.trim();
+      const warnEl = document.getElementById('duplicateWarning');
+
+      if (!warnEl) return;
+      warnEl.textContent = '';
+
+      if (dateVal && cityVal) {
+        const dups = fullCsvData.filter((r, idx) => {
+          if (idx === currentRecordIndex) return false;
+          return (r.DATUM || '').trim() === dateVal &&
+                 (r.MESTO || '').trim().toLowerCase() === cityVal.toLowerCase() &&
+                 (r.KATEGORIE || '').trim().toLowerCase() === catVal.toLowerCase();
+        });
+        if (dups.length > 0) {
+          warnEl.textContent = `⚠️ Possible duplicate record exists (${dups.length} match on same Date, City, and Category).`;
+        }
+      }
+    }
+
+    const SETLIST_FM_API_KEY = '3pc6VtmOHzQbQVh9xedw_LLpNRCCfDhEvop7';
+
+    function extractSetlistId(urlOrId) {
+      if (!urlOrId) return '';
+      const trimmed = urlOrId.trim();
+      const match = trimmed.match(/([a-fA-F0-9]+)(?:\.html)?(?:[?#].*)?$/i);
+      if (match && match[1]) {
+        return match[1];
+      }
+      return trimmed;
+    }
+
+    async function fetchSetlistSongs() {
+      const urlInput = getField('SETLIST_URL');
+      const url = urlInput ? urlInput.value.trim() : '';
+      if (!url) {
+        alert('Please enter a valid Setlist.fm URL or Setlist ID first.');
+        return;
+      }
+
+      const setlistId = extractSetlistId(url);
+      if (!setlistId) {
+        alert('Could not extract a valid Setlist ID from the provided URL.');
+        return;
+      }
+
+      showStatus('⚡ Fetching songs via Cloudflare Worker...', 'yellow');
+
+      try {
+        const workerUrl = `https://jj-setlist-proxy.marek-kraus.workers.dev/setlist/${setlistId}`;
+        const res = await fetch(workerUrl, { headers: { 'Accept': 'application/json' } });
+        
+        if (!res.ok) {
+          throw new Error(`Worker HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const songs = [];
+
+        if (data.sets && data.sets.set) {
+          const sets = Array.isArray(data.sets.set) ? data.sets.set : [data.sets.set];
+          sets.forEach(s => {
+            if (!s) return;
+            const songList = Array.isArray(s.song) ? s.song : (s.song ? [s.song] : []);
+            songList.forEach(songItem => {
+              if (songItem && songItem.name && typeof songItem.name === 'string') {
+                if (!songItem.tape) {
+                  songs.push(songItem.name.trim());
+                }
+              }
+            });
+          });
+        }
+
+        if (songs.length > 0) {
+          const setlistEl = getField('SETLIST');
+          if (setlistEl) setlistEl.value = songs.join(', ');
+          
+          const countEl = getField('POCET_SKLADEB');
+          if (countEl) countEl.value = songs.length;
+          
+          recalculateSongCount();
+          showStatus(`✅ Successfully fetched ${songs.length} songs via Setlist.fm API!`, 'green');
+        } else {
+          showStatus('⚠️ No songs found in this setlist on Setlist.fm.', 'yellow');
+        }
+
+      } catch (err) {
+        console.error('Fetch Setlist Error:', err);
+        showStatus('❌ Failed to fetch setlist: ' + err.message, 'red');
+      }
+    }
+    const fetchSetlistFromUrl = fetchSetlistSongs;
+    window.fetchSetlistSongs = fetchSetlistSongs;
+    window.fetchSetlistFromUrl = fetchSetlistFromUrl;
+
+    function addNewRecord() {
+      saveCurrentFormToMemory();
+      const newId = `TICKET_${String(fullCsvData.length + 1).padStart(4, '0')}`;
+      const selectedTour = document.getElementById('tourFilterSelect')?.value || '';
+      const newRecord = { ID_MEMORABILIA: newId, KATEGORIE: 'tickets' };
+      if (selectedTour) {
+        newRecord.TOUR_NAME = selectedTour;
+        newRecord.TOUR_ID = 'tour-' + selectedTour.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      }
+      fullCsvData.push(newRecord);
+      if (!activeIndices.includes(fullCsvData.length - 1)) {
+        activeIndices.push(fullCsvData.length - 1);
+      }
+      populateRecordSelect();
+      loadRecordByIndex(fullCsvData.length - 1);
+      showStatus(`➕ New record ${newId} created. Fill in details and save.`, 'green');
+    }
+
+    function duplicateCurrentRecord() {
+      if (currentRecordIndex < 0 || !fullCsvData[currentRecordIndex]) return;
+      saveCurrentFormToMemory();
+      const current = fullCsvData[currentRecordIndex];
+      const newId = `TICKET_${String(fullCsvData.length + 1).padStart(4, '0')}`;
+      const clone = { ...current, ID_MEMORABILIA: newId, SOUBOR_SKEN: '' };
+      fullCsvData.push(clone);
+      if (!activeIndices.includes(fullCsvData.length - 1)) {
+        activeIndices.push(fullCsvData.length - 1);
+      }
+      populateRecordSelect();
+      loadRecordByIndex(fullCsvData.length - 1);
+      showStatus(`📋 Duplicated record as ${newId}.`, 'green');
+    }
+
+    function showInboxHoverPopover(e, imgSrc, filename) {
+      let popover = document.getElementById('inboxScanHoverPopover');
+      if (!popover) {
+        popover = document.createElement('div');
+        popover.id = 'inboxScanHoverPopover';
+        popover.className = 'inbox-scan-hover-popover';
+        popover.innerHTML = '<img id="inboxPopoverImg" src="" alt="Scan Preview"><div id="inboxPopoverCap" class="popover-caption"></div>';
+        document.body.appendChild(popover);
+      }
+
+      const imgEl = popover.querySelector('#inboxPopoverImg');
+      const capEl = popover.querySelector('#inboxPopoverCap');
+      if (imgEl) {
+        imgEl.src = imgSrc;
+        imgEl.onerror = function() {
+          if (filename) this.src = `./scans/${encodeURIComponent(filename)}`;
+        };
+      }
+      if (capEl) capEl.textContent = filename || '';
+
+      popover.classList.add('active');
+      positionInboxHoverPopover(e, popover);
+    }
+
+    function positionInboxHoverPopover(e, popover) {
+      if (!popover) popover = document.getElementById('inboxScanHoverPopover');
+      if (!popover || !popover.classList.contains('active')) return;
+
+      const target = e.currentTarget || e.target;
+      if (!target) return;
+      const rect = target.getBoundingClientRect();
+      const popoverWidth = 270;
+      const popoverHeight = 310;
+
+      let left = rect.right + 12;
+      if (left + popoverWidth > window.innerWidth - 12) {
+        left = Math.max(10, rect.left - popoverWidth - 12);
+      }
+
+      let top = rect.top + (rect.height / 2) - (popoverHeight / 2);
+      if (top < 10) top = 10;
+      if (top + popoverHeight > window.innerHeight - 10) {
+        top = Math.max(10, window.innerHeight - popoverHeight - 10);
+      }
+
+      popover.style.left = `${left}px`;
+      popover.style.top = `${top}px`;
+    }
+
+    function hideInboxHoverPopover() {
+      const popover = document.getElementById('inboxScanHoverPopover');
+      if (popover) {
+        popover.classList.remove('active');
+      }
+    }
+
+    async function scanUnassignedImages() {
+      const container = document.getElementById('unassignedScansList');
+      const scanBtn = document.getElementById('btnScanFolder');
+      if (!container) return;
+
+      if (scanBtn) scanBtn.disabled = true;
+      container.innerHTML = '<div style="font-size: 0.8rem; color: var(--accent-yellow); text-align: center; padding: 10px;">🔍 Scanning /scans/ directory...</div>';
+
+      try {
+        const cfg = typeof StorageService !== 'undefined' && typeof StorageService.getGitHubConfig === 'function'
+          ? StorageService.getGitHubConfig()
+          : { token: safeGetStorage('gh_token') || safeGetStorage('jj_github_pat') || '' };
+        const token = cfg.token || safeGetStorage('gh_token') || safeGetStorage('jj_github_pat') || '';
+
+        const headers = { 'Accept': 'application/vnd.github.v3+json' };
+        if (token) {
+          headers['Authorization'] = `token ${token}`;
+        }
+
+        const res = await fetch('https://api.github.com/repos/19forever/joe-jackson-tickets-v2/contents/scans', { headers });
+        if (!res.ok) {
+          if (res.status === 403) {
+            throw new Error('GitHub API rate limit reached. Please set a GitHub PAT via "🔑 PAT Settings" above.');
+          }
+          throw new Error(`GitHub API returned status ${res.status}: ${res.statusText}`);
+        }
+
+        const files = await res.json();
+        if (!Array.isArray(files)) {
+          throw new Error('Unexpected response format from GitHub API.');
+        }
+
+        const assignedSet = new Set();
+        if (Array.isArray(fullCsvData)) {
+          fullCsvData.forEach(row => {
+            if (!row) return;
+            const sken = row.SOUBOR_SKEN || row.soubor_sken || '';
+            if (typeof sken === 'string' && sken.trim()) {
+              sken.split(',').forEach(part => {
+                const trimmed = part.trim();
+                if (trimmed) {
+                  assignedSet.add(trimmed.toLowerCase());
+                  const base = trimmed.split('/').pop().toLowerCase();
+                  assignedSet.add(base);
+                }
+              });
+            }
+          });
+        }
+
+        const imageExtRegex = /\.(jpe?g|png|webp|gif|bmp)$/i;
+        const unassigned = files.filter(f => {
+          if (f.type !== 'file') return false;
+          if (!imageExtRegex.test(f.name)) return false;
+          return !assignedSet.has(f.name.toLowerCase());
+        });
+
+        container.innerHTML = '';
+        const countBadge = document.getElementById('unassignedCountBadge');
+        if (countBadge) {
+          countBadge.textContent = unassigned.length;
+          countBadge.style.display = 'inline-block';
+        }
+
+        if (unassigned.length === 0) {
+          container.innerHTML = '<div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px;">🎉 All scan images in /scans/ are assigned to records!</div>';
+          showStatus('✅ No unassigned images found in /scans/.', 'green');
+          return;
+        }
+
+        showStatus(`📂 Found ${unassigned.length} unassigned scan image(s).`, 'yellow');
+
+        unassigned.forEach(item => {
+          const card = document.createElement('div');
+          card.style.cssText = 'display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px;';
+
+          const leftDiv = document.createElement('div');
+          leftDiv.style.cssText = 'display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;';
+
+          const imgSrc = item.download_url || `./scans/${encodeURIComponent(item.name)}`;
+          const img = document.createElement('img');
+          img.src = imgSrc;
+          img.alt = item.name;
+          img.style.cssText = 'width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color); background: #000; flex-shrink: 0; cursor: pointer; transition: transform 0.15s, border-color 0.15s;';
+          img.onerror = function() {
+            this.src = `./scans/${encodeURIComponent(item.name)}`;
+          };
+          img.onmouseenter = function(e) {
+            this.style.borderColor = 'var(--accent-yellow)';
+            this.style.transform = 'scale(1.05)';
+            showInboxHoverPopover(e, this.src, item.name);
+          };
+          img.onmousemove = function(e) {
+            positionInboxHoverPopover(e);
+          };
+          img.onmouseleave = function() {
+            this.style.borderColor = 'var(--border-color)';
+            this.style.transform = 'scale(1)';
+            hideInboxHoverPopover();
+          };
+
+          const nameSpan = document.createElement('span');
+          nameSpan.textContent = item.name;
+          nameSpan.title = item.name;
+          nameSpan.style.cssText = 'font-size: 0.75rem; color: var(--text-color); word-break: break-word; overflow-wrap: anywhere; line-height: 1.3; font-family: monospace; flex: 1;';
+
+          leftDiv.appendChild(img);
+          leftDiv.appendChild(nameSpan);
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn-add-new';
+          btn.title = 'Create record from this image';
+          btn.style.cssText = 'width: 32px; height: 32px; min-width: 32px; min-height: 32px; padding: 0; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 4px;';
+          btn.textContent = '➕';
+          btn.onclick = function() {
+            hideInboxHoverPopover();
+            createRecordFromScan(item.name);
+          };
+
+          card.appendChild(leftDiv);
+          card.appendChild(btn);
+          container.appendChild(card);
+        });
+
+      } catch (err) {
+        console.error("Scan folder error:", err);
+        container.innerHTML = `<div style="font-size: 0.75rem; color: #f87171; padding: 8px; background: rgba(220,38,38,0.1); border-radius: 4px; line-height: 1.4;">❌ ${err.message}</div>`;
+        showStatus('❌ Failed to scan /scans/ folder: ' + err.message, 'red');
+      } finally {
+        if (scanBtn) scanBtn.disabled = false;
+      }
+    }
+
+    function createRecordFromScan(filename) {
+      if (!filename) return;
+      addNewRecord();
+      const skenInput = getField('SOUBOR_SKEN');
+      if (skenInput) {
+        skenInput.value = filename;
+        skenInput.dispatchEvent(new Event('input'));
+        skenInput.dispatchEvent(new Event('change'));
+      }
+      updateImageFromInput();
+      scanUnassignedImages();
+      showStatus(`✅ Created new record prefilled with scan: ${filename}`, 'green');
+    }
+
+    function utf8_to_b64(str) {
+      return window.btoa(unescape(encodeURIComponent(str)));
+    }
+
+    function downloadUpdatedCSV() {
+      saveCurrentFormToMemory();
+      const csvStr = Papa.unparse(fullCsvData);
+      const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = CSV_FILENAME;
+      a.click();
+      URL.revokeObjectURL(url);
+      showStatus('💾 Downloaded updated CSV file.', 'green');
+    }
+
+    async function commitToGitHub() {
+      saveCurrentFormToMemory();
+      const cfg = typeof StorageService !== 'undefined' ? StorageService.getGitHubConfig() : { token: localStorage.getItem('gh_token') || localStorage.getItem('jj_github_pat') };
+      if (!cfg.token) {
+        manageToken();
+        return;
+      }
+
+      showStatus('🚀 Committing changes directly to GitHub repository...', 'yellow');
+
+      try {
+        const updatedCsvContent = Papa.unparse(fullCsvData);
+        const result = await GitHubService.commitFile(updatedCsvContent, "Update ticket metadata via Admin Editor");
+
+        if (result.success) {
+          showStatus(result.message || "✅ Saved successfully to GitHub.", 'green');
+        } else {
+          showStatus(result.message || "❌ Failed to commit to GitHub.", 'red');
+        }
+      } catch (err) {
+        console.error("GitHub Commit Error:", err);
+        showStatus('❌ Failed to commit to GitHub: ' + err.message, 'red');
+      }
+    }
+
+    function showStatus(msg, color) {
+      const el = document.getElementById('statusMessage');
+      if (!el) return;
+      el.textContent = msg;
+      el.style.display = 'block';
+      if (color === 'green') {
+        el.style.backgroundColor = 'rgba(22, 163, 74, 0.2)';
+        el.style.border = '1px solid #16a34a';
+        el.style.color = '#4ade80';
+      } else if (color === 'red') {
+        el.style.backgroundColor = 'rgba(220, 38, 38, 0.2)';
+        el.style.border = '1px solid #dc2626';
+        el.style.color = '#f87171';
+      } else {
+        el.style.backgroundColor = 'rgba(245, 158, 11, 0.2)';
+        el.style.border = '1px solid #f59e0b';
+        el.style.color = '#fbbf24';
+      }
+    }
   </script>
-
-  <footer class="jj-museum-footer">
-    <div class="footer-container">
-      <p class="disclaimer-title">📜 Legal Disclaimer & Fair Use Notice</p>
-      <p class="disclaimer-text">
-        Joe Jackson's Memorabilia Museum is a non-commercial, educational fan archival project. 
-        All trademarks, logos, artist names, and media rights belong exclusively to Joe Jackson and their respective copyright holders. 
-        Digital ticket stubs, posters, and memorabilia scans are preserved for historical documentation purposes through private donor contributions.
-      </p>
-      <p class="disclaimer-contact">
-        If you are a copyright owner and wish to request content removal, please contact us at <a href="mailto:archive@joejackson.band">archive@joejackson.band</a>.
-      </p>
-    </div>
-  </footer>
-
-  <!-- Setlist.fm Exit Confirmation Modal -->
-  <div id="setlistExitModal" class="jj-modal-backdrop">
-    <div class="jj-modal-card">
-      <button class="jj-modal-close-btn" onclick="closeSetlistExitModal()">✕</button>
-      <div class="jj-modal-header">
-        <span class="jj-modal-icon">🎵</span>
-        <h3>Add Setlist on Setlist.fm</h3>
-      </div>
-      <p class="jj-modal-body">
-        You are about to open an external page on <strong>Setlist.fm</strong> to view or contribute songs for this concert.
-      </p>
-      <div class="jj-modal-actions">
-        <button class="btn-secondary" onclick="closeSetlistExitModal()">Cancel</button>
-        <a id="setlistExitConfirmBtn" href="#" target="_blank" rel="noopener noreferrer" class="otd-btn" onclick="closeSetlistExitModal()">
-          Continue to Setlist.fm ↗
-        </a>
-      </div>
-    </div>
-  </div>
 </body>
 </html>
-
