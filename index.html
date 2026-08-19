@@ -79,9 +79,9 @@
         <button id="adminLockBtn" class="btn-contribute" style="display: none; background: #dc2626; color: #ffffff; border: none; cursor: pointer; font-family: inherit;" onclick="lockAdminSession()" title="Lock Admin Session and return to Public Mode">
           🔒 Lock Admin
         </button>
-        <a href="edit_ticket_new.html" id="adminLoginLink" class="btn-contribute" style="background: transparent; border: 1px solid var(--border-color-light, #333);" title="Admin Login Gate">
-          🔒 Admin
-        </a>
+<button type="button" id="adminLoginLink" class="btn-contribute" style="background: transparent; border: 1px solid var(--border-color-light, #333); cursor: pointer; font-family: inherit;" onclick="handleAdminButtonClick()" title="Admin Login Gate">
+  🔒 Admin
+</button>
         <a href="ticket_form.html" class="btn-contribute" title="Share your concert ticket, pass, or poster with us">
           ➕ Contribute your item
         </a>
@@ -585,6 +585,36 @@
       </div>
     </div>
   </div>
+
+<script>
+function handleAdminButtonClick() {
+  const isAdmin = isAdminModeActive();
+  
+  if (isAdmin) {
+    // Pokud je již admin přihlášen, přejde do editoru
+    const editQuery = typeof getEditUrlParams === 'function' ? getEditUrlParams() : '';
+    window.location.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
+  } else {
+    // Pokud přihlášen není, ihned otevře přihlašovací dialog
+    const token = prompt('Zadejte váš GitHub Personal Access Token (PAT) pro přihlášení do Admin módu:');
+    if (token && token.trim().length > 0) {
+      if (typeof StorageService !== 'undefined') {
+        StorageService.setGitHubConfig({ token: token.trim() });
+        StorageService.set('jj_admin_mode', 'true');
+      } else {
+        localStorage.setItem('gh_token', token.trim());
+        localStorage.setItem('jj_github_pat', token.trim());
+        localStorage.setItem('jj_admin_mode', 'true');
+      }
+      alert('✅ Admin režim aktivován!');
+      updateAdminSortAndControls();
+      if (typeof filterData === 'function') filterData();
+    }
+  }
+}
+window.handleAdminButtonClick = handleAdminButtonClick;
+</script>
+
 </body>
 </html>
 
