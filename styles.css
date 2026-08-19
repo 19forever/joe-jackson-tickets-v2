@@ -1211,6 +1211,136 @@ header {
   font-weight: 700;
 }
 
+/* Setlist Exit Confirmation Modal */
+.jj-modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.jj-modal-backdrop.active {
+  display: flex;
+}
+
+.jj-modal-card {
+  position: relative;
+  background-color: var(--bg-panel, #121212);
+  border: 1px solid var(--border-color, #27272a);
+  border-radius: 12px;
+  padding: 28px 24px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(245, 158, 11, 0.1);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.jj-modal-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--text-muted, #9ca3af);
+  font-size: 1.2rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+  transition: color 0.2s ease;
+}
+
+.jj-modal-close-btn:hover {
+  color: var(--accent-yellow, #f59e0b);
+}
+
+.jj-modal-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.jj-modal-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.jj-modal-header h3 {
+  font-family: var(--font-primary);
+  font-size: 1.2rem;
+  font-weight: var(--font-weight-title, 700);
+  color: #ffffff;
+  margin: 0;
+}
+
+.jj-modal-body {
+  font-size: 0.88rem;
+  color: var(--text-muted, #9ca3af);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.jj-modal-body strong {
+  color: #ffffff;
+}
+
+.jj-modal-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.jj-modal-actions .btn-secondary {
+  flex: 1;
+  background: #1f2937;
+  border: 1px solid var(--border-color-light, #374151);
+  color: var(--text-main, #f3f4f6);
+  padding: 9px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jj-modal-actions .btn-secondary:hover {
+  background: #374151;
+  color: #ffffff;
+}
+
+.jj-modal-actions .otd-btn {
+  flex: 1.3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 0.85rem;
+  padding: 9px 14px;
+}
+
 /* Responsive & Mobile Optimizations */
 @media (max-width: 992px) {
   #videoModal .video-modal-container {

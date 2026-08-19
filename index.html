@@ -543,6 +543,26 @@
       </p>
     </div>
   </footer>
+
+  <!-- Setlist.fm Exit Confirmation Modal -->
+  <div id="setlistExitModal" class="jj-modal-backdrop">
+    <div class="jj-modal-card">
+      <button class="jj-modal-close-btn" onclick="closeSetlistExitModal()">✕</button>
+      <div class="jj-modal-header">
+        <span class="jj-modal-icon">🎵</span>
+        <h3>Add Setlist on Setlist.fm</h3>
+      </div>
+      <p class="jj-modal-body">
+        You are about to open an external page on <strong>Setlist.fm</strong> to view or contribute songs for this concert.
+      </p>
+      <div class="jj-modal-actions">
+        <button class="btn-secondary" onclick="closeSetlistExitModal()">Cancel</button>
+        <a id="setlistExitConfirmBtn" href="#" target="_blank" rel="noopener noreferrer" class="otd-btn" onclick="closeSetlistExitModal()">
+          Continue to Setlist.fm ↗
+        </a>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
 

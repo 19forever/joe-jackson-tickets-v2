@@ -757,6 +757,25 @@ function closeVideoModal() {
   }
 }
 
+function openSetlistExitModal(url) {
+  const modal = document.getElementById('setlistExitModal');
+  const confirmBtn = document.getElementById('setlistExitConfirmBtn');
+  if (!modal || !confirmBtn) {
+    if (url) window.open(url, '_blank');
+    return;
+  }
+  confirmBtn.href = url || '#';
+  modal.classList.add('active');
+}
+
+function closeSetlistExitModal() {
+  const modal = document.getElementById('setlistExitModal');
+  if (modal) modal.classList.remove('active');
+}
+
+window.openSetlistExitModal = openSetlistExitModal;
+window.closeSetlistExitModal = closeSetlistExitModal;
+
 function getTicketCategory(t) {
   if (t.KATEGORIE && t.KATEGORIE.trim()) {
     const cat = t.KATEGORIE.trim().toLowerCase();
@@ -1447,7 +1466,7 @@ function renderTickets(tickets) {
         </button>`;
     } else if (setlistUrl) {
       slot7HTML = `
-        <button class="icon-btn badge-setlist-empty" title="Setlist empty — click to add on Setlist.fm" onclick="event.stopPropagation(); window.open('${setlistUrl}', '_blank');">
+        <button class="icon-btn badge-setlist-empty" title="Setlist empty — click to add on Setlist.fm" onclick="event.stopPropagation(); openSetlistExitModal('${setlistUrl}');">
           ✏️
         </button>`;
     } else {
