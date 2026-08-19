@@ -15439,7 +15439,7 @@
     "MESTO": "",
     "STAT": "",
     "VENUE": "",
-    "KATEGORIE": "memorabilia",
+    "KATEGORIE": "tour_items",
     "SOUBOR_SKEN": "sl_Prague_2009.jpeg",
     "CONTRIBUTOR": "",
     "LINEUP": "Joe Jackson (vocals, piano, keyboards) ; Gary Sanford (guitar, backing vocals) ; Graham Maby (bass, backing vocals) ; Dave Houghton (drums, backing vocals)",
@@ -15453,6 +15453,6 @@
     "TOUR_NAME": "2009 * Rain Summer Tour",
     "STATUS": "",
     "ORIGINAL_DATE": "",
-    "NOTE": "sl_Prague_2009.jpg"
+    "NOTE": ""
   }
 ]
