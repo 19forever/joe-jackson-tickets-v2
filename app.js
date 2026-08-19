@@ -1330,18 +1330,18 @@ function renderTickets(tickets) {
     const hasSetlist = isValidValue(t.SETLIST) && songCount > 0;
     if (hasSetlist) {
       iconsHTML += `
-        <button class="icon-btn badge-setlist btn-action-setlist" title="Setlist (${songCount} songs) - Verified on Setlist.fm" onclick="event.stopPropagation(); toggleCollapsible('setlist-${globalIndex}');">
+        <button class="icon-btn badge-setlist btn-action-setlist" title="Setlist (${songCount} songs)" onclick="event.stopPropagation(); toggleCollapsible('setlist-${globalIndex}');">
           🎵 ${songCount}
         </button>`;
     } else if (setlistUrl) {
       iconsHTML += `
-        <button class="icon-btn badge-setlist-empty" title="Setlist missing on Setlist.fm - Click to add setlist" onclick="event.stopPropagation(); window.open('${setlistUrl}', '_blank');">
-          🎵 0
+        <button class="icon-btn badge-setlist-empty" title="Setlist empty — click to add on Setlist.fm" onclick="event.stopPropagation(); window.open('${setlistUrl}', '_blank');">
+          ✏️
         </button>`;
     } else {
       iconsHTML += `
-        <button class="icon-btn badge-unverified" title="Unverified show (No Setlist.fm entry linked)" onclick="event.stopPropagation();">
-          ⚪ Unverified
+        <button class="icon-btn badge-unverified" title="Unverified show — missing Setlist.fm link" onclick="event.stopPropagation();">
+          ⚪
         </button>`;
     }
 
