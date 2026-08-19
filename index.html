@@ -168,10 +168,27 @@
   <script src="storage-service.js"></script>
   <script src="app.js"></script>
 
-  <!-- Tour Filter Integration Script -->
+<!-- Tour Filter Integration Script -->
   <script>
     (function() {
-      // 1. Helper to check if Admin Mode is active
+      // 1. Globální funkce pro uzamčení admin relace přímo z index.html
+      function lockAdminSession() {
+        if (typeof StorageService !== 'undefined') {
+          StorageService.setGitHubConfig({ token: '' });
+          StorageService.remove('jj_admin_mode');
+        } else {
+          try {
+            localStorage.removeItem('gh_token');
+            localStorage.removeItem('jj_github_pat');
+            localStorage.removeItem('jj_admin_mode');
+            sessionStorage.removeItem('jj_admin_mode');
+          } catch(e) {}
+        }
+        window.location.reload();
+      }
+      window.lockAdminSession = lockAdminSession;
+
+      // 2. Helper pro kontrolu aktivního Admin módu
       function isAdminModeActive() {
         let adminFlag = false;
         let hasPat = false;
@@ -192,7 +209,7 @@
       }
       window.isAdminModeActive = isAdminModeActive;
 
-      // 2. Manage administrative sort options and admin controls
+      // 3. Správa viditelnosti prvku a filtrů
       let sortOptionsCatalog = null;
 
       function updateAdminSortAndControls() {
@@ -229,7 +246,6 @@
 
           let targetValue = currentValue;
           if (!isAdmin && (isCurrentAdminOnly || isUrlAdminOnly)) {
-            // Fallback to default date sort (newest / date-desc)
             targetValue = 'newest';
           }
 
@@ -252,12 +268,10 @@
           }
         }
 
-        // Restrict any admin-only controls
         document.querySelectorAll('.admin-only-control, .admin-only').forEach(el => {
           el.style.display = isAdmin ? 'inline-block' : 'none';
         });
 
-        // Ensure tourFilter is strictly hidden for non-admin users
         const tourFilter = document.getElementById('tourFilter');
         if (tourFilter) {
           if (isAdmin) {
@@ -270,13 +284,14 @@
           }
         }
 
-        // Synchronize header admin controls
-        const adminEditorLink = document.getElementById('adminEditorLink');
-        const adminLoginLink = document.getElementById('adminLoginLink');
+        // Synchronizace tlačítek v hlavičce
+        const adminLoginLink = document.getElementById('adminLoginLink') || document.getElementById('adminEditorLink');
         const adminLockBtn = document.getElementById('adminLockBtn');
-        if (adminEditorLink) adminEditorLink.style.display = isAdmin ? 'inline-flex' : 'none';
         if (adminLockBtn) adminLockBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-        if (adminLoginLink) adminLoginLink.style.display = isAdmin ? 'none' : 'inline-flex';
+        if (adminLoginLink) {
+          adminLoginLink.style.display = isAdmin ? 'inline-flex' : 'inline-flex';
+          adminLoginLink.textContent = isAdmin ? '✏️ Editor' : '🔒 Admin';
+        }
       }
       window.updateAdminSortAndControls = updateAdminSortAndControls;
 
@@ -307,7 +322,6 @@
           tourSelect.appendChild(opt);
         });
 
-        // Restore selection from URL or Session
         const urlParams = new URLSearchParams(window.location.search);
         const urlTour = urlParams.get('tour') || urlParams.get('tour_name') || urlParams.get('tour_id');
         const savedTour = (typeof safeGetSession === 'function') ? safeGetSession('jj_museum_tour') : sessionStorage.getItem('jj_museum_tour');
@@ -325,7 +339,6 @@
         }
       }
 
-      // Hook into populateFilters
       const origPopulateFilters = window.populateFilters;
       window.populateFilters = function() {
         if (typeof origPopulateFilters === 'function') {
@@ -335,7 +348,6 @@
         updateAdminSortAndControls();
       };
 
-      // Hook into updateUrlParams
       const origUpdateUrlParams = window.updateUrlParams;
       window.updateUrlParams = function() {
         if (typeof origUpdateUrlParams === 'function') {
@@ -359,14 +371,13 @@
         const newUrl = newQuery ? `${window.location.pathname}?${newQuery}` : window.location.pathname;
         window.history.replaceState(null, '', newUrl);
 
-        const adminEditorLink = document.getElementById('adminEditorLink');
-        if (adminEditorLink && typeof getEditUrlParams === 'function') {
+        const adminLoginLink = document.getElementById('adminLoginLink') || document.getElementById('adminEditorLink');
+        if (adminLoginLink && typeof getEditUrlParams === 'function') {
           const editQuery = getEditUrlParams();
-          adminEditorLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
+          adminLoginLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
         }
       };
 
-      // Hook into getEditUrlParams
       const origGetEditUrlParams = window.getEditUrlParams;
       window.getEditUrlParams = function(itemId) {
         let queryStr = (typeof origGetEditUrlParams === 'function') 
@@ -374,30 +385,25 @@
           : '';
         const params = new URLSearchParams(queryStr);
 
-        // Include active category in editor query string
         if (typeof currentCategory !== 'undefined' && currentCategory && currentCategory !== 'ALL') {
           params.set('category', currentCategory.toLowerCase());
         }
 
-        // Include active tour filter in editor query string
         const curTour = document.getElementById('tourFilter')?.value?.trim();
         if (curTour) {
           params.set('tour', curTour);
         }
 
-        // Include search query in editor query string
         const curSearch = document.getElementById('searchInput')?.value?.trim();
         if (curSearch) {
           params.set('search', curSearch);
         }
 
-        // Include sort in editor query string
         const curSort = document.getElementById('sortFilter')?.value?.trim();
         if (curSort) {
           params.set('sort', curSort);
         }
 
-        // Include specific item ID if editing a card
         if (itemId) {
           params.set('id', itemId);
         }
@@ -405,7 +411,6 @@
         return params.toString();
       };
 
-      // Replace / Hook filterData
       window.filterData = function() {
         const rawQuery = document.getElementById('searchInput')?.value || '';
         const query = rawQuery.toLowerCase().trim();
@@ -504,14 +509,13 @@
         currentPage = 1;
         if (typeof renderPaginated === 'function') renderPaginated();
 
-        const adminEditorLink = document.getElementById('adminEditorLink');
-        if (adminEditorLink && typeof getEditUrlParams === 'function') {
+        const adminLoginLink = document.getElementById('adminLoginLink') || document.getElementById('adminEditorLink');
+        if (adminLoginLink && typeof getEditUrlParams === 'function') {
           const editQuery = getEditUrlParams();
-          adminEditorLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
+          adminLoginLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
         }
       };
 
-      // Attach event listeners
       document.addEventListener('DOMContentLoaded', () => {
         updateAdminSortAndControls();
 
