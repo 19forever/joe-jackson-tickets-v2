@@ -1329,27 +1329,50 @@ function renderTickets(tickets) {
     }
 
     const relatedItems = getRelatedItems(t);
+    const groupedByCategory = {};
     relatedItems.forEach(rel => {
-      const relCat = getTicketCategory(rel);
-      let icon = '🖼️';
-      let title = 'Related Item';
+      const relCat = getTicketCategory(rel) || 'Memorabilia';
+      if (!groupedByCategory[relCat]) {
+        groupedByCategory[relCat] = [];
+      }
+      groupedByCategory[relCat].push(rel);
+    });
 
-      if (relCat === 'Tickets') { icon = '🎫'; title = 'Related Ticket'; }
-      else if (relCat === 'Passes') { icon = '🪪'; title = 'Related Pass'; }
-      else if (relCat === 'Programs') { icon = '📖'; title = 'Related Program'; }
-      else if (relCat === 'Posters') { icon = '🖼️'; title = 'Related Poster'; }
-      else if (relCat === 'T-shirts') { icon = '🎽'; title = 'Related T-shirt'; }
-      else if (relCat === 'Tour Items') { icon = '🎸'; title = 'Related Tour Item'; }
-      else if (relCat === 'Memorabilia') { icon = '⭐'; title = 'Related Memorabilia'; }
+    const categoryIconMap = {
+      'Tickets': '🎫',
+      'Passes': '🪪',
+      'Programs': '📖',
+      'Posters': '🖼️',
+      'T-shirts': '🎽',
+      'Tour Items': '🎸',
+      'Memorabilia': '⭐',
+      'Videos': '🎬'
+    };
 
-      const rawRelScan = (rel.SOUBOR_SKEN || '').trim();
-      const relFile = rawRelScan.split(',')[0].trim();
-      const hasRelScan = isValidValue(relFile);
-      const relTicketJson = encodeURIComponent(JSON.stringify(rel));
+    Object.keys(groupedByCategory).forEach(relCat => {
+      const items = groupedByCategory[relCat];
+      const count = items.length;
+      const icon = categoryIconMap[relCat] || '🖼️';
+      const singleName = relCat.endsWith('s') ? relCat.slice(0, -1) : relCat;
+      const title = count > 1 ? `${count} Related ${relCat}` : `Related ${singleName}`;
+
+      const allScansList = [];
+      items.forEach(item => {
+        if (isValidValue(item.SOUBOR_SKEN)) {
+          const scans = item.SOUBOR_SKEN.split(',').map(s => s.trim()).filter(isValidValue);
+          allScansList.push(...scans);
+        }
+      });
+
+      const rawRelScan = allScansList.join(',');
+      const hasRelScan = allScansList.length > 0;
+      const primaryItem = items[0];
+      const relTicketJson = encodeURIComponent(JSON.stringify(primaryItem));
+      const countLabel = count > 1 ? ` ${count}` : '';
 
       iconsHTML += `
-        <button class="icon-btn btn-action-related ticket-badge" data-scan="${rawRelScan}" data-ticket="${relTicketJson}" title="${title}${hasRelScan ? '' : ' (Missing scan)'}" onclick="event.stopPropagation(); handleRelatedBadgeClick(this);">
-          ${icon}
+        <button class="icon-btn btn-action-related btn-action-category ticket-badge" data-scan="${rawRelScan}" data-ticket="${relTicketJson}" title="${title}${hasRelScan ? '' : ' (Missing scan)'}" onclick="event.stopPropagation(); handleRelatedBadgeClick(this);">
+          ${icon}${countLabel}
         </button>`;
     });
 

@@ -754,26 +754,34 @@ header {
   justify-content: flex-end;
   align-items: flex-start;
   flex-shrink: 0;
-  max-width: 110px;
+  max-width: 120px;
 }
 
 .icon-btn,
 .card-actions .icon-btn,
-.card-icon-col .icon-btn {
+.card-icon-col .icon-btn,
+.badge-setlist,
+.btn-action-setlist,
+.btn-action-category,
+.btn-action-related,
+.btn-action-lineup,
+.btn-action-video,
+.btn-action-edit {
   background: #1a1a1a;
   border: 1px solid var(--border-color-light);
   color: var(--text-main);
-  padding: 5px 8px;
+  padding: 0 6px;
   border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 400 !important;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   height: 28px;
   line-height: 1;
-  min-width: 32px;
+  min-width: 3.2rem;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   box-sizing: border-box;
@@ -784,6 +792,7 @@ header {
 .icon-btn *,
 .ticket-badge *,
 .btn-action-related *,
+.btn-action-category *,
 .category-badge * {
   pointer-events: none;
 }
@@ -824,7 +833,6 @@ header {
   background: #f59e0b;
   border-color: #f59e0b;
   color: #000000;
-  font-weight: bold;
 }
 
 /* Lineup Button */
@@ -840,14 +848,16 @@ header {
   color: #ffffff;
 }
 
-/* Related Items Button */
-.btn-action-related {
+/* Related Items / Category Button */
+.btn-action-related,
+.btn-action-category {
   background: rgba(16, 185, 129, 0.2);
   border: 1px solid rgba(52, 211, 153, 0.5);
   color: #6ee7b7;
 }
 
-.btn-action-related:hover {
+.btn-action-related:hover,
+.btn-action-category:hover {
   background: #059669;
   border-color: #059669;
   color: #ffffff;
