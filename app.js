@@ -1543,7 +1543,7 @@ if (catName === 'Passes') {
 
     card.innerHTML = `
       <div class="card-img-wrapper" title="${isMissingScan ? 'Missing scan - Click to preview' : 'Click to view scan'}">
-        <img src="${imgSrc}" alt="Joe Jackson Concert ${t.DATUM ? formatDisplayDate(t.DATUM) : (t.TOUR_NAME || 'Archive Item')} - ${locationText || 'Live Performance'} (${catName})" onerror="this.onerror=null; this.src='${MISSING_TICKET_SVG}';">
+        <img src="${imgSrc}"loading="lazy" alt="Joe Jackson Concert ${t.DATUM ? formatDisplayDate(t.DATUM) : (t.TOUR_NAME || 'Archive Item')} - ${locationText || 'Live Performance'} (${catName})" onerror="this.onerror=null; this.src='${MISSING_TICKET_SVG}';">
       </div>
       <div class="card-content">
         ${line1HTML}
