@@ -8,6 +8,7 @@
   * **Record Deletion:** Restored the `Delete` button (`btn-del`) in the navigation bar with confirmation popups and instant memory/state cleanup.
 
 * **Main Public Museum (`index.html` / `app.js` / `styles.css`):**
+  * **Card Layout & Action Toolbar:** Completely redesigned and restructured the 7-slot action grid on the record cards for better responsiveness, clearer icon layout, and unified action badges.
   * **Category Badge Logic & Singular Form Fix:** Resolved singular label formatting for `Passes` (`Pass` instead of `Passe`) in `app.js`.
   * **UI & Layout:** Adjustments in `styles.css` for `.category-badge` (`white-space: nowrap`, `overflow: visible`) to prevent badge text overflow and truncation.
 
