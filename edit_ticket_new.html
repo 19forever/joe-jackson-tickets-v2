@@ -682,9 +682,10 @@
           <div class="form-group">
             <label for="edit_TOUR_NAME">Tour Name (TOUR_NAME)</label>
             <div style="display: flex; gap: 6px; align-items: center; width: 100%;">
-              <input type="text" id="edit_TOUR_NAME" name="TOUR_NAME" list="toursList" placeholder="Select or type tour name..." style="flex: 1; min-width: 0;">
-              <datalist id="toursList"></datalist>
-              <datalist id="tourNamesList"></datalist>
+              <!-- ÚPRAVA: Změněno z Input na Select pro zobrazení všech Tour bez ořezávání -->
+              <select id="edit_TOUR_NAME" name="TOUR_NAME" style="flex: 1; min-width: 0;">
+                <option value="">-- Select Tour --</option>
+              </select>
               <button type="button" class="btn-token btn-new-tour" onclick="addNewTourPrompt()" style="padding: 8px 10px; font-size: 0.75rem; white-space: nowrap; flex-shrink: 0;" title="Enter a new tour name">➕ New Tour</button>
               <button type="button" class="btn-token btn-reset-tours" onclick="clearCustomToursList()" style="padding: 8px 10px; font-size: 0.75rem; white-space: nowrap; flex-shrink: 0;" title="Reset saved custom tours list">🧹 Reset Custom Tours</button>
             </div>
@@ -720,7 +721,6 @@
           </div>
         </div>
 
-        <!-- NOVÉ POLE: STATUS A ORIGINAL_DATE -->
         <div class="grid-2" style="margin-top: 10px;">
           <div class="form-group">
             <label for="edit_STATUS">Concert Status (STATUS)</label>
@@ -736,7 +736,6 @@
           </div>
         </div>
 
-        <!-- NOVÉ POLE: NOTE / TRIVIA -->
         <div class="form-group full-width" style="margin-top: 10px;">
           <label for="edit_NOTE">Concert Trivia / Notes (NOTE)</label>
           <textarea id="edit_NOTE" name="NOTE" placeholder="e.g. Covid cancellation, BBC Radio broadcast, special lineup notes..."></textarea>
@@ -755,7 +754,9 @@
           </div>
           <div class="form-group">
             <label for="edit_CONTRIBUTOR">Donor / Contributor (CONTRIBUTOR)</label>
-            <input type="text" id="edit_CONTRIBUTOR" name="CONTRIBUTOR" placeholder="e.g. Bert Bos, Netherlands">
+            <!-- ÚPRAVA: Přidán list="contributorsList" pro zobrazení našeptávače existujících dárců -->
+            <input type="text" id="edit_CONTRIBUTOR" name="CONTRIBUTOR" list="contributorsList" placeholder="e.g. Bert Bos, Netherlands">
+            <datalist id="contributorsList"></datalist>
           </div>
         </div>
       </div>
@@ -826,7 +827,6 @@
       else localStorage.removeItem(key);
     }
 
-    // REGISTRACE VŠECH POLÍ VČETNĚ STATUS, ORIGINAL_DATE A NOTE
     const fields = [
       'ID_MEMORABILIA', 'SHOW_ID', 'TOUR_ID', 'TOUR_NAME', 'DATUM', 'MESTO', 'STAT', 'VENUE',
       'STATUS', 'ORIGINAL_DATE', 'NOTE',
@@ -1006,17 +1006,18 @@
         sessionStorage.setItem('custom_tours_list', JSON.stringify(list));
       } catch (e) {}
 
-      ['toursList', 'tourNamesList'].forEach(id => {
-        const datalist = document.getElementById(id);
-        if (datalist) {
-          const exists = Array.from(datalist.options).some(opt => opt.value.toLowerCase() === trimmed.toLowerCase());
-          if (!exists) {
-            const opt = document.createElement('option');
-            opt.value = trimmed;
-            datalist.appendChild(opt);
-          }
+      /* ÚPRAVA: Přidání nově uloženého tour přímo do elementu select */
+      const tourSelect = getField('TOUR_NAME');
+      if (tourSelect && tourSelect.tagName === 'SELECT') {
+        const exists = Array.from(tourSelect.options).some(opt => opt.value.toLowerCase() === trimmed.toLowerCase());
+        if (!exists) {
+          const opt = document.createElement('option');
+          opt.value = trimmed;
+          opt.textContent = trimmed;
+          tourSelect.appendChild(opt);
         }
-      });
+        tourSelect.value = trimmed;
+      }
     }
 
     function syncTourId() {
@@ -1119,29 +1120,11 @@
         });
       }
 
-      const tourNameInput = getField('TOUR_NAME');
-      if (tourNameInput) {
-        tourNameInput.addEventListener('input', () => {
+      const tourNameSelect = getField('TOUR_NAME');
+      if (tourNameSelect) {
+        tourNameSelect.addEventListener('change', () => {
           syncTourId();
           updateLineupSuggestions();
-        });
-        tourNameInput.addEventListener('change', function() {
-          syncTourId();
-          updateLineupSuggestions();
-          const val = this.value ? this.value.trim() : '';
-          if (val.length >= 3) {
-            saveCustomTour(val);
-          }
-        });
-        tourNameInput.addEventListener('keydown', function(e) {
-          if (e.key === 'Enter') {
-            syncTourId();
-            updateLineupSuggestions();
-            const val = this.value ? this.value.trim() : '';
-            if (val.length >= 3) {
-              saveCustomTour(val);
-            }
-          }
         });
       }
 
@@ -1303,6 +1286,7 @@
     const countries = new Set();
     const cities = new Set();
     const venues = new Set();
+    const contributors = new Set();
 
     if (Array.isArray(data)) {
       data.forEach(row => {
@@ -1323,6 +1307,13 @@
         if (venue && typeof venue === 'string' && venue.trim()) {
           venues.add(venue.trim());
         }
+        /* ÚPRAVA: Sběr unikátních jmen dárce z databáze */
+        const donor = row.CONTRIBUTOR || row.contributor || row.PRISPEVATEL || row.prispevatel;
+        if (donor && typeof donor === 'string' && donor.trim()) {
+          donor.split(',').forEach(d => {
+            if (d.trim()) contributors.add(d.trim());
+          });
+        }
       });
     }
 
@@ -1337,18 +1328,21 @@
     const sortedCountries = Array.from(countries).sort((a, b) => a.localeCompare(b));
     const sortedCities = Array.from(cities).sort((a, b) => a.localeCompare(b));
     const sortedVenues = Array.from(venues).sort((a, b) => a.localeCompare(b));
+    const sortedContributors = Array.from(contributors).sort((a, b) => a.localeCompare(b));
 
-    ['toursList', 'tourNamesList'].forEach(id => {
-      const datalist = document.getElementById(id);
-      if (datalist) {
-        datalist.innerHTML = '';
-        sortedTours.forEach(tour => {
-          const opt = document.createElement('option');
-          opt.value = tour;
-          datalist.appendChild(opt);
-        });
-      }
-    });
+    /* ÚPRAVA: Plnění <select> prvku pro Tour Name */
+    const tourSelect = getField('TOUR_NAME');
+    if (tourSelect && tourSelect.tagName === 'SELECT') {
+      const curVal = tourSelect.value;
+      tourSelect.innerHTML = '<option value="">-- Select Tour --</option>';
+      sortedTours.forEach(tour => {
+        const opt = document.createElement('option');
+        opt.value = tour;
+        opt.textContent = tour;
+        tourSelect.appendChild(opt);
+      });
+      if (curVal) tourSelect.value = curVal;
+    }
 
     const tourFilterSelect = document.getElementById('tourFilterSelect');
     if (tourFilterSelect) {
@@ -1363,6 +1357,17 @@
       if (curSelected) {
         tourFilterSelect.value = curSelected;
       }
+    }
+
+    /* ÚPRAVA: Plnění <datalist> pro Contributor / Donor */
+    const contributorsDatalist = document.getElementById('contributorsList');
+    if (contributorsDatalist) {
+      contributorsDatalist.innerHTML = '';
+      sortedContributors.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        contributorsDatalist.appendChild(opt);
+      });
     }
 
     const countriesDatalist = document.getElementById('countriesList');
@@ -1520,16 +1525,13 @@
     }
     if (trimmed) {
       if (input) {
+        saveCustomTour(trimmed);
         input.value = trimmed;
         syncTourId();
         updateLineupSuggestions();
-        input.dispatchEvent(new Event('input'));
         input.dispatchEvent(new Event('change'));
       }
-      saveCustomTour(trimmed);
       showStatus(`✅ Tour "${trimmed}" added and saved to options.`, 'green');
-    } else if (input) {
-      input.focus();
     }
   }
 
