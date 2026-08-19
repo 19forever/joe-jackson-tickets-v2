@@ -176,13 +176,14 @@
         if (typeof StorageService !== 'undefined') {
           StorageService.setGitHubConfig({ token: '' });
           StorageService.remove('jj_admin_mode');
+        } else {
+          try {
+            localStorage.removeItem('gh_token');
+            localStorage.removeItem('jj_github_pat');
+            localStorage.removeItem('jj_admin_mode');
+            sessionStorage.removeItem('jj_admin_mode');
+          } catch(e) {}
         }
-        try {
-          localStorage.removeItem('gh_token');
-          localStorage.removeItem('jj_github_pat');
-          localStorage.removeItem('jj_admin_mode');
-          sessionStorage.removeItem('jj_admin_mode');
-        } catch(e) {}
 
         if (window.location.search) {
           window.location.href = window.location.pathname;
@@ -214,7 +215,7 @@
       }
       window.isAdminModeActive = isAdminModeActive;
 
-      // 3. Správa viditelnosti prvku a filtrů
+      // 3. Správa viditelnosti prvků a filtrů
       let sortOptionsCatalog = null;
 
       function updateAdminSortAndControls() {
@@ -292,10 +293,21 @@
         // Synchronizace tlačítek v hlavičce
         const adminLoginLink = document.getElementById('adminLoginLink') || document.getElementById('adminEditorLink');
         const adminLockBtn = document.getElementById('adminLockBtn');
-        if (adminLockBtn) adminLockBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+
+        if (adminLockBtn) {
+          adminLockBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+        }
+
         if (adminLoginLink) {
-          adminLoginLink.style.display = isAdmin ? 'inline-flex' : 'inline-flex';
+          adminLoginLink.style.display = 'inline-flex';
           adminLoginLink.textContent = isAdmin ? '✏️ Editor' : '🔒 Admin';
+          
+          if (typeof getEditUrlParams === 'function') {
+            const editQuery = getEditUrlParams();
+            adminLoginLink.href = editQuery ? `edit_ticket_new.html?${editQuery}` : 'edit_ticket_new.html';
+          } else {
+            adminLoginLink.href = 'edit_ticket_new.html';
+          }
         }
       }
       window.updateAdminSortAndControls = updateAdminSortAndControls;
@@ -521,6 +533,7 @@
         }
       };
 
+      // Spustí se až po kompletním načtení DOM stromu
       document.addEventListener('DOMContentLoaded', () => {
         updateAdminSortAndControls();
 
