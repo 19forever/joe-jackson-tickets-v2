@@ -316,17 +316,21 @@ window.addEventListener('DOMContentLoaded', () => {
     if (adminLoginLink) adminLoginLink.style.display = 'inline-flex';
   }
 
-  Papa.parse('joe_jackson_tickets_cleaned.csv', {
-    download: true,
-    header: true,
-    skipEmptyLines: true,
-    complete: function(results) {
-      if (!results.data || results.data.length === 0) {
-        console.error("CSV file is empty or could not be loaded.");
+// Načítání optimalizovaného JSON souboru namísto CSV
+  fetch('joe_jackson_tickets_cleaned.json')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        console.error("JSON file is empty or missing valid data.");
         return;
       }
-      
-      allTickets = shuffleArray(results.data);
+
+      allTickets = shuffleArray(data);
       updateYearBadge();
       populateFilters();
 
@@ -334,11 +338,28 @@ window.addEventListener('DOMContentLoaded', () => {
 
       filterData();
       checkOnThisDayAnniversary();
-    },
-    error: function(err) {
-      console.error("Error loading CSV file:", err);
-    }
-  });
+    })
+    .catch(err => {
+      console.error("Error loading JSON file, trying CSV fallback:", err);
+      // Fallback na CSV (PapaParse) v případě, že JSON ještě neexistuje
+      if (typeof Papa !== 'undefined') {
+        Papa.parse('joe_jackson_tickets_cleaned.csv', {
+          download: true,
+          header: true,
+          skipEmptyLines: true,
+          complete: function(results) {
+            if (results.data && results.data.length > 0) {
+              allTickets = shuffleArray(results.data);
+              updateYearBadge();
+              populateFilters();
+              initializeStateFromUrlAndStorage();
+              filterData();
+              checkOnThisDayAnniversary();
+            }
+          }
+        });
+      }
+    });
 });
 
 function setupEventListeners() {
