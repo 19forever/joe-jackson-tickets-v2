@@ -1,4 +1,4 @@
-name: Validate Tickets CSV
+name: Validate and Convert CSV to JSON
 
 on:
   push:
@@ -8,11 +8,9 @@ on:
       - '.github/workflows/validate-csv.yml'
   pull_request:
     branches: [ main ]
-    paths:
-      - 'joe_jackson_tickets_cleaned.csv'
 
 jobs:
-  validate:
+  validate-and-convert:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,26 +22,28 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Run CSV Integrity Checks
+      - name: Run CSV Integrity Checks & Generate JSON
         run: |
           python -c "
           import csv
+          import json
           import sys
           import re
 
-          file_path = 'joe_jackson_tickets_cleaned.csv'
+          csv_file = 'joe_jackson_tickets_cleaned.csv'
+          json_file = 'joe_jackson_tickets_cleaned.json'
           required_headers = ['ID_MEMORABILIA', 'KATEGORIE', 'DATUM', 'MESTO', 'STAT', 'TOUR_NAME']
           date_pattern = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 
           errors = []
           seen_ids = set()
+          rows_data = []
 
           try:
-              with open(file_path, mode='r', encoding='utf-8') as f:
+              with open(csv_file, mode='r', encoding='utf-8') as f:
                   reader = csv.DictReader(f)
                   headers = reader.fieldnames or []
 
-                  # 1. Kontrola přítomnosti povinných sloupců
                   for req_h in required_headers:
                       if req_h not in headers:
                           errors.append(f'Chybí povinný sloupec: {req_h}')
@@ -54,12 +54,10 @@ jobs:
                           print(f'  - {err}')
                       sys.exit(1)
 
-                  # 2. Kontrola jednotlivých řádků
-                  for idx, row in enumerate(reader, start=2): # start=2 kvůli hlavičce na řádku 1
+                  for idx, row in enumerate(reader, start=2):
                       rec_id = (row.get('ID_MEMORABILIA') or '').strip()
                       datum = (row.get('DATUM') or '').strip()
 
-                      # Kontrola unikátnosti ID
                       if not rec_id:
                           errors.append(f'Řádek {idx}: Prázdné ID_MEMORABILIA.')
                       elif rec_id in seen_ids:
@@ -67,22 +65,32 @@ jobs:
                       else:
                           seen_ids.add(rec_id)
 
-                      # Kontrola formátu data (YYYY-MM-DD), pokud je zadáno
                       if datum and not date_pattern.match(datum):
                           errors.append(f'Řádek {idx} (ID: {rec_id}): Neplatný formát data \"{datum}\". Očekáván YYYY-MM-DD.')
+
+                      rows_data.append(row)
 
           except Exception as e:
               print(f'❌ Soubor se nepodařilo přečíst: {e}')
               sys.exit(1)
 
-          # 3. Vyhodnocení výsledků
           if errors:
               print(f'❌ Nalezeno {len(errors)} chyb při validaci CSV:\n')
-              for err in errors[:20]: # Zobrazí maximálně prvních 20 chyb
+              for err in errors[:20]:
                   print(f'  - {err}')
-              if len(errors) > 20:
-                  print(f'  ... a dalších {len(errors) - 20} chyb.')
               sys.exit(1)
 
-          print('✅ CSV soubor prošel všemi kontrolami úspěšně!')
+          print('✅ CSV validace úspěšná! Generuji JSON...')
+          with open(json_file, mode='w', encoding='utf-8') as jf:
+              json.dump(rows_data, jf, ensure_ascii=False, indent=2)
+
+          print(f'✅ Soubor {json_file} úspěšně vytvořen.')
           "
+
+      - name: Commit & Push updated JSON file
+        if: github.event_name == 'push'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add joe_jackson_tickets_cleaned.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-generate JSON from updated CSV [skip ci]" && git push)
