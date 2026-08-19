@@ -146,6 +146,7 @@ function normalizeSortParam(sortVal) {
   if (s === 'random' || s === 'shuffle' || s === 'shuffled') return 'random';
   if (s === 'missing_first' || s === 'missing-first') return 'missing_first';
   if (s === 'missing_only' || s === 'missing-only') return 'missing_only';
+  if (s === 'missing_setlists_only' || s === 'missing-setlists-only' || s === 'missing_setlists' || s === 'unverified') return 'missing_setlists_only';
   if (s === 'scans_only' || s === 'scans-only') return 'scans_only';
   return s;
 }
@@ -187,14 +188,6 @@ function updateUrlParams() {
     params.set('sort', sortVal);
   } else {
     params.delete('sort');
-  }
-
-  // Unverified filter
-  const unverifiedFilter = document.getElementById('unverifiedFilter');
-  if (unverifiedFilter && unverifiedFilter.checked) {
-    params.set('unverified', '1');
-  } else {
-    params.delete('unverified');
   }
 
   if (hadAdmin && !params.has('admin')) {
@@ -267,13 +260,6 @@ function initializeStateFromUrlAndStorage() {
       const clearBtn = document.getElementById('searchClearBtn');
       if (clearBtn) clearBtn.style.display = 'block';
     }
-  }
-
-  // Unverified filter
-  const urlUnverified = urlParams.get('unverified');
-  const unverifiedFilter = document.getElementById('unverifiedFilter');
-  if (unverifiedFilter && urlUnverified === '1') {
-    unverifiedFilter.checked = true;
   }
 
   updateUrlParams();
@@ -368,10 +354,6 @@ function setupEventListeners() {
   (document.getElementById('reshuffleBtn') || document.getElementById('btnReshuffle'))?.addEventListener('click', reshuffleAndRender);
   (document.getElementById('surpriseBtn') || document.getElementById('btnSurprise'))?.addEventListener('click', openSurpriseTicket);
   document.getElementById('cityFilter')?.addEventListener('change', filterData);
-  document.getElementById('unverifiedFilter')?.addEventListener('change', () => {
-    updateUrlParams();
-    filterData();
-  });
   
   const sortSelect = document.getElementById('sortFilter');
   if (sortSelect) {
@@ -1271,6 +1253,13 @@ function filterData() {
     });
   } else if (sort === 'missing_only') {
     filteredTickets = filteredTickets.filter(t => !isValidValue(t.SOUBOR_SKEN));
+  } else if (sort === 'missing_setlists_only' || sort === 'missing_setlists') {
+    filteredTickets = filteredTickets.filter(t => {
+      const setlistUrl = isValidValue(t.SETLIST_URL) ? t.SETLIST_URL.trim() : (isValidValue(t.SETLIST_FM_URL) ? t.SETLIST_FM_URL.trim() : '');
+      const songCount = parseInt(t.POCET_SKLADEB, 10) || 0;
+      const hasSongs = isValidValue(t.SETLIST) && songCount > 0;
+      return !hasSongs || !setlistUrl;
+    });
   } else if (sort === 'scans_only') {
     filteredTickets = filteredTickets.filter(t => isValidValue(t.SOUBOR_SKEN));
   }

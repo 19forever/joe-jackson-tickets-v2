@@ -876,6 +876,7 @@ header {
   color: #f59e0b !important;
   font-weight: 400 !important;
   min-width: 3.2rem;
+  height: 28px;
   padding: 0 6px;
   box-sizing: border-box;
 }
@@ -891,9 +892,10 @@ header {
   background: rgba(30, 41, 59, 0.35);
   border: 1px solid rgba(100, 116, 139, 0.3) !important;
   color: #64748b !important;
-  font-size: 0.75rem !important;
+  font-size: 0.85rem !important;
   font-weight: 400 !important;
   min-width: 3.2rem;
+  height: 28px;
   padding: 0 6px;
   box-sizing: border-box;
   opacity: 0.85;
