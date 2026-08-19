@@ -1559,3 +1559,43 @@ header {
   color: var(--accent-yellow, #f59e0b);
 }
 
+/* Status Badges pro zrušené a přeložené akce */
+.badge-status-cancelled {
+  background: rgba(220, 38, 38, 0.2);
+  border: 1px solid #ef4444;
+  color: #fca5a5;
+  font-size: 0.72rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-status-rescheduled {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid #f59e0b;
+  color: #fbbf24;
+  font-size: 0.72rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Vzhled zrušené karty */
+.ticket-card.card-cancelled .card-img-wrapper img {
+  filter: grayscale(0.85) opacity(0.7);
+}
+
+.ticket-card.card-cancelled {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Řádek pro poznámky / kuriozity (NOTE) na 2. řádku karty */
+.card-note-line {
+  font-size: 0.78rem;
+  color: var(--accent-yellow);
+  margin-top: 3px;
+  opacity: 0.9;
+  line-height: 1.3;
+}

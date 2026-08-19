@@ -1313,7 +1313,13 @@ function renderTickets(tickets) {
   tickets.forEach((t) => {
     const globalIndex = filteredTickets.indexOf(t);
     const card = document.createElement('div');
-    card.className = 'ticket-card';
+    
+    // Zapojení třídy pro zrušené/přeložené akce na úroveň karty
+    const statusVal = isValidValue(t.STATUS) ? t.STATUS.trim().toUpperCase() : '';
+    let cardStatusClass = '';
+    if (statusVal === 'CANCELLED') cardStatusClass = ' card-cancelled';
+    if (statusVal === 'RESCHEDULED') cardStatusClass = ' card-rescheduled';
+    card.className = `ticket-card${cardStatusClass}`;
 
     const itemId = t.ID_MEMORABILIA || t.ID_LISTKU;
     const songCount = parseInt(t.POCET_SKLADEB, 10) || 0;
@@ -1372,18 +1378,30 @@ function renderTickets(tickets) {
     const singleCat = catName.endsWith('s') ? catName.slice(0, -1) : catName;
     const displayDate = t.DATUM ? formatDisplayDate(t.DATUM) : (isValidValue(t.TOUR_NAME) ? t.TOUR_NAME : '');
 
-    // Line 1: Left-aligned date AND category badge with approved tick icon
+    // Status odznak na 1. řádku
+    let statusBadgeHTML = '';
+    if (statusVal === 'CANCELLED') {
+      statusBadgeHTML = ` <span class="badge-status-cancelled">❌ Cancelled</span>`;
+    } else if (statusVal === 'RESCHEDULED') {
+      const origText = isValidValue(t.ORIGINAL_DATE) ? ` (Originally: ${formatDisplayDate(t.ORIGINAL_DATE)})` : '';
+      statusBadgeHTML = ` <span class="badge-status-rescheduled" title="Rescheduled show${origText}">🔄 Rescheduled</span>`;
+    }
+
+    // Line 1: Datum, kategorialni badge a pripadny Status badge
     const line1HTML = `
       <div class="card-meta-line1">
         ${displayDate ? `<span class="card-date">${displayDate}</span>` : ''}
         ${displayDate ? `<span class="meta-dot">·</span>` : ''}
-        <span class="category-badge">${catIcon} ${singleCat} ✓</span>
+        <span class="category-badge">${catIcon} ${singleCat}</span>
+        ${statusBadgeHTML}
       </div>
     `;
 
-    // Line 2: Location string: "City, Country - Venue"
+    // Line 2: Lokace a pripadna poznámka/trivia (NOTE)
+    const noteHTML = isValidValue(t.NOTE) ? `<div class="card-note-line">💡 <em>${t.NOTE}</em></div>` : '';
     const line2HTML = `
       <div class="card-location-line2">${locationText || (isValidValue(t.TOUR_NAME) ? t.TOUR_NAME : '')}</div>
+      ${noteHTML}
     `;
 
     // 7-Slot Action Grid Construction
@@ -1466,7 +1484,7 @@ function renderTickets(tickets) {
         </button>`;
     } else if (setlistUrl) {
       slot7HTML = `
-        <button class="icon-btn badge-setlist-empty" title="Setlist empty — click to add on Setlist.fm" onclick="event.stopPropagation(); openSetlistExitModal('${setlistUrl}');">
+        <button class="icon-btn badge-setlist-empty" title="Setlist empty — click to edit on Setlist.fm" onclick="event.stopPropagation(); openSetlistExitModal('${setlistUrl}');">
           ✏️
         </button>`;
     } else {
@@ -1484,7 +1502,7 @@ function renderTickets(tickets) {
       const formUrl = `ticket_form.html?${formParams.toString()}`;
 
       slot7HTML = `
-        <button class="icon-btn badge-unverified" title="When you create or find the setlist link, send us a note" onclick="event.stopPropagation(); window.location.href='${formUrl}';">
+        <button class="icon-btn badge-setlist-sl" title="When you create or find the setlist link, send us a note" onclick="event.stopPropagation(); window.location.href='${formUrl}';">
           SL
         </button>`;
     }
