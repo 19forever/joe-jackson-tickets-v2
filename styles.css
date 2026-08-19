@@ -747,46 +747,92 @@ header {
   flex-grow: 1;
 }
 
-/* 2-Column Row Under Image */
-.card-main-row {
+/* Card Content Meta (Line 1, Line 2, and 7-Slot Action Grid Line 3) */
+.card-meta-line1 {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  width: 100%;
-}
-
-.card-info-left {
-  flex: 1;
-  min-width: 0;
-}
-
-.card-date {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
   font-family: var(--font-primary);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: var(--font-weight-title);
   color: #ffffff;
-  margin-bottom: 4px;
-  word-wrap: break-word;
 }
 
-.info-text {
+.card-meta-line1 .card-date {
+  font-size: 0.88rem;
+  font-weight: var(--font-weight-title);
+  color: #ffffff;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.card-meta-line1 .meta-dot {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.card-meta-line1 .category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color-light);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.card-location-line2 {
   font-size: 0.83rem;
   font-weight: 500;
   color: var(--text-muted);
   line-height: 1.35;
   word-wrap: break-word;
+  margin-bottom: 2px;
 }
 
-/* Right Column Icon Bar */
-.card-icon-col {
+/* Fixed 7-Slot Action Grid */
+.card-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.card-actions-grid .icon-btn {
+  height: 28px;
+  width: 100%;
+  min-width: 0;
+  font-weight: 400 !important;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: flex-end;
-  align-items: flex-start;
-  flex-shrink: 0;
-  max-width: 140px;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  padding: 0 2px;
+  box-sizing: border-box;
+}
+
+.card-actions-grid .grid-slot-empty {
+  height: 28px;
+  width: 100%;
+  border: 1px dashed rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+  opacity: 0.2;
+  box-sizing: border-box;
 }
 
 .icon-btn,
@@ -804,18 +850,16 @@ header {
   background: #1a1a1a;
   border: 1px solid var(--border-color-light);
   color: var(--text-main);
-  padding: 0 6px;
-  border-radius: 6px;
-  font-size: 0.85rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
   font-weight: 400 !important;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   height: 28px;
   line-height: 1;
-  min-width: 3.2rem;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   box-sizing: border-box;
@@ -1296,6 +1340,31 @@ header {
   .tickets-container.list-view .card-img-wrapper {
     width: 32px;
     height: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-actions-grid {
+    gap: 2px;
+  }
+
+  .card-actions-grid .icon-btn {
+    font-size: 0.72rem;
+    padding: 0 1px;
+    gap: 1px;
+  }
+
+  .card-meta-line1 {
+    font-size: 0.8rem;
+    gap: 4px;
+  }
+
+  .card-meta-line1 .card-date {
+    font-size: 0.8rem;
+  }
+
+  .card-location-line2 {
+    font-size: 0.78rem;
   }
 }
 

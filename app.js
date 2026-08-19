@@ -1296,6 +1296,12 @@ function renderTickets(tickets) {
     const card = document.createElement('div');
     card.className = 'ticket-card';
 
+    const itemId = t.ID_MEMORABILIA || t.ID_LISTKU;
+    const songCount = parseInt(t.POCET_SKLADEB, 10) || 0;
+    const hasSetlist = isValidValue(t.SETLIST) && songCount > 0;
+    const setlistUrl = isValidValue(t.SETLIST_URL) ? t.SETLIST_URL.trim() : (isValidValue(t.SETLIST_FM_URL) ? t.SETLIST_FM_URL.trim() : '');
+    const hasLineup = isValidValue(t.LINEUP);
+
     const skenFiles = (t.SOUBOR_SKEN || '').split(',').map(s => s.trim()).filter(Boolean);
     const isMissingScan = skenFiles.length === 0;
     const firstImgFile = skenFiles[0] || '';
@@ -1306,100 +1312,6 @@ function renderTickets(tickets) {
       if (e.target.closest('.icon-btn, .ticket-badge, [data-scan]')) return;
       openDirectImagePreview(globalIndex);
     };
-
-    let iconsHTML = '';
-
-    const itemId = t.ID_MEMORABILIA || t.ID_LISTKU;
-    if (isAdmin && isValidValue(itemId)) {
-      const editQuery = getEditUrlParams(itemId);
-      iconsHTML += `
-        <button class="icon-btn btn-action-edit" title="Edit Record in Editor" onclick="event.stopPropagation(); window.location.href='edit_ticket_new.html?${editQuery}';">
-          ✏️
-        </button>`;
-    }
-
-    if (isValidValue(t.YOUTUBE_URL)) {
-      iconsHTML += `
-        <button class="icon-btn btn-action-video" title="YouTube video" onclick="event.stopPropagation(); openVideoModal(${globalIndex});">
-          🎬
-        </button>`;
-    }
-
-    const setlistUrl = isValidValue(t.SETLIST_URL) ? t.SETLIST_URL.trim() : (isValidValue(t.SETLIST_FM_URL) ? t.SETLIST_FM_URL.trim() : '');
-    const songCount = parseInt(t.POCET_SKLADEB, 10) || 0;
-    const hasSetlist = isValidValue(t.SETLIST) && songCount > 0;
-    if (hasSetlist) {
-      iconsHTML += `
-        <button class="icon-btn badge-setlist btn-action-setlist" title="Setlist (${songCount} songs)" onclick="event.stopPropagation(); toggleCollapsible('setlist-${globalIndex}');">
-          🎵 ${songCount}
-        </button>`;
-    } else if (setlistUrl) {
-      iconsHTML += `
-        <button class="icon-btn badge-setlist-empty" title="Setlist empty — click to add on Setlist.fm" onclick="event.stopPropagation(); window.open('${setlistUrl}', '_blank');">
-          ✏️
-        </button>`;
-    } else {
-      iconsHTML += `
-        <button class="icon-btn badge-unverified" title="Unverified show — missing Setlist.fm link" onclick="event.stopPropagation();">
-          ⚪
-        </button>`;
-    }
-
-    const hasLineup = isValidValue(t.LINEUP);
-    if (hasLineup) {
-      iconsHTML += `
-        <button class="icon-btn btn-action-lineup" title="Band Line-up" onclick="event.stopPropagation(); toggleCollapsible('lineup-${globalIndex}');">
-          👥
-        </button>`;
-    }
-
-    const relatedItems = getRelatedItems(t);
-    const groupedByCategory = {};
-    relatedItems.forEach(rel => {
-      const relCat = getTicketCategory(rel) || 'Memorabilia';
-      if (!groupedByCategory[relCat]) {
-        groupedByCategory[relCat] = [];
-      }
-      groupedByCategory[relCat].push(rel);
-    });
-
-    const categoryIconMap = {
-      'Tickets': '🎫',
-      'Passes': '🪪',
-      'Programs': '📖',
-      'Posters': '🖼️',
-      'T-shirts': '🎽',
-      'Tour Items': '🎸',
-      'Memorabilia': '⭐',
-      'Videos': '🎬'
-    };
-
-    Object.keys(groupedByCategory).forEach(relCat => {
-      const items = groupedByCategory[relCat];
-      const count = items.length;
-      const icon = categoryIconMap[relCat] || '🖼️';
-      const singleName = relCat.endsWith('s') ? relCat.slice(0, -1) : relCat;
-      const title = count > 1 ? `${count} Related ${relCat}` : `Related ${singleName}`;
-
-      const allScansList = [];
-      items.forEach(item => {
-        if (isValidValue(item.SOUBOR_SKEN)) {
-          const scans = item.SOUBOR_SKEN.split(',').map(s => s.trim()).filter(isValidValue);
-          allScansList.push(...scans);
-        }
-      });
-
-      const rawRelScan = allScansList.join(',');
-      const hasRelScan = allScansList.length > 0;
-      const primaryItem = items[0];
-      const relTicketJson = encodeURIComponent(JSON.stringify(primaryItem));
-      const countLabel = count > 1 ? ` ${count}` : '';
-
-      iconsHTML += `
-        <button class="icon-btn btn-action-related btn-action-category ticket-badge" data-scan="${rawRelScan}" data-ticket="${relTicketJson}" title="${title}${hasRelScan ? '' : ' (Missing scan)'}" onclick="event.stopPropagation(); handleRelatedBadgeClick(this);">
-          ${icon}${countLabel}
-        </button>`;
-    });
 
     let collapsibleHTML = '';
     if (hasSetlist) {
@@ -1427,22 +1339,139 @@ function renderTickets(tickets) {
     }
 
     const catName = getTicketCategory(t);
-    const dateHeaderHTML = t.DATUM
-      ? `<div class="card-date">${formatDisplayDate(t.DATUM)}</div>`
-      : (isValidValue(t.TOUR_NAME) ? `<div class="card-date">${t.TOUR_NAME}</div>` : '');
+    const categoryIconMap = {
+      'Tickets': '🎫',
+      'Passes': '🪪',
+      'Programs': '📖',
+      'Posters': '🖼️',
+      'T-shirts': '🎽',
+      'Tour Items': '🎸',
+      'Memorabilia': '⭐',
+      'Videos': '🎬'
+    };
+    const catIcon = categoryIconMap[catName] || '🎫';
+    const singleCat = catName.endsWith('s') ? catName.slice(0, -1) : catName;
+    const displayDate = t.DATUM ? formatDisplayDate(t.DATUM) : (isValidValue(t.TOUR_NAME) ? t.TOUR_NAME : '');
+
+    // Line 1: Left-aligned date AND category badge with approved tick icon
+    const line1HTML = `
+      <div class="card-meta-line1">
+        ${displayDate ? `<span class="card-date">${displayDate}</span>` : ''}
+        ${displayDate ? `<span class="meta-dot">·</span>` : ''}
+        <span class="category-badge">${catIcon} ${singleCat} ✓</span>
+      </div>
+    `;
+
+    // Line 2: Location string: "City, Country - Venue"
+    const line2HTML = `
+      <div class="card-location-line2">${locationText || (isValidValue(t.TOUR_NAME) ? t.TOUR_NAME : '')}</div>
+    `;
+
+    // 7-Slot Action Grid Construction
+    const relatedItems = getRelatedItems(t);
+
+    // Slot 1: Edit button (Admin only)
+    let slot1HTML = '<div class="grid-slot-empty"></div>';
+    if (isAdmin && isValidValue(itemId)) {
+      const editQuery = getEditUrlParams(itemId);
+      slot1HTML = `
+        <button class="icon-btn btn-action-edit" title="Edit Record in Editor" onclick="event.stopPropagation(); window.location.href='edit_ticket_new.html?${editQuery}';">
+          ✏️
+        </button>`;
+    }
+
+    // Slot 2: Video / Audio badge
+    let slot2HTML = '<div class="grid-slot-empty"></div>';
+    if (isValidValue(t.YOUTUBE_URL)) {
+      slot2HTML = `
+        <button class="icon-btn btn-action-video" title="YouTube video" onclick="event.stopPropagation(); openVideoModal(${globalIndex});">
+          🎬
+        </button>`;
+    }
+
+    // Helper for related items slots
+    const buildRelatedSlotBadge = (items, defaultIcon, defaultTitle) => {
+      if (!items || items.length === 0) return '<div class="grid-slot-empty"></div>';
+      const count = items.length;
+      const allScansList = [];
+      items.forEach(item => {
+        if (isValidValue(item.SOUBOR_SKEN)) {
+          allScansList.push(...item.SOUBOR_SKEN.split(',').map(s => s.trim()).filter(isValidValue));
+        }
+      });
+      const rawRelScan = allScansList.join(',');
+      const hasRelScan = allScansList.length > 0;
+      const primaryItem = items[0];
+      const relTicketJson = encodeURIComponent(JSON.stringify(primaryItem));
+      const countLabel = count > 1 ? ` ${count}` : '';
+      const title = count > 1 ? `${count} ${defaultTitle}` : defaultTitle.replace(/s$/, '');
+
+      return `
+        <button class="icon-btn btn-action-related btn-action-category ticket-badge" data-scan="${rawRelScan}" data-ticket="${relTicketJson}" title="${title}${hasRelScan ? '' : ' (Missing scan)'}" onclick="event.stopPropagation(); handleRelatedBadgeClick(this);">
+          ${defaultIcon}${countLabel}
+        </button>`;
+    };
+
+    // Slot 3: Poster badge
+    const posterItems = relatedItems.filter(r => getTicketCategory(r) === 'Posters');
+    const slot3HTML = buildRelatedSlotBadge(posterItems, '🖼️', 'Related Posters');
+
+    // Slot 4: Pass badge
+    const passItems = relatedItems.filter(r => getTicketCategory(r) === 'Passes');
+    const slot4HTML = buildRelatedSlotBadge(passItems, '🪪', 'Related Passes');
+
+    // Slot 5: Merch / Memorabilia badge
+    const merchItems = relatedItems.filter(r => {
+      const c = getTicketCategory(r);
+      return c !== 'Posters' && c !== 'Passes' && c !== 'Tickets';
+    });
+    const merchCat = merchItems.length > 0 ? getTicketCategory(merchItems[0]) : '';
+    const merchIcon = merchCat === 'T-shirts' ? '👕' : (merchCat === 'Programs' ? '📖' : (merchCat === 'Tour Items' ? '🎸' : '⭐'));
+    const slot5HTML = buildRelatedSlotBadge(merchItems, merchIcon, 'Related Memorabilia');
+
+    // Slot 6: Lineup badge
+    let slot6HTML = '<div class="grid-slot-empty"></div>';
+    if (hasLineup) {
+      slot6HTML = `
+        <button class="icon-btn btn-action-lineup" title="Band Line-up" onclick="event.stopPropagation(); toggleCollapsible('lineup-${globalIndex}');">
+          👥
+        </button>`;
+    }
+
+    // Slot 7: Setlist badge
+    let slot7HTML = '';
+    if (hasSetlist) {
+      slot7HTML = `
+        <button class="icon-btn badge-setlist btn-action-setlist" title="Setlist (${songCount} songs)" onclick="event.stopPropagation(); toggleCollapsible('setlist-${globalIndex}');">
+          🎵 ${songCount}
+        </button>`;
+    } else if (setlistUrl) {
+      slot7HTML = `
+        <button class="icon-btn badge-setlist-empty" title="Setlist empty — click to add on Setlist.fm" onclick="event.stopPropagation(); window.open('${setlistUrl}', '_blank');">
+          ✏️
+        </button>`;
+    } else {
+      slot7HTML = `
+        <button class="icon-btn badge-unverified" title="Unverified show — missing Setlist.fm link" onclick="event.stopPropagation();">
+          ⚪
+        </button>`;
+    }
 
     card.innerHTML = `
       <div class="card-img-wrapper" title="${isMissingScan ? 'Missing scan - Click to preview' : 'Click to view scan'}">
         <img src="${imgSrc}" alt="Joe Jackson Concert ${t.DATUM ? formatDisplayDate(t.DATUM) : (t.TOUR_NAME || 'Archive Item')} - ${locationText || 'Live Performance'} (${catName})" onerror="this.onerror=null; this.src='${MISSING_TICKET_SVG}';">
       </div>
       <div class="card-content">
-        <div class="card-main-row">
-          <div class="card-info-left">
-            ${dateHeaderHTML}
-            <span class="category-badge">${catName}</span>
-            <div class="info-text">${locationText || (isValidValue(t.TOUR_NAME) ? t.TOUR_NAME : '')}</div>
-          </div>
-          ${iconsHTML ? `<div class="card-icon-col card-actions list-actions">${iconsHTML}</div>` : ''}
+        ${line1HTML}
+        ${line2HTML}
+        <div class="card-actions-grid card-actions">
+          ${slot1HTML}
+          ${slot2HTML}
+          ${slot3HTML}
+          ${slot4HTML}
+          ${slot5HTML}
+          ${slot6HTML}
+          ${slot7HTML}
         </div>
         ${collapsibleHTML}
       </div>
