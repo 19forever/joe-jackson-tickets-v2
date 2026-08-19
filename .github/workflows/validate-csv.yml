@@ -12,11 +12,12 @@ on:
 jobs:
   validate-and-convert:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Udělí botovi právo k zápisu nového JSON souboru
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
