@@ -1236,3 +1236,55 @@ header {
   -moz-user-select: none;
   -webkit-user-select: none;
 }
+
+/* Non-Commercial Legal Disclaimer Footer */
+.jj-museum-footer {
+  width: 100%;
+  margin-top: 40px;
+  padding: 30px 20px;
+  background: #0d0d0d;
+  border-top: 1px solid var(--border-color, #27272a);
+  color: var(--text-muted, #9ca3af);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.jj-museum-footer .footer-container {
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.jj-museum-footer .disclaimer-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--accent-yellow, #f59e0b);
+  margin-bottom: 2px;
+}
+
+.jj-museum-footer .disclaimer-text {
+  color: #9ca3af;
+  margin: 0;
+  text-align: center;
+}
+
+.jj-museum-footer .disclaimer-contact {
+  color: #6b7280;
+  font-size: 0.78rem;
+  margin: 0;
+}
+
+.jj-museum-footer .disclaimer-contact a {
+  color: var(--accent-blue, #38bdf8);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s ease;
+}
+
+.jj-museum-footer .disclaimer-contact a:hover {
+  color: var(--accent-yellow, #f59e0b);
+}
+
