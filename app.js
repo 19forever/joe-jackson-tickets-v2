@@ -1387,13 +1387,14 @@ function renderTickets(tickets) {
       statusBadgeHTML = ` <span class="badge-status-rescheduled" title="Rescheduled show${origText}">🔄 Rescheduled</span>`;
     }
 
-    // Line 1: Datum, kategorialni badge a pripadny Status badge
+    // Line 1: Date on the left, Category & Status badges on the right
     const line1HTML = `
-      <div class="card-meta-line1">
-        ${displayDate ? `<span class="card-date">${displayDate}</span>` : ''}
-        ${displayDate ? `<span class="meta-dot">·</span>` : ''}
+     <div class="card-meta-line1">
+       <span class="card-date">${displayDate}</span>
+        <div class="card-meta-right">
         <span class="category-badge">${catIcon} ${singleCat}</span>
-        ${statusBadgeHTML}
+      ${statusBadgeHTML}
+        </div>
       </div>
     `;
 
