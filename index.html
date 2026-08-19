@@ -176,15 +176,20 @@
         if (typeof StorageService !== 'undefined') {
           StorageService.setGitHubConfig({ token: '' });
           StorageService.remove('jj_admin_mode');
-        } else {
-          try {
-            localStorage.removeItem('gh_token');
-            localStorage.removeItem('jj_github_pat');
-            localStorage.removeItem('jj_admin_mode');
-            sessionStorage.removeItem('jj_admin_mode');
-          } catch(e) {}
         }
-        window.location.reload();
+        try {
+          localStorage.removeItem('gh_token');
+          localStorage.removeItem('jj_github_pat');
+          localStorage.removeItem('jj_admin_mode');
+          sessionStorage.removeItem('jj_admin_mode');
+        } catch(e) {}
+
+        if (window.location.search) {
+          window.location.href = window.location.pathname;
+        } else {
+          if (typeof updateAdminSortAndControls === 'function') updateAdminSortAndControls();
+          if (typeof filterData === 'function') filterData();
+        }
       }
       window.lockAdminSession = lockAdminSession;
 
