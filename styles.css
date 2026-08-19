@@ -693,17 +693,16 @@ header {
 
 /* Category Badge (Grid View default) */
 .category-badge {
-  display: inline-block;
-  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;           /* Dostatečný vnitřní prostor */
+  white-space: nowrap;         /* Zamezí nechtěnému zalomení */
+  max-width: none !important;  /* Zruší případný pevný limit šířky */
+  overflow: visible;           /* Povolí zobrazení celého textu */
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-muted);
-  border: 1px solid var(--border-color-light);
-  margin-bottom: 4px;
 }
 
 /* Ticket Card Styling */

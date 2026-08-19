@@ -1375,7 +1375,19 @@ function renderTickets(tickets) {
       'Videos': '🎬'
     };
     const catIcon = categoryIconMap[catName] || '🎫';
-    const singleCat = catName.endsWith('s') ? catName.slice(0, -1) : catName;
+    // NOVÝ KÓD
+let singleCat = catName;
+if (catName === 'Passes') {
+  singleCat = 'Pass';
+} else if (catName === 'Tickets') {
+  singleCat = 'Ticket';
+} else if (catName === 'Posters') {
+  singleCat = 'Poster';
+} else if (catName === 'Programs') {
+  singleCat = 'Program';
+} else if (catName.endsWith('s') && !catName.endsWith('ss')) {
+  singleCat = catName.slice(0, -1);
+}
     const displayDate = t.DATUM ? formatDisplayDate(t.DATUM) : (isValidValue(t.TOUR_NAME) ? t.TOUR_NAME : '');
 
     // Status odznak na 1. řádku
