@@ -439,6 +439,38 @@ header {
   box-sizing: border-box;
 }
 
+.filter-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #0d0d0d;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0 10px;
+  height: 36px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.filter-toggle-label:hover {
+  border-color: var(--accent-yellow);
+}
+
+.filter-toggle-label input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: var(--accent-yellow);
+  width: 14px;
+  height: 14px;
+  margin: 0;
+}
+
 #tourFilter {
   flex: 1 1 160px;
   min-width: 120px;
@@ -754,13 +786,15 @@ header {
   justify-content: flex-end;
   align-items: flex-start;
   flex-shrink: 0;
-  max-width: 120px;
+  max-width: 140px;
 }
 
 .icon-btn,
 .card-actions .icon-btn,
 .card-icon-col .icon-btn,
 .badge-setlist,
+.badge-setlist-empty,
+.badge-unverified,
 .btn-action-setlist,
 .btn-action-category,
 .btn-action-related,
@@ -833,6 +867,42 @@ header {
   background: #f59e0b;
   border-color: #f59e0b;
   color: #000000;
+}
+
+/* Missing Setlist on Setlist.fm Badge */
+.badge-setlist-empty {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px dashed #f59e0b !important;
+  color: #f59e0b !important;
+  font-weight: 400 !important;
+  min-width: 3.2rem;
+  padding: 0 6px;
+  box-sizing: border-box;
+}
+
+.badge-setlist-empty:hover {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: #f59e0b !important;
+  color: #fbbf24 !important;
+}
+
+/* Unverified Show Badge */
+.badge-unverified {
+  background: rgba(30, 41, 59, 0.35);
+  border: 1px solid rgba(100, 116, 139, 0.3) !important;
+  color: #64748b !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  min-width: 3.2rem;
+  padding: 0 6px;
+  box-sizing: border-box;
+  opacity: 0.85;
+}
+
+.badge-unverified:hover {
+  border-color: #94a3b8 !important;
+  color: #94a3b8 !important;
+  opacity: 1;
 }
 
 /* Lineup Button */

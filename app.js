@@ -189,6 +189,14 @@ function updateUrlParams() {
     params.delete('sort');
   }
 
+  // Unverified filter
+  const unverifiedFilter = document.getElementById('unverifiedFilter');
+  if (unverifiedFilter && unverifiedFilter.checked) {
+    params.set('unverified', '1');
+  } else {
+    params.delete('unverified');
+  }
+
   if (hadAdmin && !params.has('admin')) {
     params.set('admin', '1');
   }
@@ -259,6 +267,13 @@ function initializeStateFromUrlAndStorage() {
       const clearBtn = document.getElementById('searchClearBtn');
       if (clearBtn) clearBtn.style.display = 'block';
     }
+  }
+
+  // Unverified filter
+  const urlUnverified = urlParams.get('unverified');
+  const unverifiedFilter = document.getElementById('unverifiedFilter');
+  if (unverifiedFilter && urlUnverified === '1') {
+    unverifiedFilter.checked = true;
   }
 
   updateUrlParams();
@@ -353,6 +368,10 @@ function setupEventListeners() {
   (document.getElementById('reshuffleBtn') || document.getElementById('btnReshuffle'))?.addEventListener('click', reshuffleAndRender);
   (document.getElementById('surpriseBtn') || document.getElementById('btnSurprise'))?.addEventListener('click', openSurpriseTicket);
   document.getElementById('cityFilter')?.addEventListener('change', filterData);
+  document.getElementById('unverifiedFilter')?.addEventListener('change', () => {
+    updateUrlParams();
+    filterData();
+  });
   
   const sortSelect = document.getElementById('sortFilter');
   if (sortSelect) {
@@ -1229,6 +1248,12 @@ function filterData() {
   renderCategoryTabs(matchesBase);
 
   filteredTickets = matchesBase.filter(t => {
+    const unverifiedOnly = document.getElementById('unverifiedFilter')?.checked || false;
+    if (unverifiedOnly) {
+      const songCount = parseInt(t.POCET_SKLADEB, 10) || 0;
+      const hasFullSetlist = isValidValue(t.SETLIST) && songCount > 0;
+      if (hasFullSetlist) return false;
+    }
     if (currentCategory === 'ALL') return true;
     if (currentCategory === 'Videos') return isValidValue(t.YOUTUBE_URL);
     return getTicketCategory(t).toLowerCase() === currentCategory.toLowerCase();
@@ -1311,12 +1336,23 @@ function renderTickets(tickets) {
         </button>`;
     }
 
+    const setlistUrl = isValidValue(t.SETLIST_URL) ? t.SETLIST_URL.trim() : (isValidValue(t.SETLIST_FM_URL) ? t.SETLIST_FM_URL.trim() : '');
     const songCount = parseInt(t.POCET_SKLADEB, 10) || 0;
     const hasSetlist = isValidValue(t.SETLIST) && songCount > 0;
     if (hasSetlist) {
       iconsHTML += `
-        <button class="icon-btn badge-setlist btn-action-setlist" title="Setlist (${songCount} songs)" onclick="event.stopPropagation(); toggleCollapsible('setlist-${globalIndex}');">
+        <button class="icon-btn badge-setlist btn-action-setlist" title="Setlist (${songCount} songs) - Verified on Setlist.fm" onclick="event.stopPropagation(); toggleCollapsible('setlist-${globalIndex}');">
           🎵 ${songCount}
+        </button>`;
+    } else if (setlistUrl) {
+      iconsHTML += `
+        <button class="icon-btn badge-setlist-empty" title="Setlist missing on Setlist.fm - Click to add setlist" onclick="event.stopPropagation(); window.open('${setlistUrl}', '_blank');">
+          🎵 0
+        </button>`;
+    } else {
+      iconsHTML += `
+        <button class="icon-btn badge-unverified" title="Unverified show (No Setlist.fm entry linked)" onclick="event.stopPropagation();">
+          ⚪ Unverified
         </button>`;
     }
 
