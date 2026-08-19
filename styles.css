@@ -938,9 +938,9 @@ header {
   color: #64748b !important;
   font-size: 0.85rem !important;
   font-weight: 400 !important;
-  min-width: 3.2rem;
+  min-width: 0;
   height: 28px;
-  padding: 0 6px;
+  padding: 0 4px;
   box-sizing: border-box;
   opacity: 0.85;
 }

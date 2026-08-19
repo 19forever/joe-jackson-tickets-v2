@@ -1470,9 +1470,22 @@ function renderTickets(tickets) {
           ✏️
         </button>`;
     } else {
+      const formParams = new URLSearchParams();
+      if (isValidValue(t.DATUM)) formParams.set('date', t.DATUM.trim());
+      if (isValidValue(t.MESTO)) formParams.set('city', t.MESTO.trim());
+      if (isValidValue(t.STAT)) formParams.set('country', t.STAT.trim());
+      if (isValidValue(t.MISTO_KONANI)) formParams.set('venue', t.MISTO_KONANI.trim());
+      if (isValidValue(t.TOUR_NAME)) formParams.set('tour_name', t.TOUR_NAME.trim());
+      if (isValidValue(t.TOUR_ID)) formParams.set('tour_id', t.TOUR_ID.trim());
+      if (isValidValue(t.LINEUP)) formParams.set('lineup', t.LINEUP.trim());
+      const itemIdVal = t.ID_MEMORABILIA || t.ID_LISTKU;
+      if (isValidValue(itemIdVal)) formParams.set('id', String(itemIdVal).trim());
+      formParams.set('notes', 'Setlist contribution / missing setlist link report');
+      const formUrl = `ticket_form.html?${formParams.toString()}`;
+
       slot7HTML = `
-        <button class="icon-btn badge-unverified" title="Unverified show — missing Setlist.fm link" onclick="event.stopPropagation();">
-          ⚪
+        <button class="icon-btn badge-unverified" title="When you create or find the setlist link, send us a note" onclick="event.stopPropagation(); window.location.href='${formUrl}';">
+          SL
         </button>`;
     }
 
