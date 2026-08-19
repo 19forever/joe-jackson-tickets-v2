@@ -1488,7 +1488,7 @@
     "YOUTUBE_URL": "",
     "REVIEW_URL": "",
     "SETLIST_FM_URL": "https://www.setlist.fm/setlist/joe-jackson/1980/pavilhao-infante-de-sagres-porto-portugal-be585ea.html",
-    "TOUR_ID": "tour-i-m-the-man-tour-1979-1980",
+    "TOUR_ID": "tour-1979-1980-i-m-the-man-tour",
     "TOUR_NAME": "1979 / 1980 * I´m The Man Tour",
     "STATUS": "",
     "ORIGINAL_DATE": "",
@@ -15385,5 +15385,28 @@
     "STATUS": "",
     "ORIGINAL_DATE": "",
     "NOTE": "typo on poster (18th May) - Wednesday in 1978 was 16th"
+  },
+  {
+    "ID_MEMORABILIA": "TICKET_0670",
+    "SHOW_ID": "SHOW_1980-05-03_PORTO",
+    "DATUM": "",
+    "MESTO": "",
+    "STAT": "",
+    "VENUE": "",
+    "KATEGORIE": "tour_items",
+    "SOUBOR_SKEN": "pin_1979_a.heic",
+    "CONTRIBUTOR": "",
+    "LINEUP": "Joe Jackson (vocals, piano, keyboards) ; Gary Sanford (guitar, backing vocals) ; Graham Maby (bass, backing vocals) ; Dave Houghton (drums, backing vocals)",
+    "SETLIST": "",
+    "POCET_SKLADEB": "0",
+    "SETLIST_URL": "",
+    "YOUTUBE_URL": "",
+    "REVIEW_URL": "",
+    "SETLIST_FM_URL": "https://www.setlist.fm/setlist/joe-jackson/1980/pavilhao-infante-de-sagres-porto-portugal-be585ea.html",
+    "TOUR_ID": "tour-1979-1980-i-m-the-man-tour",
+    "TOUR_NAME": "1979 / 1980 * I´m The Man Tour",
+    "STATUS": "",
+    "ORIGINAL_DATE": "",
+    "NOTE": ""
   }
 ]
