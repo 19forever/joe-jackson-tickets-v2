@@ -248,7 +248,20 @@
 
     .btn-dup:hover { background-color: var(--accent-yellow-bright); }
 
-    /* Main 2-Column Layout */
+    .btn-del {
+  background-color: #ef4444;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-del:hover { background-color: #dc2626; }
+
+/* Main 2-Column Layout */
     .main-editor-layout {
       display: grid;
       grid-template-columns: minmax(280px, 380px) 1fr;
@@ -1863,7 +1876,32 @@
       showStatus(`📋 Duplicated record as ${newId}.`, 'green');
     }
 
-    function showInboxHoverPopover(e, imgSrc, filename) {
+    function deleteCurrentRecord() {
+  if (currentRecordIndex < 0 || !fullCsvData[currentRecordIndex]) return;
+  
+  const recId = fullCsvData[currentRecordIndex].ID_MEMORABILIA || `#${currentRecordIndex + 1}`;
+  if (!confirm(`Are you sure you want to DELETE record ${recId}? This operation cannot be undone.`)) {
+    return;
+  }
+
+  // Odstranění z paměti
+  fullCsvData.splice(currentRecordIndex, 1);
+  
+  // Přepočet filtrů a přenačtení sezamu
+  applyUrlFiltersAndSort();
+  
+  if (fullCsvData.length === 0) {
+    showStatus('⚠️ All records deleted from current list.', 'yellow');
+    return;
+  }
+
+  // Načtení sousedního záznamu
+  const nextIdx = currentRecordIndex >= fullCsvData.length ? fullCsvData.length - 1 : currentRecordIndex;
+  loadRecordByIndex(nextIdx);
+  showStatus(`🗑️ Record ${recId} deleted from session. Click "Save Directly to GitHub" to confirm change.`, 'green');
+}
+
+function showInboxHoverPopover(e, imgSrc, filename) {
       let popover = document.getElementById('inboxScanHoverPopover');
       if (!popover) {
         popover = document.createElement('div');
