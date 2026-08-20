@@ -1471,10 +1471,10 @@ header {
   flex-direction: row !important;
   flex-wrap: wrap !important;
   align-items: center !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
   padding: 6px 12px !important;
   min-height: 44px !important;
-  gap: 10px !important;
+  gap: 12px !important;
   background: var(--bg-card, #161616) !important;
   border: 1px solid var(--border-color, #2a2a2a) !important;
   border-radius: 6px !important;
@@ -1486,19 +1486,7 @@ header {
   transform: none !important;
 }
 
-/* Vnitřní kontejner karty - Vše v JEDNOM řádku */
-.tickets-container.list-view .card-content {
-  display: flex !important;
-  flex-direction: row !important;
-  flex-wrap: nowrap !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  width: 100% !important;
-  gap: 12px !important;
-  padding: 0 !important;
-}
-
-/* Náhledový obrázek (Pevně vedle data) */
+/* Náhledový obrázek (Pevně vlevo) */
 .tickets-container.list-view .card-img-wrapper {
   width: 38px !important;
   height: 28px !important;
@@ -1511,6 +1499,19 @@ header {
   height: 100% !important;
   object-fit: cover !important;
   border-radius: 3px !important;
+}
+
+/* Vnitřní kontejner obsahu - Přimknutý HNED VEDLE obrázku */
+.tickets-container.list-view .card-content {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex: 1 !important; /* Vyplní zbývající prostor vedle obrázku */
+  width: auto !important; /* Důležité: Zrušení 100% šířky, která odsouvala text dolů */
+  gap: 12px !important;
+  padding: 0 !important;
 }
 
 /* Datum & Kategorie (Levá část) */
@@ -1565,7 +1566,7 @@ header {
   align-items: center !important;
 }
 
-/* Rozšířená tlačítka a odznaky - Dovolí číslům dýchat */
+/* Tlačítka a odznaky */
 .tickets-container.list-view .btn-action,
 .tickets-container.list-view .badge-btn,
 .tickets-container.list-view .icon-btn,
@@ -1578,7 +1579,7 @@ header {
   align-items: center !important;
   justify-content: center !important;
   height: 28px !important;
-  min-width: 44px !important; /* Rozšíření pro čísla jako 21 */
+  min-width: 44px !important;
   padding: 0 10px !important;
   font-size: 0.8rem !important;
   line-height: 1 !important;
@@ -1600,7 +1601,7 @@ header {
   box-shadow: none !important;
 }
 
-/* Rozbalený blok (Setlist / Lineup) přichycený pod celým řádkem */
+/* Rozbalený blok (Setlist / Lineup) pod celým řádkem */
 .tickets-container.list-view .collapsible-content {
   width: 100% !important;
   flex-basis: 100% !important;
