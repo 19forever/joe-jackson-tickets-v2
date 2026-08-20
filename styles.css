@@ -1469,12 +1469,12 @@ header {
 .tickets-container.list-view .ticket-card {
   display: flex !important;
   flex-direction: row !important;
-  flex-wrap: wrap !important; /* Umožní rozbalenému obsahu skočit dolů pod řádek */
-  align-items: flex-start !important; /* Pevně ukotví řádek nahoře */
+  flex-wrap: wrap !important;
+  align-items: center !important;
   justify-content: space-between !important;
-  padding: 8px 12px !important;
-  min-height: 48px !important;
-  gap: 8px 12px !important;
+  padding: 6px 12px !important;
+  min-height: 44px !important;
+  gap: 10px !important;
   background: var(--bg-card, #161616) !important;
   border: 1px solid var(--border-color, #2a2a2a) !important;
   border-radius: 6px !important;
@@ -1486,12 +1486,24 @@ header {
   transform: none !important;
 }
 
-/* Náhledový obrázek */
+/* Vnitřní kontejner karty - Vše v JEDNOM řádku */
+.tickets-container.list-view .card-content {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  gap: 12px !important;
+  padding: 0 !important;
+}
+
+/* Náhledový obrázek (Pevně vedle data) */
 .tickets-container.list-view .card-img-wrapper {
   width: 38px !important;
   height: 28px !important;
   flex-shrink: 0 !important;
-  margin-top: 2px !important;
+  margin: 0 !important;
 }
 
 .tickets-container.list-view .card-img-wrapper img {
@@ -1499,18 +1511,6 @@ header {
   height: 100% !important;
   object-fit: cover !important;
   border-radius: 3px !important;
-}
-
-/* Vnitřní kontejner karty */
-.tickets-container.list-view .card-content {
-  display: flex !important;
-  flex-direction: row !important;
-  flex-wrap: wrap !important;
-  align-items: flex-start !important;
-  justify-content: space-between !important;
-  width: 100% !important;
-  gap: 8px 12px !important;
-  padding: 0 !important;
 }
 
 /* Datum & Kategorie (Levá část) */
@@ -1542,7 +1542,7 @@ header {
   display: none !important;
 }
 
-/* Akční tlačítka (Pravá část) - Pevně nahoře vpravo */
+/* Akční tlačítka (Pravá část) */
 .tickets-container.list-view .card-actions-grid {
   display: flex !important;
   align-items: center !important;
@@ -1555,7 +1555,7 @@ header {
   grid-template-columns: none !important;
 }
 
-/* Skrýt prázdné sloty */
+/* Skrýt prázdné nesmyslné sloty */
 .tickets-container.list-view .grid-slot-empty {
   display: none !important;
 }
@@ -1565,7 +1565,7 @@ header {
   align-items: center !important;
 }
 
-/* Tlačítka - Decentní styling bez agresivního svícení */
+/* Rozšířená tlačítka a odznaky - Dovolí číslům dýchat */
 .tickets-container.list-view .btn-action,
 .tickets-container.list-view .badge-btn,
 .tickets-container.list-view .icon-btn,
@@ -1578,15 +1578,17 @@ header {
   align-items: center !important;
   justify-content: center !important;
   height: 28px !important;
-  padding: 2px 8px !important;
-  font-size: 0.78rem !important;
+  min-width: 44px !important; /* Rozšíření pro čísla jako 21 */
+  padding: 0 10px !important;
+  font-size: 0.8rem !important;
   line-height: 1 !important;
   white-space: nowrap !important;
   border-radius: 4px !important;
+  box-sizing: border-box !important;
   transition: background-color 0.15s ease, border-color 0.15s ease !important;
 }
 
-/* Decentní mouse-over highlight bez ostrého žlutého bloku */
+/* Decentní mouse-over highlight */
 .tickets-container.list-view .icon-btn:hover,
 .tickets-container.list-view .badge-setlist:hover,
 .tickets-container.list-view .btn-action-video:hover,
@@ -1598,7 +1600,7 @@ header {
   box-shadow: none !important;
 }
 
-/* Rozbalený blok (Setlist / Lineup) pod celým řádkem */
+/* Rozbalený blok (Setlist / Lineup) přichycený pod celým řádkem */
 .tickets-container.list-view .collapsible-content {
   width: 100% !important;
   flex-basis: 100% !important;
