@@ -1505,7 +1505,7 @@ header {
 .tickets-container.list-view .card-content {
   display: flex !important;
   flex-direction: row !important;
-  flex-wrap: nowrap !important;
+  flex-wrap: wrap !important; /* Důležité pro odskok rozbaleného bloku dolů */
   align-items: center !important;
   justify-content: space-between !important;
   flex: 1 !important;
@@ -1543,18 +1543,18 @@ header {
   display: none !important;
 }
 
-/* Akční mřížka - Pevných 7 sloupců pro přesné svislé zarovnání */
+/* Akční mřížka - Pevných 7 sloupců */
 .tickets-container.list-view .card-actions-grid {
   display: grid !important;
-  grid-template-columns: repeat(7, 44px) !important; /* Pevné sloupce */
+  grid-template-columns: repeat(7, 44px) !important;
   gap: 4px !important;
   margin-left: auto !important;
   flex-shrink: 0 !important;
   width: auto !important;
-  height: 28px !important;
+  height: auto !important; /* Dovolí rozbalenému obsahu vyskočit z řádku tlačítek */
 }
 
-/* Prázdné sloty jsou skryté, ale drží své přesné místo ve sloupci */
+/* Skryté prázdné sloty */
 .tickets-container.list-view .grid-slot-empty {
   display: block !important;
   visibility: hidden !important;
@@ -1604,8 +1604,9 @@ header {
   box-shadow: none !important;
 }
 
-/* Rozbalený blok (Setlist / Lineup) pod celým řádkem */
+/* Oprava: Rozbalený blok (Lineup i Setlist) skočí dolů a roztáhne se přes celou šířku */
 .tickets-container.list-view .collapsible-content {
+  grid-column: 1 / -1 !important; /* Roztáhne se přes všech 7 sloupců mřížky */
   width: 100% !important;
   flex-basis: 100% !important;
   margin-top: 8px !important;
