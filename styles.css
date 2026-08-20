@@ -1501,15 +1501,15 @@ header {
   border-radius: 3px !important;
 }
 
-/* Vnitřní kontejner obsahu - Přimknutý HNED VEDLE obrázku */
+/* Vnitřní kontejner obsahu */
 .tickets-container.list-view .card-content {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
   align-items: center !important;
   justify-content: space-between !important;
-  flex: 1 !important; /* Vyplní zbývající prostor vedle obrázku */
-  width: auto !important; /* Důležité: Zrušení 100% šířky, která odsouvala text dolů */
+  flex: 1 !important;
+  width: auto !important;
   gap: 12px !important;
   padding: 0 !important;
 }
@@ -1543,27 +1543,29 @@ header {
   display: none !important;
 }
 
-/* Akční tlačítka (Pravá část) */
+/* Akční mřížka - Pevných 7 sloupců pro přesné svislé zarovnání */
 .tickets-container.list-view .card-actions-grid {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-end !important;
-  gap: 6px !important;
+  display: grid !important;
+  grid-template-columns: repeat(7, 44px) !important; /* Pevné sloupce */
+  gap: 4px !important;
   margin-left: auto !important;
   flex-shrink: 0 !important;
   width: auto !important;
   height: 28px !important;
-  grid-template-columns: none !important;
 }
 
-/* Skrýt prázdné nesmyslné sloty */
+/* Prázdné sloty jsou skryté, ale drží své přesné místo ve sloupci */
 .tickets-container.list-view .grid-slot-empty {
-  display: none !important;
+  display: block !important;
+  visibility: hidden !important;
+  border: none !important;
+  background: transparent !important;
 }
 
 .tickets-container.list-view .card-actions-grid > div {
   display: flex !important;
   align-items: center !important;
+  justify-content: center !important;
 }
 
 /* Tlačítka a odznaky */
@@ -1579,8 +1581,9 @@ header {
   align-items: center !important;
   justify-content: center !important;
   height: 28px !important;
+  width: 100% !important;
   min-width: 44px !important;
-  padding: 0 10px !important;
+  padding: 0 4px !important;
   font-size: 0.8rem !important;
   line-height: 1 !important;
   white-space: nowrap !important;
