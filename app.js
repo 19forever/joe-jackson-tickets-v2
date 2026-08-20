@@ -848,8 +848,11 @@ function getRelatedItems(currentRecord) {
   if (!currentRecord) return [];
 
   const currId = currentRecord.ID_MEMORABILIA || currentRecord.ID_LISTKU;
-  const currTourId = isValidValue(currentRecord.TOUR_ID) ? currentRecord.TOUR_ID.trim() : null;
-  const currShowId = isValidValue(currentRecord.SHOW_ID) ? currentRecord.SHOW_ID.trim() : null;
+  const currShowId = isValidValue(currentRecord.SHOW_ID) ? String(currentRecord.SHOW_ID).trim() : null;
+  const currTourId = isValidValue(currentRecord.TOUR_ID) ? String(currentRecord.TOUR_ID).trim().toLowerCase() : null;
+  const currTourName = isValidValue(currentRecord.TOUR_NAME) ? String(currentRecord.TOUR_NAME).trim().toLowerCase() : 
+                        (isValidValue(currentRecord.TOUR) ? String(currentRecord.TOUR).trim().toLowerCase() : null);
+
   const hasCurrDate = isValidValue(currentRecord.DATUM);
   const currDate = hasCurrDate ? currentRecord.DATUM.trim() : null;
 
@@ -858,35 +861,33 @@ function getRelatedItems(currentRecord) {
     if (currId && itemId && itemId === currId) return false;
     if (item === currentRecord) return false;
 
-    const matchTour = !!(currTourId && isValidValue(item.TOUR_ID) && item.TOUR_ID.trim() === currTourId);
-    const matchShow = !!(currShowId && isValidValue(item.SHOW_ID) && item.SHOW_ID.trim() === currShowId);
+    const itemShowId = isValidValue(item.SHOW_ID) ? String(item.SHOW_ID).trim() : null;
+    const itemTourId = isValidValue(item.TOUR_ID) ? String(item.TOUR_ID).trim().toLowerCase() : null;
+    const itemTourName = isValidValue(item.TOUR_NAME) ? String(item.TOUR_NAME).trim().toLowerCase() : 
+                          (isValidValue(item.TOUR) ? String(item.TOUR).trim().toLowerCase() : null);
 
-    if (!matchShow && !matchTour) return false;
+    // 1. Přímá shoda na konkrétní koncert (SHOW_ID)
+    const matchShow = !!(currShowId && itemShowId && currShowId === itemShowId);
+    if (matchShow) return true;
 
-    // If explicitly linked by SHOW_ID (same show)
-    if (matchShow) {
-      return true;
-    }
+    // 2. Shoda na turné (zkontroluje TOUR_ID i název TOUR_NAME / TOUR)
+    const matchTour = !!(
+      (currTourId && itemTourId && currTourId === itemTourId) ||
+      (currTourName && itemTourName && currTourName === itemTourName)
+    );
 
-    // For items sharing the same TOUR_ID:
+    if (!matchTour) return false;
+
+    // Pokud položka NEMA datum, jde o všeobecný merch/program/plakát k celému turné -> zobrazí se u všech koncertů daného turné
     const hasItemDate = isValidValue(item.DATUM);
-    const itemDate = hasItemDate ? item.DATUM.trim() : null;
-
-    // OPTION B: No specific date (empty or invalid DATUM) represents genuine tour-wide memorabilia (e.g. Tour Book, global poster, merchandise)
     if (!hasItemDate) {
       const rawCat = (item.KATEGORIE || '').trim().toLowerCase();
       const isTicket = rawCat === 'ticket' || rawCat === 'tickets' || rawCat === 'lístek' || rawCat === 'listek';
-      if (isTicket) return false;
-      return true;
+      return !isTicket; // Zobrazí vše kromě samotných lístků bez data
     }
 
-    // OPTION A: Shares the EXACT SAME DATE (DATUM) as the current concert (e.g., event-specific poster or article for that exact night)
-    if (hasCurrDate && itemDate === currDate) {
-      return true;
-    }
-
-    // Exclude items with a DIFFERENT date from another show of the same tour
-    return false;
+    // Pokud položka datum MÁ, zobrazí se jen u koncertu se stejným datem
+    return hasCurrDate && item.DATUM.trim() === currDate;
   });
 }
 
