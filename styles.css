@@ -1469,19 +1469,20 @@ header {
 .tickets-container.list-view .ticket-card {
   display: flex !important;
   flex-direction: row !important;
-  align-items: center !important;
+  flex-wrap: wrap !important; /* Umožní rozbalenému obsahu skočit dolů pod řádek */
+  align-items: flex-start !important; /* Pevně ukotví řádek nahoře */
   justify-content: space-between !important;
-  padding: 6px 12px !important;
+  padding: 8px 12px !important;
   min-height: 48px !important;
-  gap: 12px !important;
+  gap: 8px 12px !important;
   background: var(--bg-card, #161616) !important;
   border: 1px solid var(--border-color, #2a2a2a) !important;
   border-radius: 6px !important;
 }
 
 .tickets-container.list-view .ticket-card:hover {
-  border-color: var(--accent-yellow) !important;
-  background: #1a1a1a !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  background: #181818 !important;
   transform: none !important;
 }
 
@@ -1490,6 +1491,7 @@ header {
   width: 38px !important;
   height: 28px !important;
   flex-shrink: 0 !important;
+  margin-top: 2px !important;
 }
 
 .tickets-container.list-view .card-img-wrapper img {
@@ -1503,10 +1505,11 @@ header {
 .tickets-container.list-view .card-content {
   display: flex !important;
   flex-direction: row !important;
-  align-items: center !important;
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
   justify-content: space-between !important;
   width: 100% !important;
-  gap: 12px !important;
+  gap: 8px 12px !important;
   padding: 0 !important;
 }
 
@@ -1519,6 +1522,7 @@ header {
   flex-shrink: 0 !important;
   margin: 0 !important;
   width: auto !important;
+  height: 28px !important;
 }
 
 /* Město a venue v jednom řádku (Uprostřed) */
@@ -1530,13 +1534,15 @@ header {
   text-overflow: ellipsis !important;
   margin: 0 !important;
   color: var(--text-muted) !important;
+  height: 28px !important;
+  line-height: 28px !important;
 }
 
 .tickets-container.list-view .card-note-line {
   display: none !important;
 }
 
-/* Akční tlačítka (Pravá část) */
+/* Akční tlačítka (Pravá část) - Pevně nahoře vpravo */
 .tickets-container.list-view .card-actions-grid {
   display: flex !important;
   align-items: center !important;
@@ -1545,20 +1551,21 @@ header {
   margin-left: auto !important;
   flex-shrink: 0 !important;
   width: auto !important;
+  height: 28px !important;
   grid-template-columns: none !important;
 }
 
-/* Skrýt prázdné nesmyslné sloty */
+/* Skrýt prázdné sloty */
 .tickets-container.list-view .grid-slot-empty {
   display: none !important;
 }
 
-/* Viditelnost tlačítek a ikonek */
 .tickets-container.list-view .card-actions-grid > div {
   display: flex !important;
   align-items: center !important;
 }
 
+/* Tlačítka - Decentní styling bez agresivního svícení */
 .tickets-container.list-view .btn-action,
 .tickets-container.list-view .badge-btn,
 .tickets-container.list-view .icon-btn,
@@ -1575,6 +1582,30 @@ header {
   font-size: 0.78rem !important;
   line-height: 1 !important;
   white-space: nowrap !important;
-  opacity: 1 !important;
-  visibility: visible !important;
+  border-radius: 4px !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease !important;
+}
+
+/* Decentní mouse-over highlight bez ostrého žlutého bloku */
+.tickets-container.list-view .icon-btn:hover,
+.tickets-container.list-view .badge-setlist:hover,
+.tickets-container.list-view .btn-action-video:hover,
+.tickets-container.list-view .btn-action-lineup:hover,
+.tickets-container.list-view .btn-action-edit:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.6) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+/* Rozbalený blok (Setlist / Lineup) pod celým řádkem */
+.tickets-container.list-view .collapsible-content {
+  width: 100% !important;
+  flex-basis: 100% !important;
+  margin-top: 8px !important;
+  background: #0d0d0d !important;
+  border: 1px solid var(--border-color, #2a2a2a) !important;
+  border-radius: 6px !important;
+  padding: 10px 14px !important;
+  box-sizing: border-box !important;
 }
