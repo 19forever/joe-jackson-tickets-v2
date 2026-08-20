@@ -1658,12 +1658,12 @@ header {
   padding: 0 !important;
 }
 
-/* Datum a kategoriální odznak (Levá část) */
+/* Datum (Levá část) */
 .tickets-container.list-view .card-meta-line1 {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
-  min-width: 190px !important;
+  min-width: 160px !important;
   flex-shrink: 0 !important;
   margin: 0 !important;
 }
@@ -1682,27 +1682,41 @@ header {
   display: none !important;
 }
 
-/* Převod mřížky na kompaktní flex řadu (Pravá část) */
+/* Zobrazit kontejner mřížky akcí jako kompaktní flex řadu */
 .tickets-container.list-view .card-actions-grid {
   display: flex !important;
   align-items: center !important;
+  justify-content: flex-end !important;
   gap: 6px !important;
   margin-left: auto !important;
   flex-shrink: 0 !important;
   width: auto !important;
 }
 
-/* Skrytí prázdných slotů v řádkovém režimu */
-.tickets-container.list-view .grid-slot-empty {
+/* Ponechat zobrazené všechny sloty, které obsahují tlačítko nebo dětský prvek */
+.tickets-container.list-view .card-actions-grid > div {
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Skrýt POUZE ty sloty, které jsou zcela prázdné */
+.tickets-container.list-view .card-actions-grid > div:empty,
+.tickets-container.list-view .grid-slot-empty:empty {
   display: none !important;
 }
 
-/* Kompaktní tlačítka */
+/* Úprava tlačítek a odznaků v řádku */
 .tickets-container.list-view .btn-action,
 .tickets-container.list-view .badge-btn,
-.tickets-container.list-view .icon-btn {
+.tickets-container.list-view .icon-btn,
+.tickets-container.list-view .card-actions-grid a,
+.tickets-container.list-view .card-actions-grid button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   height: 28px !important;
   padding: 2px 8px !important;
   font-size: 0.78rem !important;
   line-height: 1 !important;
+  white-space: nowrap !important;
 }
