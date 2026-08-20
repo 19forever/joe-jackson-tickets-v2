@@ -1612,3 +1612,97 @@ header {
   align-items: center;
   gap: 6px;
 }
+
+/* ==========================================
+   FIX: High-Density Horizontal List View
+   ========================================== */
+.tickets-container.list-view {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.tickets-container.list-view .ticket-card {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 6px 12px !important;
+  min-height: 48px !important;
+  gap: 12px !important;
+  background: var(--bg-card, #161e2e) !important;
+  border: 1px solid var(--border-color, #2a364f) !important;
+  border-radius: 6px !important;
+}
+
+/* Náhledový obrázek */
+.tickets-container.list-view .card-img-wrapper {
+  width: 38px !important;
+  height: 28px !important;
+  flex-shrink: 0 !important;
+}
+
+.tickets-container.list-view .card-img-wrapper img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 3px !important;
+}
+
+/* Vnitřní kontejner karty */
+.tickets-container.list-view .card-content {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  gap: 12px !important;
+  padding: 0 !important;
+}
+
+/* Datum a kategoriální odznak (Levá část) */
+.tickets-container.list-view .card-meta-line1 {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 190px !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+}
+
+/* Město a venue v jednom řádku (Uprostřed) */
+.tickets-container.list-view .card-location-line2 {
+  flex: 1 !important;
+  font-size: 0.85rem !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin: 0 !important;
+}
+
+.tickets-container.list-view .card-note-line {
+  display: none !important;
+}
+
+/* Převod mřížky na kompaktní flex řadu (Pravá část) */
+.tickets-container.list-view .card-actions-grid {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+  width: auto !important;
+}
+
+/* Skrytí prázdných slotů v řádkovém režimu */
+.tickets-container.list-view .grid-slot-empty {
+  display: none !important;
+}
+
+/* Kompaktní tlačítka */
+.tickets-container.list-view .btn-action,
+.tickets-container.list-view .badge-btn,
+.tickets-container.list-view .icon-btn {
+  height: 28px !important;
+  padding: 2px 8px !important;
+  font-size: 0.78rem !important;
+  line-height: 1 !important;
+}
