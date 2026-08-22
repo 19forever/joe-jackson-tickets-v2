@@ -15638,5 +15638,28 @@
     "STATUS": "",
     "ORIGINAL_DATE": "",
     "NOTE": ""
+  },
+  {
+    "ID_MEMORABILIA": "TICKET_0681",
+    "SHOW_ID": "",
+    "DATUM": "2024-10-21",
+    "MESTO": "Dublin",
+    "STAT": "Ireland",
+    "VENUE": "3Olympia Theatre",
+    "KATEGORIE": "tickets",
+    "SOUBOR_SKEN": "",
+    "CONTRIBUTOR": "Marek Kraus",
+    "LINEUP": "",
+    "SETLIST": "",
+    "POCET_SKLADEB": "",
+    "SETLIST_URL": "https://www.setlist.fm/setlist/joe-jackson/2024/3olympia-theatre-dublin-ireland-3505d1f.html",
+    "YOUTUBE_URL": "",
+    "REVIEW_URL": "",
+    "SETLIST_FM_URL": "",
+    "TOUR_ID": "tour-2024-max-champion-in-what-a-racket-tour",
+    "TOUR_NAME": "2024 * Max Champion in What A Racket Tour",
+    "STATUS": "",
+    "ORIGINAL_DATE": "",
+    "NOTE": ""
   }
 ]
