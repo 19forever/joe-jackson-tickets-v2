@@ -880,7 +880,11 @@ function openNoteModal(ticketIndex) {
 
   // Set body with note, ensuring raw HTML tags are safely rendered as HTML markup
   // while converting standard newlines to <br> to preserve line breaks.
-  const formattedNote = String(t.NOTE || '').replace(/\\n/g, '<br>').replace(/\r?\n/g, '<br>');
+  let rawNote = String(t.NOTE || '');
+  // Decode escaped brackets if any
+  rawNote = rawNote.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+  // Convert newlines to <br> tags
+  const formattedNote = rawNote.replace(/\\n/g, '<br>').replace(/\r?\n/g, '<br>');
   bodyEl.innerHTML = formattedNote;
 
   modal.classList.add('active');
@@ -1534,8 +1538,9 @@ if (catName === 'Passes') {
     `;
 
     // Line 2: Lokace a pripadna poznámka/trivia (NOTE) - Ensure raw HTML tags are safely rendered and any newlines are preserved as breaks
-    const formattedNote = isValidValue(t.NOTE) ? String(t.NOTE).replace(/\\n/g, '<br>').replace(/\r?\n/g, '<br>') : '';
-    const noteHTML = formattedNote ? `<div class="card-note-line" onclick="event.stopPropagation(); openNoteModal(${globalIndex});">💡 <em>${formattedNote}</em></div>` : '';
+    let rawCardNote = isValidValue(t.NOTE) ? String(t.NOTE).replace(/&lt;/g, '<').replace(/&gt;/g, '>') : '';
+    const formattedNote = rawCardNote.replace(/\\n/g, '<br>').replace(/\r?\n/g, '<br>');
+    const noteHTML = formattedNote ? `<div class="card-note-line" onclick="event.stopPropagation(); openNoteModal(${globalIndex});">💡 ${formattedNote}</div>` : '';
     const line2HTML = `
       <div class="card-location-line2">${locationText || (isValidValue(t.TOUR_NAME) ? t.TOUR_NAME : '')}</div>
       ${noteHTML}
