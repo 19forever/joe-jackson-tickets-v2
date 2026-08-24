@@ -3,19 +3,19 @@ name: Validate and Convert CSV to JSON
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'joe_jackson_tickets_cleaned.csv'
-      - '.github/workflows/validate-csv.yml'
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   validate-and-convert:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -86,3 +86,12 @@ jobs:
 
           print(f'✅ Soubor {json_file} úspěšně vytvořen.')
           "
+
+      - name: Commit & Push updated JSON file
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -f joe_jackson_tickets_cleaned.json
+          git status
+          git commit -m "Auto-generate JSON from updated CSV" || echo "No changes to commit"
+          git push
