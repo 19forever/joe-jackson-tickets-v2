@@ -249,19 +249,19 @@
     .btn-dup:hover { background-color: var(--accent-yellow-bright); }
 
     .btn-del {
-  background-color: #ef4444;
-  color: #fff;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.btn-del:hover { background-color: #dc2626; }
+      background-color: #ef4444;
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-del:hover { background-color: #dc2626; }
 
-/* Main 2-Column Layout */
+    /* Main 2-Column Layout */
     .main-editor-layout {
       display: grid;
       grid-template-columns: minmax(280px, 380px) 1fr;
@@ -696,7 +696,6 @@
           <div class="form-group">
             <label for="edit_TOUR_NAME">Tour Name (TOUR_NAME)</label>
             <div style="display: flex; gap: 6px; align-items: center; width: 100%;">
-              <!-- ÚPRAVA: Změněno z Input na Select pro zobrazení všech Tour bez ořezávání -->
               <select id="edit_TOUR_NAME" name="TOUR_NAME" style="flex: 1; min-width: 0;">
                 <option value="">-- Select Tour --</option>
               </select>
@@ -768,7 +767,6 @@
           </div>
           <div class="form-group">
             <label for="edit_CONTRIBUTOR">Donor / Contributor (CONTRIBUTOR)</label>
-            <!-- ÚPRAVA: Přidán list="contributorsList" pro zobrazení našeptávače existujících dárců -->
             <input type="text" id="edit_CONTRIBUTOR" name="CONTRIBUTOR" list="contributorsList" placeholder="e.g. Bert Bos, Netherlands">
             <datalist id="contributorsList"></datalist>
           </div>
@@ -1020,7 +1018,6 @@
         sessionStorage.setItem('custom_tours_list', JSON.stringify(list));
       } catch (e) {}
 
-      /* ÚPRAVA: Přidání nově uloženého tour přímo do elementu select */
       const tourSelect = getField('TOUR_NAME');
       if (tourSelect && tourSelect.tagName === 'SELECT') {
         const exists = Array.from(tourSelect.options).some(opt => opt.value.toLowerCase() === trimmed.toLowerCase());
@@ -1321,7 +1318,6 @@
         if (venue && typeof venue === 'string' && venue.trim()) {
           venues.add(venue.trim());
         }
-        /* ÚPRAVA: Sběr unikátních jmen dárce z databáze */
         const donor = row.CONTRIBUTOR || row.contributor || row.PRISPEVATEL || row.prispevatel;
         if (donor && typeof donor === 'string' && donor.trim()) {
           donor.split(',').forEach(d => {
@@ -1344,7 +1340,6 @@
     const sortedVenues = Array.from(venues).sort((a, b) => a.localeCompare(b));
     const sortedContributors = Array.from(contributors).sort((a, b) => a.localeCompare(b));
 
-    /* ÚPRAVA: Plnění <select> prvku pro Tour Name */
     const tourSelect = getField('TOUR_NAME');
     if (tourSelect && tourSelect.tagName === 'SELECT') {
       const curVal = tourSelect.value;
@@ -1373,7 +1368,6 @@
       }
     }
 
-    /* ÚPRAVA: Plnění <datalist> pro Contributor / Donor */
     const contributorsDatalist = document.getElementById('contributorsList');
     if (contributorsDatalist) {
       contributorsDatalist.innerHTML = '';
@@ -1630,7 +1624,6 @@
       if (el) {
         const val = r[f] !== undefined && r[f] !== null ? String(r[f]).trim() : '';
         if (f === 'NOTE') {
-          // Ensure NOTE field loads the raw string value verbatim without stripping, escaping, or converting HTML tags like <br> into \n
           el.value = val;
         } else if (el.tagName === 'SELECT') {
           el.value = val;
@@ -1697,7 +1690,6 @@
         const el = getField(f);
         if (el) {
           if (f === 'NOTE') {
-            // Retain raw HTML tags as literal text strings (e.g. <br> should stay <br>)
             fullCsvData[currentRecordIndex][f] = el.value.trim();
           } else {
             fullCsvData[currentRecordIndex][f] = el.value.trim();
@@ -1887,31 +1879,28 @@
     }
 
     function deleteCurrentRecord() {
-  if (currentRecordIndex < 0 || !fullCsvData[currentRecordIndex]) return;
-  
-  const recId = fullCsvData[currentRecordIndex].ID_MEMORABILIA || `#${currentRecordIndex + 1}`;
-  if (!confirm(`Are you sure you want to DELETE record ${recId}? This operation cannot be undone.`)) {
-    return;
-  }
+      if (currentRecordIndex < 0 || !fullCsvData[currentRecordIndex]) return;
+      
+      const recId = fullCsvData[currentRecordIndex].ID_MEMORABILIA || `#${currentRecordIndex + 1}`;
+      if (!confirm(`Are you sure you want to DELETE record ${recId}? This operation cannot be undone.`)) {
+        return;
+      }
 
-  // Odstranění z paměti
-  fullCsvData.splice(currentRecordIndex, 1);
-  
-  // Přepočet filtrů a přenačtení sezamu
-  applyUrlFiltersAndSort();
-  
-  if (fullCsvData.length === 0) {
-    showStatus('⚠️ All records deleted from current list.', 'yellow');
-    return;
-  }
+      fullCsvData.splice(currentRecordIndex, 1);
+      
+      applyUrlFiltersAndSort();
+      
+      if (fullCsvData.length === 0) {
+        showStatus('⚠️ All records deleted from current list.', 'yellow');
+        return;
+      }
 
-  // Načtení sousedního záznamu
-  const nextIdx = currentRecordIndex >= fullCsvData.length ? fullCsvData.length - 1 : currentRecordIndex;
-  loadRecordByIndex(nextIdx);
-  showStatus(`🗑️ Record ${recId} deleted from session. Click "Save Directly to GitHub" to confirm change.`, 'green');
-}
+      const nextIdx = currentRecordIndex >= fullCsvData.length ? fullCsvData.length - 1 : currentRecordIndex;
+      loadRecordByIndex(nextIdx);
+      showStatus(`🗑️ Record ${recId} deleted from session. Click "Save Directly to GitHub" to confirm change.`, 'green');
+    }
 
-function showInboxHoverPopover(e, imgSrc, filename) {
+    function showInboxHoverPopover(e, imgSrc, filename) {
       let popover = document.getElementById('inboxScanHoverPopover');
       if (!popover) {
         popover = document.createElement('div');
@@ -2144,7 +2133,8 @@ function showInboxHoverPopover(e, imgSrc, filename) {
 
       try {
         const updatedCsvContent = Papa.unparse(fullCsvData);
-        const result = await GitHubService.commitFile(updatedCsvContent, "Update ticket metadata via Admin Editor");
+        // Přidán flag [skip ci] pro zamezení zdvojeného spouštění workflow
+        const result = await GitHubService.commitFile(updatedCsvContent, "Update ticket metadata via Admin Editor [skip ci]");
 
         if (result.success) {
           showStatus(result.message || "✅ Saved successfully to GitHub.", 'green');
