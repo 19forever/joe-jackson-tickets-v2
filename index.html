@@ -593,6 +593,28 @@
     </div>
   </footer>
 
+  <!-- Note/Trivia Modal -->
+  <div id="noteModal" class="jj-modal-backdrop">
+    <div class="jj-modal-card note-modal-card">
+      <button class="jj-modal-close-btn" onclick="closeNoteModal()">✕</button>
+      <div class="jj-modal-header" style="align-items: flex-start; width: 100%;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="jj-modal-icon" style="font-size: 1.5rem;">💡</span>
+          <h3 id="noteModalHeader" style="font-size: 1.25rem;">Concert Trivia &amp; Notes</h3>
+        </div>
+      </div>
+      <div class="jj-modal-meta" id="noteModalMeta" style="width: 100%; text-align: left; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; border-bottom: 1px solid var(--border-color, #27272a); padding-bottom: 12px; margin-top: 4px;">
+        <!-- Meta details injected dynamically -->
+      </div>
+      <p class="jj-modal-body" id="noteModalBody" style="width: 100%; text-align: left; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; max-height: 350px; overflow-y: auto; margin: 0; padding-right: 4px; color: var(--text-main);">
+        <!-- Full note text injected dynamically -->
+      </p>
+      <div class="jj-modal-actions" style="margin-top: 8px; justify-content: flex-end; width: 100%;">
+        <button class="btn-secondary" onclick="closeNoteModal()" style="max-width: 120px;">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Setlist.fm Exit Confirmation Modal -->
   <div id="setlistExitModal" class="jj-modal-backdrop">
     <div class="jj-modal-card">

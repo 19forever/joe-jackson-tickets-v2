@@ -317,17 +317,11 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
 // Načítání optimalizovaného JSON souboru namísto CSV
-  fetch('joe_jackson_tickets_cleaned.json')
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(data => {
+  import('./joe_jackson_tickets_cleaned.json')
+    .then(module => {
+      const data = module.default;
       if (!data || !Array.isArray(data) || data.length === 0) {
-        console.error("JSON file is empty or missing valid data.");
-        return;
+        throw new Error("JSON file is empty or missing valid data.");
       }
 
       allTickets = shuffleArray(data);
@@ -340,25 +334,50 @@ window.addEventListener('DOMContentLoaded', () => {
       checkOnThisDayAnniversary();
     })
     .catch(err => {
-      console.error("Error loading JSON file, trying CSV fallback:", err);
-      // Fallback na CSV (PapaParse) v případě, že JSON ještě neexistuje
-      if (typeof Papa !== 'undefined') {
-        Papa.parse('joe_jackson_tickets_cleaned.csv', {
-          download: true,
-          header: true,
-          skipEmptyLines: true,
-          complete: function(results) {
-            if (results.data && results.data.length > 0) {
-              allTickets = shuffleArray(results.data);
-              updateYearBadge();
-              populateFilters();
-              initializeStateFromUrlAndStorage();
-              filterData();
-              checkOnThisDayAnniversary();
-            }
+      console.error("Error importing JSON file, trying fetch fallback:", err);
+      fetch('./joe_jackson_tickets_cleaned.json')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (!data || !Array.isArray(data) || data.length === 0) {
+            console.error("JSON file is empty or missing valid data.");
+            return;
+          }
+
+          allTickets = shuffleArray(data);
+          updateYearBadge();
+          populateFilters();
+
+          initializeStateFromUrlAndStorage();
+
+          filterData();
+          checkOnThisDayAnniversary();
+        })
+        .catch(fetchErr => {
+          console.error("Error loading JSON file, trying CSV fallback:", fetchErr);
+          // Fallback na CSV (PapaParse) v případě, že JSON ještě neexistuje
+          if (typeof Papa !== 'undefined') {
+            Papa.parse('./joe_jackson_tickets_cleaned.csv', {
+              download: true,
+              header: true,
+              skipEmptyLines: true,
+              complete: function(results) {
+                if (results.data && results.data.length > 0) {
+                  allTickets = shuffleArray(results.data);
+                  updateYearBadge();
+                  populateFilters();
+                  initializeStateFromUrlAndStorage();
+                  filterData();
+                  checkOnThisDayAnniversary();
+                }
+              }
+            });
           }
         });
-      }
     });
 });
 
@@ -414,6 +433,28 @@ function setupEventListeners() {
       if (e.target === videoModal) closeVideoModal();
     });
   }
+
+  const noteModal = document.getElementById('noteModal');
+  if (noteModal) {
+    noteModal.addEventListener('click', (e) => {
+      if (e.target === noteModal) closeNoteModal();
+    });
+  }
+
+  const setlistExitModal = document.getElementById('setlistExitModal');
+  if (setlistExitModal) {
+    setlistExitModal.addEventListener('click', (e) => {
+      if (e.target === setlistExitModal) closeSetlistExitModal();
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeNoteModal();
+      closeVideoModal();
+      closeSetlistExitModal();
+    }
+  });
 }
 
 function shuffleArray(array) {
@@ -794,8 +835,75 @@ function closeSetlistExitModal() {
   if (modal) modal.classList.remove('active');
 }
 
+function openNoteModal(ticketIndex) {
+  const t = filteredTickets[ticketIndex];
+  if (!t || !isValidValue(t.NOTE)) return;
+
+  const modal = document.getElementById('noteModal');
+  const headerEl = document.getElementById('noteModalHeader');
+  const metaEl = document.getElementById('noteModalMeta');
+  const bodyEl = document.getElementById('noteModalBody');
+
+  if (!modal || !headerEl || !metaEl || !bodyEl) return;
+
+  // Format header
+  headerEl.textContent = 'Concert Trivia & Notes';
+
+  // Format metadata (Date, Venue, City, Tour Name)
+  const displayDate = t.DATUM ? formatDisplayDate(t.DATUM) : '';
+  const venue = t.VENUE || t.MISTO_KONANI || '';
+  const city = t.MESTO || '';
+  const country = t.STAT || '';
+  const tourName = t.TOUR_NAME || '';
+
+  let locationText = '';
+  let locParts = [];
+  if (isValidValue(city)) locParts.push(city);
+  if (isValidValue(country)) locParts.push(country);
+  locationText = locParts.join(', ');
+  if (isValidValue(venue)) {
+    locationText += locationText ? ` - ${venue}` : venue;
+  }
+
+  let metaHTML = '';
+  if (displayDate) {
+    metaHTML += `<strong>Date:</strong> ${displayDate}<br/>`;
+  }
+  if (locationText) {
+    metaHTML += `<strong>Location:</strong> ${locationText}<br/>`;
+  }
+  if (isValidValue(tourName)) {
+    metaHTML += `<strong>Tour:</strong> ${tourName}`;
+  }
+
+  metaEl.innerHTML = metaHTML;
+
+  // Set body with note, escaping html for security but keeping formatting, or simple string assignment
+  // Replace newlines with <br> to preserve line breaks, but first escape html entities
+  const safeNote = String(t.NOTE)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+    .replace(/\r?\n/g, '<br/>');
+
+  bodyEl.innerHTML = safeNote;
+
+  modal.classList.add('active');
+}
+
+function closeNoteModal() {
+  const modal = document.getElementById('noteModal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
 window.openSetlistExitModal = openSetlistExitModal;
 window.closeSetlistExitModal = closeSetlistExitModal;
+window.openNoteModal = openNoteModal;
+window.closeNoteModal = closeNoteModal;
 
 function getTicketCategory(t) {
   if (t.KATEGORIE && t.KATEGORIE.trim()) {
@@ -1433,7 +1541,7 @@ if (catName === 'Passes') {
     `;
 
     // Line 2: Lokace a pripadna poznámka/trivia (NOTE)
-    const noteHTML = isValidValue(t.NOTE) ? `<div class="card-note-line">💡 <em>${t.NOTE}</em></div>` : '';
+    const noteHTML = isValidValue(t.NOTE) ? `<div class="card-note-line" onclick="event.stopPropagation(); openNoteModal(${globalIndex});">💡 <em>${t.NOTE}</em></div>` : '';
     const line2HTML = `
       <div class="card-location-line2">${locationText || (isValidValue(t.TOUR_NAME) ? t.TOUR_NAME : '')}</div>
       ${noteHTML}
