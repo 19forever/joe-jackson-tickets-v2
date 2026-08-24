@@ -878,17 +878,9 @@ function openNoteModal(ticketIndex) {
 
   metaEl.innerHTML = metaHTML;
 
-  // Set body with note, escaping html for security but keeping formatting, or simple string assignment
-  // Replace newlines with <br> to preserve line breaks, but first escape html entities
-  const safeNote = String(t.NOTE)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-    .replace(/\r?\n/g, '<br/>');
-
-  bodyEl.innerHTML = safeNote;
+  // Set body with note, ensuring raw HTML tags are safely rendered as HTML markup
+  // while converting standard newlines to <br/> to preserve line breaks.
+  bodyEl.innerHTML = String(t.NOTE).replace(/\r?\n/g, '<br/>');
 
   modal.classList.add('active');
 }
@@ -1540,8 +1532,9 @@ if (catName === 'Passes') {
       </div>
     `;
 
-    // Line 2: Lokace a pripadna poznámka/trivia (NOTE)
-    const noteHTML = isValidValue(t.NOTE) ? `<div class="card-note-line" onclick="event.stopPropagation(); openNoteModal(${globalIndex});">💡 <em>${t.NOTE}</em></div>` : '';
+    // Line 2: Lokace a pripadna poznámka/trivia (NOTE) - Ensure raw HTML tags are safely rendered and any newlines are preserved as breaks
+    const formattedNote = isValidValue(t.NOTE) ? String(t.NOTE).replace(/\r?\n/g, '<br/>') : '';
+    const noteHTML = formattedNote ? `<div class="card-note-line" onclick="event.stopPropagation(); openNoteModal(${globalIndex});">💡 <em>${formattedNote}</em></div>` : '';
     const line2HTML = `
       <div class="card-location-line2">${locationText || (isValidValue(t.TOUR_NAME) ? t.TOUR_NAME : '')}</div>
       ${noteHTML}

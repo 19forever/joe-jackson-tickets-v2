@@ -1629,7 +1629,10 @@
       const el = getField(f);
       if (el) {
         const val = r[f] !== undefined && r[f] !== null ? String(r[f]).trim() : '';
-        if (el.tagName === 'SELECT') {
+        if (f === 'NOTE') {
+          // Ensure NOTE field loads the raw string value verbatim without stripping, escaping, or converting HTML tags like <br> into \n
+          el.value = val;
+        } else if (el.tagName === 'SELECT') {
           el.value = val;
           if (el.selectedIndex === -1 || el.value !== val) {
             const lowerVal = val.toLowerCase();
@@ -1692,7 +1695,14 @@
       if (currentRecordIndex < 0 || currentRecordIndex >= fullCsvData.length) return;
       fields.forEach(f => {
         const el = getField(f);
-        if (el) fullCsvData[currentRecordIndex][f] = el.value.trim();
+        if (el) {
+          if (f === 'NOTE') {
+            // Retain raw HTML tags as literal text strings (e.g. <br> should stay <br>)
+            fullCsvData[currentRecordIndex][f] = el.value.trim();
+          } else {
+            fullCsvData[currentRecordIndex][f] = el.value.trim();
+          }
+        }
       });
     }
 
