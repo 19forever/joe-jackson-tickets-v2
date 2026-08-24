@@ -94,4 +94,5 @@ jobs:
           git add -f joe_jackson_tickets_cleaned.json
           git status
           git commit -m "Auto-generate JSON from updated CSV" || echo "No changes to commit"
+          git pull --rebase origin main
           git push
