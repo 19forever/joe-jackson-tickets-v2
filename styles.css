@@ -1316,6 +1316,197 @@ header {
   }
 }
 
+/* Mobile Touch & Layout Optimization (iOS / Android Responsive overrides) */
+@media (max-width: 640px) {
+  /* 1. Category Tabs Horizontal Scroll */
+  .category-tabs {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 8px !important;
+    padding-bottom: 8px !important; /* Premium negative space for scroll bar track */
+    scrollbar-width: none !important; /* Hide scrollbar Firefox */
+  }
+
+  .category-tabs::-webkit-scrollbar {
+    display: none !important; /* Hide scrollbar Chrome/Safari */
+  }
+
+  .tab-btn {
+    flex-shrink: 0 !important; /* Prevent tabs from shrinking or clipping */
+    white-space: nowrap !important;
+  }
+
+  /* 2. Compact Filter Controls Layout */
+  .controls {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    flex-direction: unset !important; /* Override vertical flex stack from 768px */
+    gap: 8px !important;
+    padding: 8px !important;
+  }
+
+  /* Search input spans both columns */
+  .search-input-wrapper {
+    grid-column: span 2 !important;
+    width: 100% !important;
+  }
+
+  /* Tour filter spans both columns */
+  #tourFilter {
+    grid-column: span 2 !important;
+    width: 100% !important;
+  }
+
+  /* Selects and toggles occupy half columns */
+  #cityFilter {
+    grid-column: span 1 !important;
+    width: 100% !important;
+  }
+
+  #sortFilter {
+    grid-column: span 1 !important;
+    width: 100% !important;
+  }
+
+  #pageSizeFilter {
+    grid-column: span 1 !important;
+    width: 100% !important;
+  }
+
+  .layout-toggles {
+    grid-column: span 1 !important;
+    width: 100% !important;
+    display: flex !important;
+    gap: 4px !important;
+    justify-content: stretch !important;
+  }
+
+  .layout-toggles .toggle-btn {
+    flex: 1 !important;
+  }
+
+  /* Horizontal action toolbar row */
+  .action-buttons-group {
+    grid-column: span 2 !important;
+    display: flex !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .action-buttons-group .surprise-btn {
+    flex: 1 !important;
+  }
+
+  /* 3. List View Cards (.list-view) adjustments */
+  .tickets-container.list-view .ticket-card {
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    padding: 10px 12px !important;
+    gap: 10px !important;
+  }
+
+  /* Thumbnail wrapper */
+  .tickets-container.list-view .card-img-wrapper {
+    width: 44px !important;
+    height: 33px !important;
+    margin-top: 2px !important;
+  }
+
+  /* Card content wrapper */
+  .tickets-container.list-view .card-content {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    flex: 1 !important;
+    width: 100% !important;
+  }
+
+  /* Metadata row */
+  .tickets-container.list-view .card-meta-line1 {
+    width: 100% !important;
+    height: auto !important;
+    min-width: unset !important;
+    justify-content: space-between !important;
+    margin-bottom: 2px !important;
+  }
+
+  /* Venue / location metadata wraps elegantly instead of severe truncation */
+  .tickets-container.list-view .card-location-line2 {
+    width: 100% !important;
+    height: auto !important;
+    line-height: 1.4 !important;
+    white-space: normal !important; /* Override white-space: nowrap from desktop */
+    overflow: visible !important;
+    text-overflow: clip !important;
+    font-size: 0.8rem !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 4px !important;
+  }
+
+  /* Action buttons align cleanly to the right */
+  .tickets-container.list-view .card-actions-grid {
+    grid-template-columns: repeat(7, 1fr) !important;
+    max-width: 280px !important;
+    width: 100% !important;
+    margin-left: auto !important; /* Push cleanly to the right */
+    gap: 4px !important;
+    height: auto !important;
+  }
+
+  .tickets-container.list-view .card-actions-grid .grid-slot-empty {
+    height: 44px !important;
+  }
+
+  /* 4. Touch Targets & min-height of 44px for ergonomics */
+  .tab-btn,
+  .btn-contribute,
+  .font-switcher-select,
+  .controls select,
+  .search-input-wrapper input,
+  .surprise-btn,
+  .toggle-btn,
+  .page-btn,
+  .otd-btn,
+  .jj-modal-actions button,
+  .jj-modal-actions .btn-secondary,
+  .jj-modal-actions .otd-btn,
+  #adminLoginLink,
+  #adminLockBtn,
+  .tickets-container.list-view .card-actions-grid .icon-btn,
+  .tickets-container.list-view .card-actions-grid .badge-setlist,
+  .tickets-container.list-view .card-actions-grid .badge-setlist-empty,
+  .tickets-container.list-view .card-actions-grid .badge-unverified,
+  .tickets-container.list-view .card-actions-grid .btn-action-video,
+  .tickets-container.list-view .card-actions-grid .btn-action-lineup,
+  .tickets-container.list-view .card-actions-grid .btn-action-edit,
+  .tickets-container.list-view .card-actions-grid .btn-action-related,
+  .tickets-container.list-view .card-actions-grid .btn-action-category {
+    min-height: 44px !important;
+    height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+
+  .search-input-wrapper input {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+}
+
+/* Reduced padding on control panel / controls under 600px width */
+@media (max-width: 600px) {
+  .control-panel,
+  .controls {
+    padding: 6px !important;
+    gap: 6px !important;
+  }
+}
+
 @media (max-width: 480px) {
   .card-actions-grid {
     gap: 2px;
