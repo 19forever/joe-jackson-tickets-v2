@@ -2134,7 +2134,7 @@
       try {
         const updatedCsvContent = Papa.unparse(fullCsvData);
         // Přidán flag [skip ci] pro zamezení zdvojeného spouštění workflow
-        const result = await GitHubService.commitFile(updatedCsvContent, "Update ticket metadata via Admin Editor [skip ci]");
+        const result = await GitHubService.commitFile(updatedCsvContent, "Update ticket metadata via Admin Editor");
 
         if (result.success) {
           showStatus(result.message || "✅ Saved successfully to GitHub.", 'green');
