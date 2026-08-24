@@ -3,6 +3,8 @@ name: Validate and Convert CSV to JSON
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'joe_jackson_tickets_cleaned.csv'
   workflow_dispatch:
 
 jobs:
