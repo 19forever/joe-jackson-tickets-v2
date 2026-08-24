@@ -12,12 +12,11 @@ on:
 jobs:
   validate-and-convert:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # Udělí botovi právo k zápisu nového JSON souboru
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -87,11 +86,3 @@ jobs:
 
           print(f'✅ Soubor {json_file} úspěšně vytvořen.')
           "
-
-      - name: Commit & Push updated JSON file
-        if: github.event_name == 'push'
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add joe_jackson_tickets_cleaned.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-generate JSON from updated CSV [skip ci]" && git push)
