@@ -15426,7 +15426,7 @@
     "YOUTUBE_URL": "",
     "REVIEW_URL": "",
     "SETLIST_FM_URL": "https://www.setlist.fm/setlist/joe-jackson/1980/pavilhao-infante-de-sagres-porto-portugal-be585ea.html",
-    "TOUR_ID": "tour-rain-summer-tour-2009",
+    "TOUR_ID": "tour-2009-rain-summer-tour",
     "TOUR_NAME": "2009 * Rain Summer Tour",
     "STATUS": "",
     "ORIGINAL_DATE": "",
@@ -15757,7 +15757,7 @@
   {
     "ID_MEMORABILIA": "TICKET_0686",
     "SHOW_ID": "",
-    "DATUM": "",
+    "DATUM": "1980-10-15",
     "MESTO": "",
     "STAT": "",
     "VENUE": "",
@@ -15780,7 +15780,7 @@
   {
     "ID_MEMORABILIA": "TICKET_0687",
     "SHOW_ID": "",
-    "DATUM": "",
+    "DATUM": "1979-02-07",
     "MESTO": "",
     "STAT": "U.K.",
     "VENUE": "",
@@ -16102,7 +16102,7 @@
   {
     "ID_MEMORABILIA": "TICKET_0701",
     "SHOW_ID": "",
-    "DATUM": "",
+    "DATUM": "1979-04-08",
     "MESTO": "",
     "STAT": "",
     "VENUE": "",
@@ -16148,7 +16148,7 @@
   {
     "ID_MEMORABILIA": "TICKET_0703",
     "SHOW_ID": "",
-    "DATUM": "",
+    "DATUM": "1981-08-18",
     "MESTO": "",
     "STAT": "",
     "VENUE": "",
@@ -16838,7 +16838,7 @@
   {
     "ID_MEMORABILIA": "TICKET_0733",
     "SHOW_ID": "",
-    "DATUM": "1979-01-04",
+    "DATUM": "1979-01-22",
     "MESTO": "Leeds",
     "STAT": "U.K.",
     "VENUE": "The Fan CLub",
