@@ -2201,7 +2201,7 @@
     "YOUTUBE_URL": "",
     "REVIEW_URL": "",
     "SETLIST_FM_URL": "https://www.setlist.fm/setlist/joe-jackson/1979/armadillo-world-headquarters-austin-tx-2b8e94aa.html",
-    "TOUR_ID": "tour-1979-look-sharp",
+    "TOUR_ID": "tour-1979-look-sharp-tour",
     "TOUR_NAME": "1979 * Look Sharp Tour",
     "STATUS": "",
     "ORIGINAL_DATE": "",
@@ -16719,5 +16719,28 @@
     "STATUS": "",
     "ORIGINAL_DATE": "",
     "NOTE": "<b>JOE JACKSON</b><br>London Nashville<br>IF IAN Dury is the Max Miller of rock'n'roll, then Joe Jackson is probably the Max Bygraves.<br>\nThe music hall ingredients are obvious: 'cheekie chappie' patter, limp wrist, pink face, striped suit, winning smile. All of which might sound like gimmickry. But it isn't.<br>Or even if it is, it's done with such genuine affection and skill that it matters not all. The important thing is that Joe Jackson has the presence to carry it off. He has style, precious and elegant.<br>But for Jackson – as for Dury – sartorial sass is just the icing on a musically rich cake.<br>He has an instinctive grasp for his ragged-edged pop songs, and a peculiarly unique, tough-and-and-tender voice. Commercial without being wet, rooted in sixties feel but nothing if not the sound of 1978.<br>He and the band don't really sound like anyone, but visually there are several remarkable doppelgangers. Guitarist Gary Sanford bears a disconcerting resemblance to Mickey Most. Drummer Dave Houghton looks like Bun E. Carlos of Cheap Trick and Joe himself is a peculiar hybrid of Bygraves and Peter Skellern.<br>Maybe to look at they're a walking waxworks, but musically they're a great deal more animate than anything Madame Tussaud could dream up. Jackson contorts and stiffens agonizingly, while Sanford contents himself with pursuing Joe around the stage with his guitar.<br>Jackson sticks to no firm line of policy on-stage; the material swings from the super hard reggae of 'Fools In Love' to the Steve Miller romantics of 'Is She Really Going Out With Him' and the frantic 'No Time To Lose'.<br>\nHe is no avant-garde doyen, no barrier-cracking experimentalist; all the songs are basically conservative – even to the extent of Joe performing a version of Fats Waller's 'Ain't Misbehavin''.<br>But he has elan, charm, talent and a very nice suit. He will Hit Big soon. That prediction is official.<br><i>TIM LOTT</i>"
+  },
+  {
+    "ID_MEMORABILIA": "TICKET_0728",
+    "SHOW_ID": "SHOW_1979-05-02_AUSTIN",
+    "DATUM": "1979-05-03",
+    "MESTO": "Houston",
+    "STAT": "TX",
+    "VENUE": "Texas Opry House",
+    "KATEGORIE": "tickets",
+    "SOUBOR_SKEN": "",
+    "CONTRIBUTOR": "Gert Schaumlöffel, Germany",
+    "LINEUP": "Joe Jackson (vocals, piano, keyboards) ; Gary Sanford (guitar, backing vocals) ; Graham Maby (bass, backing vocals) ; Dave Houghton (drums, backing vocals)",
+    "SETLIST": "",
+    "POCET_SKLADEB": "0.0",
+    "SETLIST_URL": "https://www.setlist.fm/setlist/joe-jackson/1979/texas-opry-house-houston-tx-338e94a9.html",
+    "YOUTUBE_URL": "",
+    "REVIEW_URL": "",
+    "SETLIST_FM_URL": "https://www.setlist.fm/setlist/joe-jackson/1979/armadillo-world-headquarters-austin-tx-2b8e94aa.html",
+    "TOUR_ID": "tour-1979-look-sharp-tour",
+    "TOUR_NAME": "1979 * Look Sharp Tour",
+    "STATUS": "",
+    "ORIGINAL_DATE": "",
+    "NOTE": "Joe Jackson <b>broke</b> his foot after jumping from atop his piano while ending his performance."
   }
 ]
