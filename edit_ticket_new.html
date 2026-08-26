@@ -24,11 +24,6 @@
   <!-- Viewer.js (Image Inspection & Zoom) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
-
-  <!-- Supabase JS Client & Connection -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-client.js"></script>
-
   <script src="watermark.js"></script>
   <script src="storage-service.js"></script>
   <script src="github-service.js"></script>
@@ -815,7 +810,7 @@
 
       <div class="action-bar">
         <button class="btn-submit" type="button" onclick="downloadUpdatedCSV()">💾 Download Updated CSV</button>
-        <button class="btn-github" type="button" onclick="commitToGitHub()">🚀 Save Directly to Supabase</button>
+        <button class="btn-github" type="button" onclick="commitToGitHub()">🚀 Save Directly to GitHub</button>
       </div>
 
       <div id="statusMessage"></div>
@@ -1152,27 +1147,38 @@
       loadCsvData();
     });
 
-  // ÚPRAVA 1: Načítání dat přímo ze Supabase databáze
-  async function loadCsvData() {
-    showStatus('⏳ Loading data from Supabase...', 'yellow');
-    try {
-      if (typeof supabaseClient === 'undefined') {
-        throw new Error("Supabase client is not connected!");
-      }
+  const GITHUB_RAW_FALLBACK_URL = 'https://raw.githubusercontent.com/19forever/joe-jackson-tickets-v2/main/joe_jackson_tickets_cleaned.csv';
+  const DEFAULT_FALLBACK_RECORDS = [
+    {
+      ID_MEMORABILIA: 'TICKET_0001',
+      KATEGORIE: 'tickets',
+      TOUR_NAME: 'Big World Tour 1986',
+      DATUM: '1986-05-10',
+      MESTO: 'London',
+      STAT: 'UK',
+      VENUE: 'Royal Albert Hall',
+      LINEUP: 'Joe Jackson (vocals, piano), Rick Ford (bass), Vinnie Zummo (guitar), Gary Burke (drums)',
+      SOUBOR_SKEN: 'ticket_1986_london.jpg'
+    }
+  ];
 
-      const { data, error } = await supabaseClient
-        .from('tickets')
-        .select('*')
-        .order('ID_MEMORABILIA', { ascending: true });
+  function loadCsvData() {
+    const ghConfig = typeof StorageService !== 'undefined' && typeof StorageService.getGitHubConfig === 'function'
+      ? StorageService.getGitHubConfig()
+      : { file: 'joe_jackson_tickets_cleaned.csv' };
+    const targetFile = ghConfig.file || CSV_FILENAME;
 
-      if (error) throw error;
-
-      if (!data || data.length === 0) {
-        showStatus('⚠️ Supabase database is empty.', 'yellow');
+    function handleParsedData(data) {
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        useMockFallback('Parsed data array is empty');
         return;
       }
 
-      fullCsvData = data;
+      fullCsvData = data.filter(row => row && Object.keys(row).length > 0 && (row.ID_MEMORABILIA || row.DATUM || row.TOUR_NAME || row.MESTO || row.STAT));
+      if (fullCsvData.length === 0) {
+        fullCsvData = data;
+      }
+
       populateDatalists(fullCsvData);
 
       const urlParams = new URLSearchParams(window.location.search);
@@ -1217,12 +1223,72 @@
       }
 
       loadRecordByIndex(initialIndex);
-      showStatus('✅ Data loaded successfully from Supabase.', 'green');
-
-    } catch (err) {
-      console.error('Error loading from Supabase:', err);
-      showStatus('❌ Error loading: ' + err.message, 'red');
     }
+
+    function useMockFallback(reason) {
+      console.warn("Using Fallback 3 (Mock/Default Record):", reason);
+      showStatus('⚠️ Network load failed. Loaded default placeholder record.', 'yellow');
+      handleParsedData(DEFAULT_FALLBACK_RECORDS);
+    }
+
+    function tryGitHubRawFallback() {
+      console.info("Attempting Fallback 2: Fetching raw CSV from GitHub repository...");
+      fetch(GITHUB_RAW_FALLBACK_URL)
+        .then(res => {
+          if (!res.ok) throw new Error(`GitHub raw fetch returned HTTP ${res.status}`);
+          return res.text();
+        })
+        .then(csvText => {
+          const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+          if (parsed.data && parsed.data.length > 0) {
+            handleParsedData(parsed.data);
+          } else {
+            useMockFallback('GitHub raw CSV parsed with 0 rows');
+          }
+        })
+        .catch(err => {
+          console.warn("Fallback 2 (GitHub raw) failed:", err);
+          useMockFallback(err.message);
+        });
+    }
+
+    function tryLocalFetchFallback() {
+      console.info("Attempting Fallback 1: Local fetch()...");
+      fetch(targetFile)
+        .then(res => {
+          if (!res.ok) throw new Error(`Local fetch returned HTTP ${res.status}`);
+          return res.text();
+        })
+        .then(csvText => {
+          const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+          if (parsed.data && parsed.data.length > 0) {
+            handleParsedData(parsed.data);
+          } else {
+            tryGitHubRawFallback();
+          }
+        })
+        .catch(err => {
+          console.warn("Fallback 1 (local fetch) failed:", err);
+          tryGitHubRawFallback();
+        });
+    }
+
+    Papa.parse(targetFile, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        if (results.data && results.data.length > 0) {
+          handleParsedData(results.data);
+        } else {
+          tryLocalFetchFallback();
+        }
+      },
+      error: function(err) {
+        console.warn("Primary Papa.parse download failed:", err);
+        tryLocalFetchFallback();
+      }
+    });
   }
 
   function populateDatalists(dataset) {
@@ -1831,7 +1897,7 @@
 
       const nextIdx = currentRecordIndex >= fullCsvData.length ? fullCsvData.length - 1 : currentRecordIndex;
       loadRecordByIndex(nextIdx);
-      showStatus(`🗑️ Record ${recId} deleted from session. Click "Save Directly to Supabase" to confirm change.`, 'green');
+      showStatus(`🗑️ Record ${recId} deleted from session. Click "Save Directly to GitHub" to confirm change.`, 'green');
     }
 
     function showInboxHoverPopover(e, imgSrc, filename) {
@@ -2038,6 +2104,10 @@
       showStatus(`✅ Created new record prefilled with scan: ${filename}`, 'green');
     }
 
+    function utf8_to_b64(str) {
+      return window.btoa(unescape(encodeURIComponent(str)));
+    }
+
     function downloadUpdatedCSV() {
       saveCurrentFormToMemory();
       const csvStr = Papa.unparse(fullCsvData);
@@ -2051,28 +2121,29 @@
       showStatus('💾 Downloaded updated CSV file.', 'green');
     }
 
-    // ÚPRAVA 2: Ukládání změn přímo do Supabase databáze
     async function commitToGitHub() {
       saveCurrentFormToMemory();
-      showStatus('🚀 Saving changes directly to Supabase database...', 'yellow');
+      const cfg = typeof StorageService !== 'undefined' ? StorageService.getGitHubConfig() : { token: localStorage.getItem('gh_token') || localStorage.getItem('jj_github_pat') };
+      if (!cfg.token) {
+        manageToken();
+        return;
+      }
+
+      showStatus('🚀 Committing changes directly to GitHub repository...', 'yellow');
 
       try {
-        if (typeof supabaseClient === 'undefined') {
-          throw new Error("Supabase client is not connected!");
+        const updatedCsvContent = Papa.unparse(fullCsvData);
+        // Přidán flag [skip ci] pro zamezení zdvojeného spouštění workflow
+        const result = await GitHubService.commitFile(updatedCsvContent, "Update ticket metadata via Admin Editor");
+
+        if (result.success) {
+          showStatus(result.message || "✅ Saved successfully to GitHub.", 'green');
+        } else {
+          showStatus(result.message || "❌ Failed to commit to GitHub.", 'red');
         }
-
-        const currentRecord = fullCsvData[currentRecordIndex];
-
-        const { data, error } = await supabaseClient
-          .from('tickets')
-          .upsert(currentRecord);
-
-        if (error) throw error;
-
-        showStatus('✅ Saved successfully to Supabase.', 'green');
       } catch (err) {
-        console.error("Supabase Save Error:", err);
-        showStatus('❌ Failed to save to Supabase: ' + err.message, 'red');
+        console.error("GitHub Commit Error:", err);
+        showStatus('❌ Failed to commit to GitHub: ' + err.message, 'red');
       }
     }
 
