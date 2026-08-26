@@ -1103,51 +1103,52 @@ function openDirectImagePreview(ticketIndex) {
 
   document.body.appendChild(container);
 
- activeViewerInstance = new Viewer(container, {
-  backdrop: 'static',
-  hidden: function() {
-    activeViewerInstance.destroy();
-    activeViewerInstance = null;
-    if (container.parentNode) document.body.removeChild(container);
-  },
-  title: function() {
-    const headerStr = t.DATUM ? formatDisplayDate(t.DATUM) : (t.TOUR_NAME || 'Archive Item');
-    const locStr = formatLocationText(t);
-    return `${headerStr}${locStr ? ` | ${locStr}` : ''} (${getTicketCategory(t)})`;
-  },
-  viewed: function() {
-    setTimeout(() => {
-      const canvasImg = document.querySelector('.viewer-canvas img');
-      if (canvasImg && (canvasImg.src.includes('data:image/svg+xml') || canvasImg.dataset.isMissing === 'true')) {
-        canvasImg.style.cursor = 'pointer';
-        canvasImg.title = 'Click to contribute item/photo for this show';
-        canvasImg.onclick = (e) => {
-          e.stopPropagation();
-          window.location.href = contributeUrl;
-        };
-      }
-    }, 50);
-  },
-  // --- ÚPRAVA OVLÁDACÍ LIŠTY ---
-  toolbar: {
-    zoomIn: 1, 
-    zoomOut: 1, 
-    oneToOne: 1, 
-    reset: 1,
-    prev: skenFiles.length > 1 ? 1 : 0,
-    next: skenFiles.length > 1 ? 1 : 0,
-    rotateLeft: 1, 
-    rotateRight: 1,
-    // Přidání vlastního tlačítka Back / Close do spodní lišty:
-    closeBtn: {
-      show: 1,
-      size: 'large',
-      click: function() {
-        if (activeViewerInstance) activeViewerInstance.show();
+  activeViewerInstance = new Viewer(container, {
+    backdrop: 'static',
+    hidden: function() {
+      activeViewerInstance.destroy();
+      activeViewerInstance = null;
+      if (container.parentNode) document.body.removeChild(container);
+    },
+    title: function() {
+      const headerStr = t.DATUM ? formatDisplayDate(t.DATUM) : (t.TOUR_NAME || 'Archive Item');
+      const locStr = formatLocationText(t);
+      return `${headerStr}${locStr ? ` | ${locStr}` : ''} (${getTicketCategory(t)})`;
+    },
+    viewed: function() {
+      setTimeout(() => {
+        const canvasImg = document.querySelector('.viewer-canvas img');
+        if (canvasImg && (canvasImg.src.includes('data:image/svg+xml') || canvasImg.dataset.isMissing === 'true')) {
+          canvasImg.style.cursor = 'pointer';
+          canvasImg.title = 'Click to contribute item/photo for this show';
+          canvasImg.onclick = (e) => {
+            e.stopPropagation();
+            window.location.href = contributeUrl;
+          };
+        }
+      }, 50);
+    },
+    toolbar: {
+      zoomIn: 1, 
+      zoomOut: 1, 
+      oneToOne: 1, 
+      reset: 1,
+      prev: skenFiles.length > 1 ? 1 : 0,
+      next: skenFiles.length > 1 ? 1 : 0,
+      rotateLeft: 1, 
+      rotateRight: 1,
+      closeBtn: {
+        show: 1,
+        size: 'large',
+        click: function() {
+          if (activeViewerInstance) activeViewerInstance.hide(); // OPRAVENO Z show() NA hide()
+        }
       }
     }
-  }
-});
+  });
+
+  activeViewerInstance.show();
+}
 
 function openQuickImageModal(scanFileName, ticketObj) {
   if (!scanFileName && !ticketObj) return;
@@ -1187,60 +1188,58 @@ function openQuickImageModal(scanFileName, ticketObj) {
   document.body.appendChild(container);
 
   quickViewerInstance = new Viewer(container, {
-  backdrop: 'static',
-  hidden: function() {
-    if (quickViewerInstance) {
-      quickViewerInstance.destroy();
-      quickViewerInstance = null;
-    }
-    if (container.parentNode) document.body.removeChild(container);
-  },
-  title: function() {
-    if (!ticketObj) return 'Scan Preview';
-    const headerStr = ticketObj.DATUM ? formatDisplayDate(ticketObj.DATUM) : (ticketObj.TOUR_NAME || 'Archive Item');
-    const locStr = formatLocationText(ticketObj);
-    return `${headerStr}${locStr ? ` | ${locStr}` : ''} (${getTicketCategory(ticketObj)})`;
-  },
-  viewed: function() {
-    setTimeout(() => {
-      const canvasImg = document.querySelector('.viewer-canvas img');
-      if (canvasImg && (canvasImg.src.includes('data:image/svg+xml') || canvasImg.dataset.isMissing === 'true')) {
-        canvasImg.style.cursor = 'pointer';
-        canvasImg.title = 'Click to contribute item/photo for this show';
-        canvasImg.onclick = (e) => {
-          e.stopPropagation();
-          window.location.href = contributeUrl;
-        };
+    backdrop: 'static',
+    hidden: function() {
+      if (quickViewerInstance) {
+        quickViewerInstance.destroy();
+        quickViewerInstance = null;
       }
-    }, 50);
-  },
-  // --- ÚPRAVA OVLÁDACÍ LIŠTY ---
-  toolbar: {
-    zoomIn: 1, 
-    zoomOut: 1, 
-    oneToOne: 1, 
-    reset: 1,
-    prev: skenFiles.length > 1 ? 1 : 0,
-    next: skenFiles.length > 1 ? 1 : 0,
-    rotateLeft: 1, 
-    rotateRight: 1,
-    // Přidání vlastního tlačítka Back / Close do spodní lišty:
-    closeBtn: {
-      show: 1,
-      size: 'large',
-      click: function() {
-        if (quickViewerInstance) quickViewerInstance.hide();
+      if (container.parentNode) document.body.removeChild(container);
+    },
+    title: function() {
+      if (!ticketObj) return 'Scan Preview';
+      const headerStr = ticketObj.DATUM ? formatDisplayDate(ticketObj.DATUM) : (ticketObj.TOUR_NAME || 'Archive Item');
+      const locStr = formatLocationText(ticketObj);
+      return `${headerStr}${locStr ? ` | ${locStr}` : ''} (${getTicketCategory(ticketObj)})`;
+    },
+    viewed: function() {
+      setTimeout(() => {
+        const canvasImg = document.querySelector('.viewer-canvas img');
+        if (canvasImg && (canvasImg.src.includes('data:image/svg+xml') || canvasImg.dataset.isMissing === 'true')) {
+          canvasImg.style.cursor = 'pointer';
+          canvasImg.title = 'Click to contribute item/photo for this show';
+          canvasImg.onclick = (e) => {
+            e.stopPropagation();
+            window.location.href = contributeUrl;
+          };
+        }
+      }, 50);
+    },
+    toolbar: {
+      zoomIn: 1, 
+      zoomOut: 1, 
+      oneToOne: 1, 
+      reset: 1,
+      prev: skenFiles.length > 1 ? 1 : 0,
+      next: skenFiles.length > 1 ? 1 : 0,
+      rotateLeft: 1, 
+      rotateRight: 1,
+      closeBtn: {
+        show: 1,
+        size: 'large',
+        click: function() {
+          if (quickViewerInstance) quickViewerInstance.hide();
+        }
       }
     }
-  }
-});
+  });
 
   if (typeof quickViewerInstance.view === 'function') {
     quickViewerInstance.view(0);
   } else {
     quickViewerInstance.show();
   }
-}
+} // TATO UZAVÍRACÍ ZÁVORKA TADY CHYBĚLA
 
 function handleRelatedBadgeClick(el) {
   if (!el) return;
