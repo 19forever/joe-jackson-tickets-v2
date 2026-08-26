@@ -33,9 +33,13 @@
   <link rel="alternate icon" type="image/x-icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="favicon.svg">
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- Supabase JS Client & Config -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+
   <!-- Chart.js for rendering graphs -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <!-- Leaflet CSS & JS for World Map -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -376,8 +380,6 @@
   </div>
 
   <script>
-    const CSV_FILENAME = 'joe_jackson_tickets_cleaned.csv';
-
     Chart.defaults.color = '#9ca3af';
     Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif';
 
@@ -406,17 +408,28 @@
     let mapMarkersGroup = null;
     let mapPolyline = null;
 
-    window.addEventListener('DOMContentLoaded', () => {
-      Papa.parse(CSV_FILENAME, {
-        download: true,
-        header: true,
-        skipEmptyLines: true,
-        complete: function(results) {
-          globalRawData = results.data;
-          processAndRenderStats(globalRawData);
-        }
-      });
+    window.addEventListener('DOMContentLoaded', async () => {
+      await loadDataFromSupabase();
     });
+
+    async function loadDataFromSupabase() {
+      try {
+        if (typeof supabaseClient === 'undefined') {
+          throw new Error("Supabase client is not loaded! Check supabase-client.js.");
+        }
+
+        const { data, error } = await supabaseClient
+          .from('tickets')
+          .select('*');
+
+        if (error) throw error;
+
+        globalRawData = data || [];
+        processAndRenderStats(globalRawData);
+      } catch (err) {
+        console.error("Error loading data from Supabase:", err.message);
+      }
+    }
 
     function isValid(val) {
       if (!val) return false;
